@@ -1,4 +1,4 @@
-// File: C:\Users\Aman Chaudhary\Desktop\DevflowAI\app\privacy\page.jsx
+// File: c:\Users\Aman Chaudhary\Desktop\DevflowAI\app\privacy\page.jsx
 import * as entry from '../../../../app/privacy/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

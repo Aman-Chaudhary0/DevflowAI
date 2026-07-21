@@ -1,6 +1,5 @@
 import "./globals.css";
-import { Footer } from "@/components/footer";
-import { Navbar } from "@/components/navbar";
+import { SiteShell } from "@/components/site-shell";
 
 export const metadata = {
   title: "Devflow AI",
@@ -12,9 +11,7 @@ export default function RootLayout({ children }) {
     <html lang="en" data-theme="dark" suppressHydrationWarning>
       <body>
         <div className="app-shell grid-bg">
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
+          <SiteShell>{children}</SiteShell>
         </div>
       </body>
     </html>
