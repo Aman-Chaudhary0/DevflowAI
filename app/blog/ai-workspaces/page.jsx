@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Share2 } from "lucide-react";
 import { CodeBlock, Rating } from "@/components/ui-blocks";
 
+const tocItems = ["Principles", "Context", "Review loops", "Shipping"];
+
 export default function BlogDetailPage() {
   return (
     <>
@@ -14,7 +16,7 @@ export default function BlogDetailPage() {
               <h1 className="h1">Designing AI workspaces developers actually trust</h1>
               <p className="lead">Context, control, and visibility matter more than novelty when AI becomes part of the delivery loop.</p>
             </div>
-            <button className="icon-btn" aria-label="Share article" type="button"><Share2 size={18} /></button>
+            <button aria-label="Share article" className="icon-btn" type="button"><Share2 size={18} /></button>
           </div>
         </div>
       </section>
@@ -23,10 +25,11 @@ export default function BlogDetailPage() {
         <div className="container doc-layout">
           <aside className="toc card card-pad stack">
             <strong>Table of contents</strong>
-            {["Principles", "Context", "Review loops", "Shipping"].map((item) => (
+            {tocItems.map((item) => (
               <a className="muted" href={`#${item.toLowerCase().replace(" ", "-")}`} key={item}>{item}</a>
             ))}
           </aside>
+
           <article className="article stack-lg">
             <h2 id="principles">Principles</h2>
             <p>The best AI workspaces make the system state inspectable. Developers should see what the AI knows, what it changed, and where human review still matters.</p>
@@ -38,6 +41,7 @@ export default function BlogDetailPage() {
             <h2 id="shipping">Shipping</h2>
             <p>Great interfaces compress the path from idea to deployment while preserving the moments where teams need judgment.</p>
           </article>
+
           <aside className="toc card card-pad stack">
             <strong>Related Articles</strong>
             <Link className="muted" href="/blog">Kanban automation</Link>

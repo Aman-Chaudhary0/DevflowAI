@@ -1,4 +1,4 @@
-// File: c:\Users\Aman Chaudhary\Desktop\DevflowAI\app\register\page.jsx
+// File: C:\Users\Aman Chaudhary\Desktop\DevflowAI\app\register\page.jsx
 import * as entry from '../../../../app/register/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

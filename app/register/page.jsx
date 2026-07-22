@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { AuthCard, AuthDivider, AuthInput, AuthShell, PasswordStrength, RegisterValidation, SocialButtons, SubmitButton, authIcons } from "@/components/auth-ui";
 
+// RegisterPage is a page component that renders the registration form, allowing users to create a new account by providing their full name, username, email address, and password. It includes validation for the username and password strength, as well as options to agree to terms and privacy policy. The component manages the state of the input fields and handles form submission.
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");

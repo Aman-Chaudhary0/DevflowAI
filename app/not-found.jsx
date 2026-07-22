@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Home, Search } from "lucide-react";
 
+// NotFound is a page component that renders a custom 404 error page, informing users that the requested route was not found. It provides options to navigate back to the home page or search the documentation, along with a humorous message and visual elements to enhance the user experience.
 export default function NotFound() {
   return (
     <section className="container hero-grid" style={{ minHeight: "calc(100vh - 72px)" }}>

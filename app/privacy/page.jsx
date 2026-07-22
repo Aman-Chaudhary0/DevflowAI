@@ -2,15 +2,24 @@ import { PageHero } from "@/components/ui-blocks";
 
 const sections = ["Introduction", "Data", "Cookies", "Security", "Rights", "Contact"];
 
+// PrivacyPage is a page component that renders the "Privacy" page of the application, providing information on the privacy policy, data handling practices, cookie usage, security measures, user rights, and contact information. It includes a hero section, a table of contents for easy navigation, and detailed sections for each privacy-related topic.
 export default function PrivacyPage() {
   return (
     <>
-      <PageHero eyebrow="Privacy" title="Privacy Policy" description="A simple, readable policy layout for Devflow AI public pages." />
+      <PageHero
+        eyebrow="Privacy"
+        title="Privacy Policy"
+        description="A simple, readable policy layout for Devflow AI public pages."
+      />
+
       <section className="section-tight">
         <div className="container doc-layout">
           <aside className="toc card card-pad stack">
-            {sections.map((section) => <a className="muted" href={`#${section.toLowerCase()}`} key={section}>{section}</a>)}
+            {sections.map((section) => (
+              <a className="muted" href={`#${section.toLowerCase()}`} key={section}>{section}</a>
+            ))}
           </aside>
+
           <article className="article stack-lg">
             {sections.map((section) => (
               <section id={section.toLowerCase()} key={section}>
@@ -20,7 +29,10 @@ export default function PrivacyPage() {
             ))}
             <a className="btn btn-primary" href="#top">Back to top</a>
           </article>
-          <aside className="toc card card-pad"><p className="muted">Last updated July 20, 2026</p></aside>
+
+          <aside className="toc card card-pad">
+            <p className="muted">Last updated July 20, 2026</p>
+          </aside>
         </div>
       </section>
     </>

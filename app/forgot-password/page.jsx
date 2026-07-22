@@ -7,6 +7,7 @@ import { AuthCard, AuthInput, AuthShell, ForgotSuccess, SubmitButton, authIcons 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
 
+  // ForgotPasswordPage is a page component that renders the "Forgot Password" form, allowing users to request a password reset link by entering their email address. It displays a success message after the reset link is sent, with options to open the email or return to the login page.
   return (
     <AuthShell>
       <AuthCard title="Forgot Password?" subtitle="No worries. We will send you a reset link.">

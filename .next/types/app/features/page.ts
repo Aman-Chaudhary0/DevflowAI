@@ -1,4 +1,4 @@
-// File: c:\Users\Aman Chaudhary\Desktop\DevflowAI\app\features\page.jsx
+// File: C:\Users\Aman Chaudhary\Desktop\DevflowAI\app\features\page.jsx
 import * as entry from '../../../../app/features/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 

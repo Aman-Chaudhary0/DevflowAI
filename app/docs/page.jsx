@@ -3,6 +3,7 @@ import { CodeBlock, SearchBar } from "@/components/ui-blocks";
 
 const nav = ["Getting Started", "AI Chat", "Projects", "Analytics", "API Reference", "Deployment"];
 
+// DocsPage is a page component that renders the "Documentation" page of the application, providing a search bar, navigation links, and sections for different documentation topics. It includes a table of contents, code blocks, and navigation buttons for moving between sections.
 export default function DocsPage() {
   return (
     <section className="section-tight">
@@ -11,8 +12,12 @@ export default function DocsPage() {
         <div className="doc-layout">
           <aside className="toc card card-pad stack">
             <strong>Navigation</strong>
-            {nav.map((item) => <a className="muted" href={`#${item.toLowerCase().replaceAll(" ", "-")}`} key={item}>{item}</a>)}
+            {nav.map((item) => (
+              <a className="muted" href={`#${item.toLowerCase().replaceAll(" ", "-")}`} key={item}>{item}</a>
+            ))}
           </aside>
+
+      
           <article className="article stack-lg">
             <h1 className="h1">Documentation</h1>
             <p>Use Devflow AI to manage projects, ask AI for implementation support, review code, and track deployments from a single workspace.</p>
@@ -28,6 +33,8 @@ export default function DocsPage() {
               <button className="btn btn-primary" type="button">Next <ChevronRight size={18} /></button>
             </div>
           </article>
+
+
           <aside className="toc card card-pad stack">
             <strong>On this page</strong>
             <span className="muted">Getting Started</span>
