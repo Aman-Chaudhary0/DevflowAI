@@ -2,9 +2,13 @@ import Link from "next/link";
 import { posts } from "@/lib/data";
 import { PageHero, SearchBar } from "@/components/ui-blocks";
 
+const tags = ["AI", "Workflow", "Design", "Security"];
+const popularTags = ["Next.js", "AI", "Design", "Security", "Teams"];
+
 export default function BlogPage() {
   const [featured, ...rest] = posts;
 
+  // The component renders a blog page with a hero section, a search bar, trending articles, popular tags, and a newsletter subscription form. It displays the featured article prominently and lists other articles in a grid layout.
   return (
     <>
       <PageHero
@@ -14,9 +18,12 @@ export default function BlogPage() {
       >
         <SearchBar placeholder="Search articles" />
         <div className="row wrap center" style={{ gap: 10 }}>
-          {["AI", "Workflow", "Design", "Security"].map((tag) => <span className="badge" key={tag}>{tag}</span>)}
+          {tags.map((tag) => (
+            <span className="badge" key={tag}>{tag}</span>
+          ))}
         </div>
       </PageHero>
+
 
       <section className="section-tight">
         <div className="container grid grid-2">
@@ -30,12 +37,16 @@ export default function BlogPage() {
           <aside className="stack-lg">
             <div className="card card-pad stack">
               <h3 className="h3">Trending</h3>
-              {posts.map((post) => <Link className="muted" href={`/blog/${post.slug}`} key={post.slug}>{post.title}</Link>)}
+              {posts.map((post) => (
+                <Link className="muted" href={`/blog/${post.slug}`} key={post.slug}>{post.title}</Link>
+              ))}
             </div>
             <div className="card card-pad stack">
               <h3 className="h3">Popular tags</h3>
               <div className="row wrap" style={{ gap: 8 }}>
-                {["Next.js", "AI", "Design", "Security", "Teams"].map((tag) => <span className="badge" key={tag}>{tag}</span>)}
+                {popularTags.map((tag) => (
+                  <span className="badge" key={tag}>{tag}</span>
+                ))}
               </div>
             </div>
             <div className="card card-pad stack">
@@ -60,7 +71,9 @@ export default function BlogPage() {
               </Link>
             ))}
           </div>
-          <div className="center"><button className="btn btn-outline" type="button">Load More</button></div>
+          <div className="center">
+            <button className="btn btn-outline" type="button">Load More</button>
+          </div>
         </div>
       </section>
     </>

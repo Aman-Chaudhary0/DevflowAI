@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthCard, AuthShell, OtpInput } from "@/components/auth-ui";
 
+// TwoFactorPage is a page component that renders the two-factor authentication form, allowing users to enter a 6-digit code from their authenticator app, with options to use a backup code or resend the code.
 export default function TwoFactorPage() {
   return (
     <AuthShell>

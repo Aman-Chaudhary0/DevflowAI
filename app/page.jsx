@@ -1,9 +1,31 @@
 import Link from "next/link";
-import { ArrowRight, Building2, CircleDot, GitBranch, MessageSquare, Rocket, ShieldCheck } from "lucide-react";
+import { ArrowRight, Building2, CircleDot, MessageSquare, Rocket, ShieldCheck } from "lucide-react";
 import { DashboardPreview, FeatureGrid, PricingCards, Rating } from "@/components/ui-blocks";
 
+const companies = ["Northstar", "LinearWorks", "CloudPeak", "Vertex Labs"];
+
+const aiFeatures = [
+  "Markdown responses with code blocks",
+  "Regenerate, stop, copy, and cite actions",
+  "Chat history grouped by project"
+];
+
 const screenshots = ["Dashboard", "AI Chat", "Kanban", "Analytics", "Code Review"];
+
 const workflow = ["Idea", "AI", "Develop", "Deploy"];
+
+const testimonials = [
+  { quote: "A calm command center for a noisy product cycle.", author: "Ava, CTO at Northstar" },
+  { quote: "Our reviews ship faster because context no longer leaks.", author: "Liam, Staff Engineer" },
+  { quote: "The dashboard made our deployment rituals visible.", author: "Mina, Product Lead" }
+];
+
+const faqs = [
+  "Can I use light mode?",
+  "Does it support teams?",
+  "Can AI read project context?",
+  "Is this production-ready UI?"
+];
 
 export default function HomePage() {
   return (
@@ -25,7 +47,7 @@ export default function HomePage() {
         <div className="container stack">
           <p className="eyebrow">Trusted by shipping teams</p>
           <div className="grid grid-4">
-            {["Northstar", "LinearWorks", "CloudPeak", "Vertex Labs"].map((company) => (
+            {companies.map((company) => (
               <div className="card card-pad center" key={company} style={{ minHeight: 96 }}>
                 <Building2 className="soft" size={22} />
                 <strong className="muted" style={{ marginLeft: 10 }}>{company}</strong>
@@ -63,8 +85,10 @@ export default function HomePage() {
           <div className="stack-lg">
             <span className="eyebrow">AI Showcase</span>
             <h2 className="h2">Chat, review, document, and plan with project context.</h2>
-            {["Markdown responses with code blocks", "Regenerate, stop, copy, and cite actions", "Chat history grouped by project"].map((item) => (
-              <span className="row" key={item} style={{ gap: 12 }}><ShieldCheck color="var(--success)" size={20} /> {item}</span>
+            {aiFeatures.map((item) => (
+              <span className="row" key={item} style={{ gap: 12 }}>
+                <ShieldCheck color="var(--success)" size={20} /> {item}
+              </span>
             ))}
           </div>
         </div>
@@ -102,11 +126,11 @@ export default function HomePage() {
       <section className="section">
         <div className="container stack-lg">
           <div className="grid grid-3">
-            {["A calm command center for a noisy product cycle.", "Our reviews ship faster because context no longer leaks.", "The dashboard made our deployment rituals visible."].map((quote, index) => (
-              <article className="card card-pad stack" key={quote}>
+            {testimonials.map(({ quote, author }) => (
+              <article className="card card-pad stack" key={author}>
                 <Rating />
                 <p>{quote}</p>
-                <strong>{["Ava, CTO at Northstar", "Liam, Staff Engineer", "Mina, Product Lead"][index]}</strong>
+                <strong>{author}</strong>
               </article>
             ))}
           </div>
@@ -125,7 +149,7 @@ export default function HomePage() {
 
       <section className="section-tight">
         <div className="container grid grid-2">
-          {["Can I use light mode?", "Does it support teams?", "Can AI read project context?", "Is this production-ready UI?"].map((question) => (
+          {faqs.map((question) => (
             <details className="card card-pad" key={question}>
               <summary className="h3">{question}</summary>
               <p className="muted">Yes. The interface is designed around polished dark mode with light mode support, responsive layouts, and accessible controls.</p>

@@ -2,12 +2,8 @@ import Link from "next/link";
 import { Check, ChevronRight, Copy, Play, Search, Star } from "lucide-react";
 import { features, pricingPlans } from "@/lib/data";
 
-export function PageHero({
-  eyebrow,
-  title,
-  description,
-  children
-}) {
+// PageHero is a component that renders a hero section for a page, displaying an optional eyebrow, title, description, and any child components passed to it.
+export function PageHero({ eyebrow, title, description, children }) {
   return (
     <section className="section-tight">
       <div className="container stack-lg center" style={{ textAlign: "center" }}>
@@ -20,6 +16,7 @@ export function PageHero({
   );
 }
 
+// The FeatureGrid component renders a grid of feature cards, each displaying an icon, title, description, and a "Learn More" link that navigates to the features page.
 export function FeatureGrid() {
   return (
     <div className="grid grid-3">
@@ -37,6 +34,7 @@ export function FeatureGrid() {
   );
 }
 
+// PricingCards is a component that renders a grid of pricing plan cards, each displaying the plan's name, description, price, features, and a call-to-action button. It supports a compact view that limits the number of displayed features.
 export function PricingCards({ compact = false }) {
   return (
     <div className="grid grid-4">
@@ -74,10 +72,10 @@ export function DashboardPreview() {
         <button className="btn btn-primary" type="button"><Play size={16} /> Run</button>
       </div>
       <div className="grid grid-3">
-        {["Velocity", "Reviews", "Deploys"].map((label, index) => (
+        {[["Velocity", "84%"], ["Reviews", "126"], ["Deploys", "42"]].map(([label, value]) => (
           <div className="card card-pad" key={label}>
             <p className="soft">{label}</p>
-            <strong className="font-display" style={{ fontSize: 30 }}>{["84%", "126", "42"][index]}</strong>
+            <strong className="font-display" style={{ fontSize: 30 }}>{value}</strong>
           </div>
         ))}
       </div>
@@ -101,6 +99,7 @@ export function DashboardPreview() {
   );
 }
 
+// The SearchBar component renders a search input field with an optional placeholder text, allowing users to search for content within the application.
 export function SearchBar({ placeholder = "Search Devflow AI" }) {
   return (
     <label className="row card" style={{ gap: 12, maxWidth: 620, width: "100%", padding: "10px 16px" }}>
@@ -110,15 +109,12 @@ export function SearchBar({ placeholder = "Search Devflow AI" }) {
   );
 }
 
+// The CodeBlock component renders a styled code block with a copy button, allowing users to view and copy code snippets easily. It displays a sample code snippet related to running a workflow with Devflow AI.
 export function CodeBlock() {
   return (
     <pre className="code-card">
       <button aria-label="Copy code" className="icon-btn" style={{ float: "right" }} type="button"><Copy size={16} /></button>
-      <code>{`const workflow = await devflow.ai.run({
-  context: "launch checklist",
-  mode: "review",
-  output: ["tasks", "tests", "deploy"]
-});`}</code>
+      <code>{`const workflow = await devflow.ai.run({\n  context: "launch checklist",\n  mode: "review",\n  output: ["tasks", "tests", "deploy"]\n});`}</code>
     </pre>
   );
 }
@@ -126,7 +122,9 @@ export function CodeBlock() {
 export function Rating() {
   return (
     <span className="row" style={{ gap: 4 }}>
-      {[1, 2, 3, 4, 5].map((item) => <Star fill="var(--warning)" color="var(--warning)" key={item} size={16} />)}
+      {[1, 2, 3, 4, 5].map((item) => (
+        <Star fill="var(--warning)" color="var(--warning)" key={item} size={16} />
+      ))}
     </span>
   );
 }

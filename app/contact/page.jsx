@@ -7,6 +7,11 @@ const channels = [
   { label: "Phone", value: "+1 415 555 0138", Icon: Phone }
 ];
 
+const formFields = ["Name", "Email", "Company", "Subject"];
+
+const supportChannels = ["Sales", "Support", "Security"];
+
+// ContactPage is a page component that renders the "Contact" page of the application, providing information on how to get in touch with the team, including office location, email, phone number, and a contact form for inquiries.
 export default function ContactPage() {
   return (
     <>
@@ -15,19 +20,24 @@ export default function ContactPage() {
         title="Talk to the team building Devflow AI."
         description="Questions about product, enterprise rollout, security, partnerships, or feedback all land here."
       />
+
       <section className="section-tight">
         <div className="container grid grid-2">
           <div className="stack-lg">
             {channels.map(({ label, value, Icon }) => (
-              <div className="card card-pad row" style={{ gap: 14 }} key={label}>
+              <div className="card card-pad row" key={label} style={{ gap: 14 }}>
                 <span className="logo-mark"><Icon size={19} /></span>
-                <div><strong>{label}</strong><p className="muted">{value}</p></div>
+                <div>
+                  <strong>{label}</strong>
+                  <p className="muted">{value}</p>
+                </div>
               </div>
             ))}
             <div className="terminal" style={{ minHeight: 220 }}>Map preview / global team coverage</div>
           </div>
+
           <form className="card card-pad stack-lg">
-            {["Name", "Email", "Company", "Subject"].map((field) => (
+            {formFields.map((field) => (
               <label className="form-field" key={field}>
                 <span>{field}</span>
                 <input className="input" placeholder={field} />
@@ -41,9 +51,10 @@ export default function ContactPage() {
           </form>
         </div>
       </section>
+
       <section className="section-tight">
         <div className="container grid grid-3">
-          {["Sales", "Support", "Security"].map((item) => (
+          {supportChannels.map((item) => (
             <div className="card card-pad stack" key={item}>
               <h3 className="h3">{item}</h3>
               <p className="muted">We route every message to the right specialist and follow up clearly.</p>
