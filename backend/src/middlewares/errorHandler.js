@@ -5,6 +5,7 @@ export function notFoundHandler(req, _res, next) {
   next(new ApiError(404, `Route not found: ${req.originalUrl}`));
 }
 
+// The errorHandler middleware function handles errors in the application, including validation errors, database errors, and general server errors. It sends structured JSON responses with appropriate status codes and error messages, while also providing stack traces in development mode for debugging purposes.
 export function errorHandler(error, _req, res, _next) {
   let statusCode = error.statusCode || 500;
   let message = error.message || "Internal server error";

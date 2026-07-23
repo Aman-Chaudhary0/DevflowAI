@@ -2,6 +2,7 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import mongoose from "mongoose";
 
+// The User model defines the structure and behavior of user documents in the MongoDB database. It includes fields for user information, authentication, and account management, along with methods for password hashing, token generation, and safe object representation.
 const userSchema = new mongoose.Schema(
   {
     name: {

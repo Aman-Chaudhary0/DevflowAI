@@ -27,6 +27,7 @@ const faqs = [
   "Is this production-ready UI?"
 ];
 
+// HomePage is a page component that renders the "Home" page of the application, providing an overview of the product's features, benefits, and pricing. It includes sections for hero content, trusted companies, feature highlights, AI showcase, product screenshots, workflow steps, testimonials, pricing cards, and frequently asked questions.
 export default function HomePage() {
   return (
     <>
