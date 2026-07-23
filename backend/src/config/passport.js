@@ -5,6 +5,7 @@ import { findOrCreateOAuthUser } from "../services/auth/auth.service.js";
 const GoogleStrategy = GoogleStrategyPackage.Strategy;
 const GitHubStrategy = GitHubStrategyPackage.Strategy;
 
+// configurePassport is a function that sets up Passport.js authentication strategies for Google and GitHub OAuth. It checks for the presence of client IDs and secrets in environment variables, and if available, configures the respective strategies with callback URLs and user profile handling logic.
 export function configurePassport(passport) {
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     passport.use(

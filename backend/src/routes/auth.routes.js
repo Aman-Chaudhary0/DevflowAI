@@ -25,6 +25,7 @@ import {
 
 const router = Router();
 
+// The auth.routes.js file defines the authentication-related API routes for the application. It includes endpoints for user registration, login, logout, token refresh, fetching the current user, password reset, email verification, and OAuth callbacks. Each route is associated with a specific controller function and may include validation and authentication middleware as needed.
 router.post("/register", validate(registerSchema), register);
 router.post("/login", validate(loginSchema), login);
 router.post("/logout", requireAuth, logout);

@@ -15,6 +15,7 @@ import {
 
 const isProduction = process.env.NODE_ENV === "production";
 
+// durationToMs is a utility function that converts a duration string (e.g., "15m", "1h") into milliseconds. It supports various time units (milliseconds, seconds, minutes, hours, days) and returns a fallback value if the input is invalid or not provided.
 function durationToMs(value, fallbackMs) {
   if (!value) return fallbackMs;
   const match = /^(\d+)(ms|s|m|h|d)?$/.exec(value);
@@ -33,6 +34,7 @@ function durationToMs(value, fallbackMs) {
   return amount * multipliers[unit];
 }
 
+//  CookieOptions function defines HTTP cookie settings based on environment and max age.
 function cookieOptions(maxAge) {
   return {
     httpOnly: true,
@@ -42,6 +44,7 @@ function cookieOptions(maxAge) {
   };
 }
 
+// setAuthCookies sets the access and refresh tokens as HTTP cookies in the response, using the specified expiration durations from environment variables or default values.
 function setAuthCookies(res, { accessToken, refreshToken }) {
   res.cookie(
     "accessToken",
@@ -55,11 +58,13 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
   );
 }
 
+// clearAuthCookies clears the access and refresh token cookies from the response, effectively logging the user out by removing their authentication tokens.
 function clearAuthCookies(res) {
   res.clearCookie("accessToken", cookieOptions(0));
   res.clearCookie("refreshToken", cookieOptions(0));
 }
 
+// The following controller functions handle various authentication-related operations, including user registration, login, logout, token refresh, fetching the current user, password reset, email verification, and OAuth callbacks. Each function uses asyncHandler to manage asynchronous operations and sends structured API responses using the ApiResponse utility.
 export const register = asyncHandler(async (req, res) => {
   const result = await registerUser(req.body);
   setAuthCookies(res, result);

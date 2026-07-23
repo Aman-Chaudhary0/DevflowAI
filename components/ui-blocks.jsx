@@ -64,6 +64,8 @@ export function PricingCards({ compact = false }) {
   );
 }
 
+
+// DashboardPreview is a component that renders a mock dashboard interface, displaying key metrics, a terminal output, and cards for AI responses and code reviews. It simulates a real-time dashboard experience for users to visualize their workflow and performance statistics.
 export function DashboardPreview() {
   return (
     <div className="dashboard-mock floating">

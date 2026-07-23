@@ -1,3 +1,5 @@
+// The validate middleware function validates request data against a specified schema, ensuring correct input before proceeding.
+
 export const validate = (schema) => (req, _res, next) => {
   const parsed = schema.parse({
     body: req.body,
