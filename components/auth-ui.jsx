@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-// AuthShell is  for authentication pages, providing a top bar, brand panel, and footer. It wraps the children components in a styled container.
 export function AuthShell({ children }) {
   return (
     <section className="auth-page">
@@ -51,7 +50,6 @@ export function AuthShell({ children }) {
   );
 }
 
-// BrandPanel is a component that displays the branding and marketing information for the authentication pages, including a logo, tagline, description, and a preview of the product's features.
 export function BrandPanel() {
   return (
     <aside className="auth-brand">
@@ -89,7 +87,6 @@ export function BrandPanel() {
   );
 }
 
-// AuthCard is a component that renders a styled card for authentication forms, displaying a title, subtitle, and any child components passed to it.
 export function AuthCard({ title, subtitle, children }) {
   return (
     <div className="auth-card">
@@ -102,7 +99,6 @@ export function AuthCard({ title, subtitle, children }) {
   );
 }
 
-// AuthInput is a component that renders a styled input field for authentication forms, supporting icons, labels, validation messages, and optional password visibility toggling.
 export function AuthInput({
   icon: Icon = Mail,
   label,
@@ -146,7 +142,6 @@ export function AuthInput({
   );
 }
 
-// AuthDivider is a component that renders a horizontal divider with a label, typically used to separate different sections of an authentication form, such as between the main login form and social login options.
 export function AuthDivider() {
   return (
     <div className="auth-divider">
@@ -157,24 +152,22 @@ export function AuthDivider() {
   );
 }
 
-// SocialButtons is a component that renders buttons for social login options, allowing users to sign in with their Google or GitHub accounts. It displays the respective icons and labels for each social provider.
 export function SocialButtons() {
   return (
     <div className="grid grid-2">
-      <button className="btn btn-outline" type="button"><GoogleIcon /> Google</button>
-      <button className="btn btn-outline" type="button"><Github size={18} /> GitHub</button>
+      <a className="btn btn-outline" href="http://localhost:5000/api/auth/google"><GoogleIcon /> Google</a>
+      <a className="btn btn-outline" href="http://localhost:5000/api/auth/github"><Github size={18} /> GitHub</a>
     </div>
   );
 }
 
-// SubmitButton renders a styled submit button for authentication forms, displaying a loading spinner when the loading prop is true
 export function SubmitButton({ children, loading = false, disabled = false, onClick }) {
   return (
     <button
       className="btn btn-primary auth-submit"
       disabled={disabled || loading}
       onClick={onClick}
-      type="button"
+      type="submit"
     >
       {loading ? <span className="spinner" /> : null}
       {children}
@@ -182,7 +175,6 @@ export function SubmitButton({ children, loading = false, disabled = false, onCl
   );
 }
 
-// PasswordStrength is a component that evaluates the strength of a given password and provides visual feedback to the user. It checks for length, uppercase letters, lowercase letters, numbers, and special characters, displaying a strength meter and corresponding labels. 
 export function PasswordStrength({ password }) {
   const checks = getPasswordChecks(password);
   const passed = checks.filter((c) => c.ok).length;
@@ -209,66 +201,11 @@ export function PasswordStrength({ password }) {
   );
 }
 
-// VerifyPanel is a component that guides users through the email verification process, displaying a verification illustration, countdown timer, and options to resend the verification email or change the email address. It updates the UI based on whether the email has been successfully verified.
-export function VerifyPanel() {
-  const [verified, setVerified] = useState(false);
-
-  return (
-    <div className="stack-lg center" style={{ textAlign: "center" }}>
-      <div className={`verify-illustration ${verified ? "success" : ""}`}>
-        {verified ? <CheckCircle2 size={64} /> : <Mail size={64} />}
-      </div>
-      {verified ? (
-        <>
-          <h3 className="h3">Email Verified Successfully</h3>
-          <p className="muted">Redirecting to your dashboard.</p>
-          <Link className="btn btn-primary auth-submit" href="/login">Continue to Login</Link>
-        </>
-      ) : (
-        <>
-          <p className="muted">We have sent a verification link to</p>
-          <strong>aman@example.com</strong>
-          <div className="card card-pad" style={{ width: "100%" }}>
-            <span className="soft">Resend available in</span>
-            <strong className="font-display" style={{ display: "block", fontSize: 32 }}>45 seconds</strong>
-          </div>
-          <div className="grid grid-2" style={{ width: "100%" }}>
-            <button className="btn btn-outline" type="button"><RefreshCw size={17} /> Resend Email</button>
-            <button className="btn btn-outline" type="button">Change Email</button>
-          </div>
-          <button className="btn btn-primary auth-submit" onClick={() => setVerified(true)} type="button">
-            Open Gmail
-          </button>
-        </>
-      )}
-    </div>
-  );
-}
-
-
-// ForgotSuccess is a component that displays a success message after a user has requested a password reset, providing options to open their email or return to the login page.
-export function ForgotSuccess() {
-  return (
-    <div className="stack-lg center" style={{ textAlign: "center" }}>
-      <div className="verify-illustration"><Mail size={64} /></div>
-      <h3 className="h3">Password reset email sent.</h3>
-      <p className="muted">Check your inbox for a secure reset link.</p>
-      <div className="grid grid-2" style={{ width: "100%" }}>
-        <button className="btn btn-primary" type="button">Open Email</button>
-        <Link className="btn btn-outline" href="/login">Back to Login</Link>
-      </div>
-    </div>
-  );
-}
-
-
-// OtpInput is a component that renders a 6-digit one-time password (OTP) input form, allowing users to enter a code from their authenticator app, with features for pasting the code, navigating between input boxes, and verifying the code.
 export function OtpInput() {
   const [values, setValues] = useState(["", "", "", "", "", ""]);
   const refs = useRef([]);
   const complete = values.every(Boolean);
 
-  // updateValue updates the value of a specific OTP input box, ensuring only numeric input is accepted, and automatically focuses the next input box if a digit is entered.
   function updateValue(index, nextValue) {
     const digit = nextValue.replace(/\D/g, "").slice(-1);
     const next = [...values];
@@ -279,7 +216,6 @@ export function OtpInput() {
     }
   }
 
-  // handlePaste handles the paste event for the OTP input
   function handlePaste(event) {
     const pasted = event.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (!pasted) return;
@@ -289,14 +225,12 @@ export function OtpInput() {
     refs.current[Math.min(pasted.length, 5)]?.focus();
   }
 
-  // handleKeyDown handles the keydown event for the OTP input
   function handleKeyDown(event, index) {
     if (event.key === "Backspace" && !values[index] && index > 0) {
       refs.current[index - 1]?.focus();
     }
   }
 
-  // The component renders a row of 6 input boxes for the OTP, along with a countdown timer and a submit button. It also displays a success message when the OTP is complete.
   return (
     <div className="stack-lg">
       <div className="otp-row" onPaste={handlePaste}>
@@ -328,7 +262,6 @@ export function OtpInput() {
   );
 }
 
-// RegisterValidation is a component that provides real-time validation feedback for the registration form, checking the username, email, and password against specific criteria and displaying corresponding validation messages.
 export function RegisterValidation({ username, email, password }) {
   const validations = useMemo(() => [
     { label: "Username available", ok: username.length >= 4 },

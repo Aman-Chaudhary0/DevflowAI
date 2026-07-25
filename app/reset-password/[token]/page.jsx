@@ -1,31 +1,66 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthCard, AuthInput, AuthShell, PasswordStrength, SubmitButton, authIcons } from "@/components/auth-ui";
+import { api } from "@/lib/api";
 
-// ResetPasswordPage is a page component that renders the "Reset Password" form, allowing users to create a new password after receiving a secure reset token. It includes input fields for the new password and confirmation, along with a password strength indicator. Upon successful password reset, it displays a success message and provides a link to continue to the login page.
 export default function ResetPasswordPage() {
+  const { token } = useParams();
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError("");
+
+    if (password !== confirmPassword) return setError("Passwords do not match.");
+
+    setLoading(true);
+    try {
+      await api.resetPassword({ token, password, confirmPassword });
+      setSuccess(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <AuthShell>
-      <AuthCard title="Create New Password" subtitle="Choose a strong password for your secure reset token.">
+      <AuthCard title="Create New Password" subtitle="Choose a strong password for your account.">
         {success ? (
           <div className="stack-lg center" style={{ textAlign: "center" }}>
             <div className="verify-illustration success"><CheckCircle2 size={64} /></div>
             <h3 className="h3">Password Changed Successfully</h3>
-            <p className="muted">Redirecting to Login.</p>
+            <p className="muted">You can now sign in with your new password.</p>
             <Link className="btn btn-primary auth-submit" href="/login">Continue to Login</Link>
           </div>
         ) : (
-          <form className="stack-lg">
-            <AuthInput icon={authIcons.Lock} label="New Password" value={password} onChange={(event) => setPassword(event.target.value)} withPasswordToggle />
-            <AuthInput icon={authIcons.KeyRound} label="Confirm Password" withPasswordToggle />
+          <form className="stack-lg" onSubmit={handleSubmit}>
+            <AuthInput
+              icon={authIcons.Lock}
+              label="New Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              withPasswordToggle
+            />
+            <AuthInput
+              icon={authIcons.KeyRound}
+              label="Confirm Password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              withPasswordToggle
+            />
             <PasswordStrength password={password} />
-            <SubmitButton onClick={() => setSuccess(true)}>Reset Password</SubmitButton>
+            {error ? <p style={{ color: "var(--danger)", fontSize: 14 }}>{error}</p> : null}
+            <SubmitButton loading={loading}>Reset Password</SubmitButton>
           </form>
         )}
       </AuthCard>

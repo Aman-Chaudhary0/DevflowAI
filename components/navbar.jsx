@@ -5,6 +5,7 @@ import { Menu, Rocket } from "lucide-react";
 import { navItems } from "@/lib/data";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+// Navbar is a component that renders the navigation bar at the top of the website, including the company logo, navigation links, theme toggle button, and call-to-action buttons for login and starting a free trial. It also includes a mobile menu button for smaller screens.
 export function Navbar() {
   return (
     <header className="nav solid">

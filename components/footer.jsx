@@ -9,6 +9,7 @@ const socials = [
   { Icon: Mail, label: "Email" }
 ];
 
+// Footer is a component that renders the footer section of the website, including the company logo, description, social media links, footer navigation groups, newsletter subscription form, and copyright information.  
 export function Footer() {
   return (
     <footer className="footer">
