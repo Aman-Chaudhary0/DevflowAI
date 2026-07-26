@@ -34,8 +34,15 @@ async function sendVerificationEmail(user) {
   await sendEmail({
     to: user.email,
     subject: "Verify your Devflow AI email",
-    text: `Verify your email: ${verificationUrl}`,
-    html: `<p>Verify your Devflow AI account:</p><p><a href="${verificationUrl}">Verify email</a></p>`
+    text: `Hi ${user.name},\n\nVerify your Devflow AI account by visiting this link:\n${verificationUrl}\n\nThis link expires in 1 hour.\n\nIf you did not create an account, ignore this email.`,
+    html: `<!DOCTYPE html><html><body style="font-family:Inter,sans-serif;background:#0b0f19;color:#f8fafc;padding:40px 20px;">
+<div style="max-width:480px;margin:0 auto;background:#1a2235;border-radius:18px;padding:40px;border:1px solid #273244;">
+<h2 style="margin:0 0 8px;font-size:24px;">Verify your email</h2>
+<p style="color:#94a3b8;margin:0 0 24px;">Hi ${user.name}, thanks for signing up for Devflow AI. Click the button below to verify your email address.</p>
+<a href="${verificationUrl}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:14px;font-weight:700;">Verify Email</a>
+<p style="color:#64748b;font-size:13px;margin-top:24px;">Or copy this link: ${verificationUrl}</p>
+<p style="color:#64748b;font-size:13px;">This link expires in 1 hour. If you did not create an account, ignore this email.</p>
+</div></body></html>`
   });
 }
 
@@ -119,8 +126,15 @@ export async function requestPasswordReset(email) {
   await sendEmail({
     to: user.email,
     subject: "Reset your Devflow AI password",
-    text: `Reset your password: ${resetUrl}`,
-    html: `<p>Reset your Devflow AI password:</p><p><a href="${resetUrl}">Reset password</a></p>`
+    text: `Hi ${user.name},\n\nReset your Devflow AI password by visiting this link:\n${resetUrl}\n\nThis link expires in 15 minutes.\n\nIf you did not request a password reset, ignore this email.`,
+    html: `<!DOCTYPE html><html><body style="font-family:Inter,sans-serif;background:#0b0f19;color:#f8fafc;padding:40px 20px;">
+<div style="max-width:480px;margin:0 auto;background:#1a2235;border-radius:18px;padding:40px;border:1px solid #273244;">
+<h2 style="margin:0 0 8px;font-size:24px;">Reset your password</h2>
+<p style="color:#94a3b8;margin:0 0 24px;">Hi ${user.name}, we received a request to reset your Devflow AI password. Click the button below to choose a new password.</p>
+<a href="${resetUrl}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:14px;font-weight:700;">Reset Password</a>
+<p style="color:#64748b;font-size:13px;margin-top:24px;">Or copy this link: ${resetUrl}</p>
+<p style="color:#64748b;font-size:13px;">This link expires in 15 minutes. If you did not request this, ignore this email.</p>
+</div></body></html>`
   });
 }
 

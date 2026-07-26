@@ -16,6 +16,7 @@ import {
 } from "@/components/auth-ui";
 import { api } from "@/lib/api";
 
+// RegisterPage is a page component that renders the registration form, allowing users to create a new account by providing their full name, username, email address, and password. It includes validation for the username and password strength, as well as options to agree to terms and privacy policy. The component manages the state of the input fields and handles form submission.
 export default function RegisterPage() {
   const router = useRouter();
   const [name, setName] = useState("");

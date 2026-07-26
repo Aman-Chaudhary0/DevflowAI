@@ -7,6 +7,7 @@ import { CheckCircle2, Mail, RefreshCw } from "lucide-react";
 import { AuthCard, AuthShell } from "@/components/auth-ui";
 import { api } from "@/lib/api";
 
+// VerifyEmailPage is a page component that renders the "Verify Email" page, prompting users to confirm their email ownership to protect their workspace. It includes a verification panel that guides users through the email verification process.
 function VerifyEmailContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -53,7 +54,6 @@ function VerifyEmailContent() {
         <div className={`verify-illustration ${verified ? "success" : ""}`}>
           {verified ? <CheckCircle2 size={64} /> : <Mail size={64} />}
         </div>
-
         {verified ? (
           <>
             <h3 className="h3">Email Verified Successfully</h3>

@@ -12,6 +12,7 @@ export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
 
+  // ForgotPasswordPage is a page component that renders the "Forgot Password" form, allowing users to request a password reset link by entering their email address. It displays a success message after the reset link is sent, with options to open the email or return to the login page.
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");

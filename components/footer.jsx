@@ -3,10 +3,10 @@ import { Github, Linkedin, Mail, Send, Twitter } from "lucide-react";
 import { footerGroups } from "@/lib/data";
 
 const socials = [
-  { Icon: Github, label: "GitHub" },
-  { Icon: Twitter, label: "Twitter" },
-  { Icon: Linkedin, label: "LinkedIn" },
-  { Icon: Mail, label: "Email" }
+  { Icon: Github, label: "GitHub", href: "https://github.com/Aman-Chaudhary0" },
+  { Icon: Twitter, label: "Twitter", href: "https://x.com/AmanChaudh5987" },
+  { Icon: Linkedin, label: "LinkedIn", href: "https://www.linkedin.com/in/aman-chaudhary-a1ba38386" },
+  { Icon: Mail, label: "Email", href: "mailto:aidevflow1@gmail.com" }
 ];
 
 // Footer is a component that renders the footer section of the website, including the company logo, description, social media links, footer navigation groups, newsletter subscription form, and copyright information.  
@@ -21,10 +21,10 @@ export function Footer() {
           </Link>
           <p className="muted">A premium, dark-first workspace for developers building with AI.</p>
           <div className="row wrap" style={{ gap: 10 }}>
-            {socials.map(({ Icon, label }) => (
-              <button aria-label={label} className="icon-btn" key={label} type="button">
+            {socials.map(({ Icon, label, href }) => (
+              <a aria-label={label} className="icon-btn" href={href} key={label} rel="noopener noreferrer" target="_blank">
                 <Icon size={18} />
-              </button>
+              </a>
             ))}
           </div>
         </div>

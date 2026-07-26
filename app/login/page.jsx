@@ -6,6 +6,7 @@ import { useState } from "react";
 import { AuthCard, AuthDivider, AuthInput, AuthShell, SocialButtons, SubmitButton, authIcons } from "@/components/auth-ui";
 import { api } from "@/lib/api";
 
+// LoginPage is a page component that renders the login form, allowing users to sign in with their email and password. It includes options for remembering the user, resetting the password, and signing in with social accounts. The component manages the loading state during the login process.
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");

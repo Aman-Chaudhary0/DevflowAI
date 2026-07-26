@@ -7,6 +7,7 @@ import { CheckCircle2 } from "lucide-react";
 import { AuthCard, AuthInput, AuthShell, PasswordStrength, SubmitButton, authIcons } from "@/components/auth-ui";
 import { api } from "@/lib/api";
 
+// ResetPasswordPage is a page component that renders the "Reset Password" form, allowing users to create a new password after receiving a secure reset token. It includes input fields for the new password and confirmation, along with a password strength indicator. Upon successful password reset, it displays a success message and provides a link to continue to the login page.
 export default function ResetPasswordPage() {
   const { token } = useParams();
   const [password, setPassword] = useState("");
