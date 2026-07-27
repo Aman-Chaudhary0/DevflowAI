@@ -29,6 +29,7 @@ import {
   Play,
   RefreshCw,
   Save,
+  Search,
   Share2,
   Sparkles,
   Square,

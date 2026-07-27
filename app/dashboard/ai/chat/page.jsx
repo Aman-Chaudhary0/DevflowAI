@@ -6,6 +6,7 @@ import {
   ChevronRight,
   Copy,
   Download,
+  FileText,
   MessageSquare,
   MoreVertical,
   Paperclip,
