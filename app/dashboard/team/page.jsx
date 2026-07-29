@@ -15,8 +15,7 @@ import {
   X,
   CheckCircle2
 } from "lucide-react";
-import { toast } from "@/components/dashboard-ui";
-import { Avatar, AvatarGroup, StatCard, StatusBadge } from "@/components/dashboard-ui";
+import { Avatar, AvatarGroup, PageHeader, StatCard, StatusBadge, toast } from "@/components/dashboard-ui";
 
 const team = {
   name: "Devflow Team",

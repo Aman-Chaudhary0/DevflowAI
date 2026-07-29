@@ -2,219 +2,107 @@
 
 import { useParams } from "next/navigation";
 import { useState } from "react";
-import {
-  Activity,
-  Bot,
-  Calendar,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Download,
-  File,
-  Filter,
-  GitCommit,
-  GitMerge,
-  Rocket,
-  Search,
-  Upload,
-  UserPlus
-} from "lucide-react";
-import { Avatar, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
-import { mockActivity, mockProjects } from "@/lib/dashboard-data";
-
-const timeFilters = [
-  { label: "Today", value: "today" },
-  { label: "Yesterday", value: "yesterday" },
-  { label: "This Week", value: "week" },
-  { label: "This Month", value: "month" },
-  { label: "All Time", value: "all" }
-];
+import { Activity, Bot, CheckCircle2, Download, GitCommit, Rocket, Search, Upload, UserPlus } from "lucide-react";
+import { FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
+import { mockActivity } from "@/lib/dashboard-data";
 
 const typeFilters = [
   { label: "All", value: "all" },
-  { label: "Files", value: "file" },
-  { label: "Tasks", value: "task" },
-  { label: "Deployments", value: "deploy" },
   { label: "AI", value: "ai" },
-  { label: "Git", value: "git" }
+  { label: "Git", value: "git" },
+  { label: "Deploy", value: "deploy" },
+  { label: "Tasks", value: "task" },
+  { label: "Files", value: "file" },
+  { label: "Team", value: "team" }
 ];
 
-const activityIcons = {
-  bot: Bot,
-  "git-merge": GitMerge,
-  rocket: Rocket,
-  "check-circle": CheckCircle2,
-  upload: Upload,
-  "user-plus": UserPlus,
-  "git-commit": GitCommit,
-  file: File
+const iconMap = {
+  bot: Bot, "git-merge": Activity, "git-commit": GitCommit,
+  rocket: Rocket, "check-circle": CheckCircle2, upload: Upload, "user-plus": UserPlus
 };
 
-const groupedActivities = [
-  {
-    date: "Today",
-    activities: [
-      { _id: "a1", type: "ai", title: "AI generated API documentation", user: "AI Assistant", time: "2 min ago", icon: "bot" },
-      { _id: "a2", type: "git", title: "Rahul merged PR #38 — Add auth middleware", user: "Rahul Singh", time: "5 min ago", icon: "git-merge" },
-      { _id: "a3", type: "deploy", title: "Deployment completed — v2.1.0 to Production", user: "System", time: "30 min ago", icon: "rocket" },
-      { _id: "a4", type: "task", title: "Aman completed task: Setup Redis caching", user: "Aman Chaudhary", time: "1 hour ago", icon: "check-circle" }
-    ]
-  },
-  {
-    date: "Yesterday",
-    activities: [
-      { _id: "a5", type: "file", title: "Priya uploaded design-system.fig (24.3 MB)", user: "Priya Sharma", time: "2 hours ago", icon: "upload" },
-      { _id: "a6", type: "team", title: "Arjun Mehta joined the project", user: "Arjun Mehta", time: "3 hours ago", icon: "user-plus" },
-      { _id: "a7", type: "ai", title: "AI reviewed 3 files for code quality", user: "AI Assistant", time: "4 hours ago", icon: "bot" },
-      { _id: "a8", type: "git", title: "Neha pushed 4 commits to main branch", user: "Neha Gupta", time: "5 hours ago", icon: "git-commit" }
-    ]
-  },
-  {
-    date: "Previous 7 Days",
-    activities: [
-      { _id: "a9", type: "deploy", title: "Staging deployment failed — build error", user: "System", time: "1 day ago", icon: "rocket" },
-      { _id: "a10", type: "task", title: "Priya created task: Update payment gateway", user: "Priya Sharma", time: "2 days ago", icon: "check-circle" },
-      { _id: "a11", type: "file", title: "Aman updated database-schema.sql", user: "Aman Chaudhary", time: "3 days ago", icon: "file" },
-      { _id: "a12", type: "git", title: "Rahul created branch: feature/auth-v2", user: "Rahul Singh", time: "4 days ago", icon: "git-commit" }
-    ]
-  }
+const colorMap = {
+  ai: "var(--purple)", git: "var(--primary)", deploy: "var(--success)",
+  task: "var(--warning)", file: "var(--info)", team: "var(--pink)"
+};
+
+const groups = [
+  { label: "Today", items: mockActivity.slice(0, 4) },
+  { label: "Yesterday", items: mockActivity.slice(4, 6) },
+  { label: "Earlier", items: mockActivity.slice(6) }
 ];
 
 export default function ProjectActivityPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId) || mockProjects[0];
-  const [search, setSearch] = useState("");
-  const [timeFilter, setTimeFilter] = useState("today");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [expanded, setExpanded] = useState(true);
+  const [search, setSearch] = useState("");
 
-  const filteredGroups = groupedActivities; // In real app, filter by timeFilter and typeFilter
+  const filterItems = (items) => items
+    .filter((a) => typeFilter === "all" || a.type === typeFilter)
+    .filter((a) => a.title.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <>
-      <PageHeader title="Activity" subtitle="Track all project changes">
-        <button className="btn btn-outline" onClick={() => toast("Exporting CSV...", "info")} style={{ minHeight: 36, fontSize: 13 }} type="button">
-          <Download size={15} /> Export CSV
-        </button>
-        <button className="btn btn-outline" onClick={() => toast("Exporting PDF...", "info")} style={{ minHeight: 36, fontSize: 13 }} type="button">
-          <File size={15} /> Export PDF
-        </button>
+      <PageHeader title="Activity" subtitle="Full project history">
+        <button className="btn btn-outline" onClick={() => toast("Exported as CSV", "success")} style={{ minHeight: 38, fontSize: 13 }} type="button"><Download size={16} /> Export CSV</button>
+        <button className="btn btn-outline" onClick={() => toast("Exported as PDF", "success")} style={{ minHeight: 38, fontSize: 13 }} type="button"><Download size={16} /> Export PDF</button>
       </PageHeader>
 
-      {/* Filters */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div className="dash-search" style={{ flex: 1, maxWidth: 280 }}>
-          <Search size={15} color="var(--muted)" />
-          <input placeholder="Search activity..." value={search} onChange={(e) => setSearch(e.target.value)} />
-        </div>
-        <FilterBar filters={timeFilters} active={timeFilter} onChange={setTimeFilter} />
-        <FilterBar filters={typeFilters} active={typeFilter} onChange={setTypeFilter} />
-      </div>
-
-      {/* Activity Timeline */}
-      <div className="stat-card" style={{ gap: 20 }}>
-        {filteredGroups.map((group, groupIndex) => (
-          <div key={group.date}>
-            <button
-              onClick={() => setExpanded(expanded === group.date ? false : group.date)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                width: "100%",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-                marginBottom: 12
-              }}
-              type="button"
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <Calendar size={14} color="var(--muted)" />
-                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{group.date}</span>
-                <span className="muted" style={{ fontSize: 11 }}>{group.activities.length} events</span>
-              </div>
-              <ChevronDown size={14} color="var(--muted)" style={{ transition: "transform 200ms ease", transform: expanded === group.date ? "rotate(0deg)" : "rotate(-90deg)" }} />
-            </button>
-
-            {expanded === group.date && (
-              <div className="timeline" style={{ paddingLeft: 24 }}>
-                {group.activities.map((activity) => {
-                  const Icon = activityIcons[activity.icon] || Activity;
-                  return (
-                    <div className="timeline-item" key={activity._id}>
-                      <div className="timeline-dot" style={{ background: activity.type === "ai" ? "color-mix(in srgb, var(--purple) 20%, transparent)" : activity.type === "deploy" ? "color-mix(in srgb, var(--success) 20%, transparent)" : "color-mix(in srgb, var(--primary) 20%, transparent)" }}>
-                        <Icon size={14} color={activity.type === "ai" ? "var(--purple)" : activity.type === "deploy" ? "var(--success)" : "var(--primary)"} />
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600, lineHeight: 1.4 }}>{activity.title}</p>
-                        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                            <Avatar name={activity.user} size={20} color={activity.type === "ai" ? "var(--purple)" : "var(--primary)"} />
-                            <span style={{ fontSize: 11, color: "var(--muted)" }}>{activity.user}</span>
-                          </div>
-                          <span style={{ fontSize: 11, color: "var(--soft)" }}>·</span>
-                          <span style={{ fontSize: 11, color: "var(--soft)" }}>{activity.time}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {groupIndex < filteredGroups.length - 1 && <div style={{ height: 1, background: "var(--border)", margin: "20px 0" }} />}
+      {/* Stats */}
+      <div className="dash-grid-3">
+        {[["Total Events", mockActivity.length, "var(--primary)"], ["AI Actions", mockActivity.filter((a) => a.type === "ai").length, "var(--purple)"], ["Deployments", mockActivity.filter((a) => a.type === "deploy").length, "var(--success)"]].map(([label, val, color]) => (
+          <div key={label} className="stat-card" style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: `color-mix(in srgb, ${color} 15%, transparent)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+              <Activity size={20} color={color} />
+            </div>
+            <div>
+              <p style={{ margin: "0 0 2px", fontSize: 22, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>{val}</p>
+              <p className="muted" style={{ margin: 0, fontSize: 12 }}>{label}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Activity Stats */}
-      <div className="dash-grid-4">
-        <div className="stat-card" style={{ gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "color-mix(in srgb, var(--purple) 15%, transparent)", display: "grid", placeItems: "center" }}>
-              <Bot size={16} color="var(--purple)" />
-            </div>
-            <span className="muted" style={{ fontSize: 12 }}>AI Actions</span>
-          </div>
-          <p style={{ margin: 0, fontSize: 24, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>24</p>
-          <span className="muted" style={{ fontSize: 11 }}>This week</span>
-        </div>
-
-        <div className="stat-card" style={{ gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "color-mix(in srgb, var(--success) 15%, transparent)", display: "grid", placeItems: "center" }}>
-              <Rocket size={16} color="var(--success)" />
-            </div>
-            <span className="muted" style={{ fontSize: 12 }}>Deployments</span>
-          </div>
-          <p style={{ margin: 0, fontSize: 24, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>8</p>
-          <span className="muted" style={{ fontSize: 11 }}>This week</span>
-        </div>
-
-        <div className="stat-card" style={{ gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "color-mix(in srgb, var(--primary) 15%, transparent)", display: "grid", placeItems: "center" }}>
-              <GitCommit size={16} color="var(--primary)" />
-            </div>
-            <span className="muted" style={{ fontSize: 12 }}>Commits</span>
-          </div>
-          <p style={{ margin: 0, fontSize: 24, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>42</p>
-          <span className="muted" style={{ fontSize: 11 }}>This week</span>
-        </div>
-
-        <div className="stat-card" style={{ gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: "color-mix(in srgb, var(--info) 15%, transparent)", display: "grid", placeItems: "center" }}>
-              <File size={16} color="var(--info)" />
-            </div>
-            <span className="muted" style={{ fontSize: 12 }}>Files Changed</span>
-          </div>
-          <p style={{ margin: 0, fontSize: 24, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>18</p>
-          <span className="muted" style={{ fontSize: 11 }}>This week</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div className="dash-search" style={{ flex: 1, maxWidth: 320 }}>
+          <Search size={15} color="var(--muted)" />
+          <input placeholder="Search activity..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
       </div>
+
+      <FilterBar filters={typeFilters} active={typeFilter} onChange={setTypeFilter} />
+
+      {groups.map(({ label, items }) => {
+        const filtered = filterItems(items);
+        if (filtered.length === 0) return null;
+        return (
+          <div key={label}>
+            <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)" }}>{label}</p>
+            <div className="stat-card" style={{ gap: 0, padding: 0, overflow: "hidden" }}>
+              {filtered.map((a, i) => {
+                const Icon = iconMap[a.icon] || Activity;
+                const color = colorMap[a.type] || "var(--primary)";
+                return (
+                  <div key={a._id} style={{ display: "flex", alignItems: "flex-start", gap: 16, padding: "16px 20px", borderBottom: i < filtered.length - 1 ? "1px solid color-mix(in srgb, var(--border) 50%, transparent)" : "none" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in srgb, ${color} 15%, transparent)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
+                      <Icon size={18} color={color} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 4px", fontSize: 14, fontWeight: 600 }}>{a.title}</p>
+                      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                        <span className="muted" style={{ fontSize: 12 }}>{a.user}</span>
+                        <span style={{ width: 3, height: 3, borderRadius: "50%", background: "var(--soft)", display: "inline-block" }} />
+                        <span style={{ fontSize: 12, color: "var(--soft)" }}>{a.time}</span>
+                      </div>
+                    </div>
+                    <span className="badge" style={{ padding: "2px 8px", fontSize: 11, flexShrink: 0 }}>{a.type}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
     </>
   );
 }

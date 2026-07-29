@@ -30,7 +30,7 @@ export function AuthShell({ children }) {
           <span className="logo-mark">D</span>
           <span className="font-display">Devflow AI</span>
         </Link>
-        <div className="row" style={{ gap: 10 }}>
+        <div className="row gap-2.5">
           <ThemeToggle />
           <Link className="btn btn-outline" href="/"><ArrowLeft size={17} /> Back to Home</Link>
         </div>
@@ -41,7 +41,7 @@ export function AuthShell({ children }) {
       </div>
       <footer className="auth-footer">
         <span>Copyright 2026 Devflow AI</span>
-        <span className="row wrap" style={{ gap: 12 }}>
+        <span className="row wrap gap-3">
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
           <Link href="/contact">Support</Link>
@@ -69,9 +69,9 @@ export function BrandPanel() {
           </div>
           <div className="terminal">
             <div>$ devflow auth verify</div>
-            <div style={{ color: "var(--success)" }}>session encrypted / device trusted</div>
+            <div className="text-[var(--success)]">session encrypted / device trusted</div>
             <div>$ ai.workspace.open</div>
-            <div style={{ color: "var(--info)" }}>context synced in 320ms</div>
+            <div className="text-[var(--info)]">context synced in 320ms</div>
           </div>
           <div className="grid grid-2">
             <div className="card card-pad floating delay-1">
@@ -93,7 +93,7 @@ export function BrandPanel() {
 export function AuthCard({ title, subtitle, children }) {
   return (
     <div className="auth-card">
-      <div className="stack" style={{ textAlign: "center" }}>
+      <div className="stack text-center">
         <h2 className="h2">{title}</h2>
         <p className="muted">{subtitle}</p>
       </div>
@@ -193,9 +193,7 @@ export function PasswordStrength({ password }) {
     <div className="stack">
       <div className="row between">
         <span className="soft">Password strength</span>
-        <strong style={{ color: passed > 3 ? "var(--success)" : passed > 2 ? "var(--warning)" : "var(--danger)" }}>
-          {labels[passed]}
-        </strong>
+        <strong style={{ color: passed > 3 ? "var(--success)" : passed > 2 ? "var(--warning)" : "var(--danger)" }}>{labels[passed]}</strong>
       </div>
       <div className="strength-track"><span style={{ width }} /></div>
       <div className="grid grid-2">
@@ -261,9 +259,9 @@ export function OtpInput() {
           />
         ))}
       </div>
-      <div className="card card-pad center stack" style={{ textAlign: "center" }}>
+      <div className="card card-pad center stack text-center">
         <span className="soft">Code expires in</span>
-        <strong className="font-display" style={{ fontSize: 32 }}>01:59</strong>
+        <strong className="font-display text-[32px]">01:59</strong>
       </div>
       <SubmitButton disabled={!complete}>Verify Code</SubmitButton>
       {complete ? (

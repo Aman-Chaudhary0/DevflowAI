@@ -69,21 +69,21 @@ export default function DashboardPage() {
     <>
       {/* Welcome Banner */}
       <div className="welcome-banner">
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
             <div className="logo-mark" style={{ width: 40, height: 40 }}><Sparkles size={18} /></div>
             <span className="eyebrow">Workspace Overview</span>
           </div>
-          <h2 style={{ margin: 0, fontSize: 26, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>
+          <h2 className="m-0 text-[26px] font-extrabold" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>
             {getGreeting()}, {mockUser.name.split(" ")[0]} 👋
           </h2>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>
-            You have <strong style={{ color: "var(--text)" }}>{activeProjCount} active projects</strong>,{" "}
-            <strong style={{ color: "var(--text)" }}>{todayTasks} tasks due today</strong>, and{" "}
-            <strong style={{ color: "var(--text)" }}>{unread} unread notifications</strong>.
+          <p className="muted m-0 text-sm">
+            You have <strong className="text-(--text)">{activeProjCount} active projects</strong>,{" "}
+            <strong className="text-(--text)">{todayTasks} tasks due today</strong>, and{" "}
+            <strong className="text-(--text)">{unread} unread notifications</strong>.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <div className="flex gap-2.5 flex-wrap">
           <Link className="btn btn-primary" href="/dashboard/projects/create" style={{ minHeight: 38, fontSize: 13 }}>
             <Plus size={16} /> New Project
           </Link>
@@ -132,12 +132,12 @@ export default function DashboardPage() {
       <div className="dash-grid-2">
         {/* Productivity Chart */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="flex items-center justify-between">
             <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Productivity</p>
-              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Tasks completed over time</p>
+              <p className="m-0 font-bold text-[15px]">Productivity</p>
+              <p className="muted mt-0.5 mb-0 text-xs">Tasks completed over time</p>
             </div>
-            <div style={{ display: "flex", gap: 4 }}>
+            <div className="flex gap-1">
               {["day", "week", "month"].map((p) => (
                 <button key={p} className={`filter-chip ${chartPeriod === p ? "active" : ""}`} onClick={() => setChartPeriod(p)} style={{ padding: "4px 10px", fontSize: 12 }} type="button">
                   {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -145,22 +145,22 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 120 }}>
+          <div className="flex items-end gap-1.5 h-30">
             {mockAnalytics.weeklyTasks.map((v, i) => {
               const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
               const max = Math.max(...mockAnalytics.weeklyTasks);
               return (
-                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
                   <div style={{ width: "100%", height: `${(v / max) * 90}px`, background: i === 6 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)", borderRadius: "4px 4px 0 0", minHeight: 4, transition: "height 400ms ease" }} />
-                  <span style={{ fontSize: 10, color: "var(--soft)" }}>{days[i]}</span>
+                  <span className="text-[10px] text-(--soft)">{days[i]}</span>
                 </div>
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: 20 }}>
+          <div className="flex gap-5">
             {[["Tasks", "var(--primary)"], ["AI Usage", "var(--purple)"], ["Deploys", "var(--success)"]].map(([label, color]) => (
-              <span key={label} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--muted)" }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: "inline-block" }} />{label}
+              <span key={label} className="flex items-center gap-1.5 text-xs text-(--muted)">
+                <span className="w-2 h-2 rounded-xs inline-block" style={{ background: color }} />{label}
               </span>
             ))}
           </div>
@@ -168,10 +168,10 @@ export default function DashboardPage() {
 
         {/* AI Usage Widget */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="flex items-center justify-between">
             <div>
-              <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>AI Usage</p>
-              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Current billing period</p>
+              <p className="m-0 font-bold text-[15px]">AI Usage</p>
+              <p className="muted mt-0.5 mb-0 text-xs">Current billing period</p>
             </div>
             <div className="logo-mark" style={{ width: 36, height: 36, background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
           </div>
@@ -181,9 +181,9 @@ export default function DashboardPage() {
             { label: "Avg Response", value: mockAnalytics.aiStats.avgResponse },
             { label: "Success Rate", value: mockAnalytics.aiStats.successRate }
           ].map(({ label, value }) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid color-mix(in srgb, var(--border) 50%, transparent)" }}>
-              <span className="muted" style={{ fontSize: 13 }}>{label}</span>
-              <strong style={{ fontSize: 13 }}>{value}</strong>
+            <div key={label} className="flex justify-between items-center py-2 border-b border-(--border)/50">
+              <span className="muted text-[13px]">{label}</span>
+              <strong className="text-[13px]">{value}</strong>
             </div>
           ))}
           <Link className="btn btn-outline" href="/dashboard/analytics" style={{ minHeight: 36, fontSize: 13 }}>
@@ -196,23 +196,23 @@ export default function DashboardPage() {
       <div className="dash-grid-2">
         {/* Recent Projects */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Recent Projects</p>
-            <Link href="/dashboard/projects" className="muted" style={{ fontSize: 13, fontWeight: 600 }}>View all</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Recent Projects</p>
+            <Link href="/dashboard/projects" className="muted text-[13px] font-semibold">View all</Link>
           </div>
           {mockProjects.slice(0, 4).map((p) => (
-            <Link href={`/dashboard/projects/${p._id}`} key={p._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", textDecoration: "none", color: "inherit" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: p.color, display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
+            <Link href={`/dashboard/projects/${p._id}`} key={p._id} className="flex items-center gap-3 py-2.5 border-b border-(--border)/40 no-underline text-inherit" style={{ borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)" }}>
+              <div className="w-9 h-9 rounded-[10px] grid place-items-center text-white font-extrabold text-sm shrink-0" style={{ background: p.color }}>
                 {p.name.charAt(0)}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: 13, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</p>
-                <div style={{ display: "flex", gap: 6 }}>
+              <div className="flex-1 min-w-0">
+                <p className="m-0 mb-0.5 font-semibold text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">{p.name}</p>
+                <div className="flex gap-1.5">
                   {p.stack.slice(0, 2).map((s) => <span key={s} className="badge" style={{ padding: "2px 7px", fontSize: 11 }}>{s}</span>)}
                 </div>
               </div>
-              <div style={{ textAlign: "right", flexShrink: 0 }}>
-                <p style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 700 }}>{p.progress}%</p>
+              <div className="text-right shrink-0">
+                <p className="m-0 mb-1 text-[13px] font-bold">{p.progress}%</p>
                 <ProgressBar value={p.progress} />
               </div>
             </Link>
@@ -221,19 +221,19 @@ export default function DashboardPage() {
 
         {/* Upcoming Tasks */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Upcoming Tasks</p>
-            <Link href="/dashboard/tasks" className="muted" style={{ fontSize: 13, fontWeight: 600 }}>View all</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Upcoming Tasks</p>
+            <Link href="/dashboard/tasks" className="muted text-[13px] font-semibold">View all</Link>
           </div>
           {mockTasks.slice(0, 5).map((t) => (
-            <div key={t._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)" }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: t.priority === "high" ? "var(--danger)" : t.priority === "medium" ? "var(--warning)" : "var(--info)", flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.title}</p>
-                <span className="muted" style={{ fontSize: 11 }}>{t.project}</span>
+            <div key={t._id} className="flex items-center gap-3 py-2 border-b border-(--border)/40">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.priority === "high" ? "var(--danger)" : t.priority === "medium" ? "var(--warning)" : "var(--info)" }} />
+              <div className="flex-1 min-w-0">
+                <p className="m-0 mb-0.5 text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{t.title}</p>
+                <span className="muted text-[11px]">{t.project}</span>
               </div>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-                <span style={{ fontSize: 11, color: t.dueDate === "Today" ? "var(--danger)" : "var(--muted)", fontWeight: 600 }}>{t.dueDate}</span>
+              <div className="flex flex-col items-end gap-1 shrink-0">
+                <span className="text-[11px] font-semibold" style={{ color: t.dueDate === "Today" ? "var(--danger)" : "var(--muted)" }}>{t.dueDate}</span>
                 <StatusBadge status={t.status} />
               </div>
             </div>
@@ -245,8 +245,8 @@ export default function DashboardPage() {
       <div className="dash-grid-2">
         {/* Activity Timeline */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Recent Activity</p>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Recent Activity</p>
             <Clock size={16} color="var(--muted)" />
           </div>
           <div className="timeline">
@@ -255,9 +255,9 @@ export default function DashboardPage() {
               return (
                 <div className="timeline-item" key={a._id}>
                   <div className="timeline-dot"><Icon size={16} color="var(--primary)" /></div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600 }}>{a.title}</p>
-                    <span style={{ fontSize: 11, color: "var(--soft)" }}>{a.user} · {a.time}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="m-0 mb-0.5 text-[13px] font-semibold">{a.title}</p>
+                    <span className="text-[11px] text-(--soft)">{a.user} · {a.time}</span>
                   </div>
                 </div>
               );
@@ -267,17 +267,17 @@ export default function DashboardPage() {
 
         {/* Notifications */}
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Notifications</p>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Notifications</p>
             <span className="sidebar-badge">{unread}</span>
           </div>
           {mockNotifications.slice(0, 5).map((n) => (
-            <div key={n._id} style={{ display: "flex", gap: 10, padding: "8px 0", borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)", alignItems: "flex-start" }}>
-              {!n.read ? <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--primary)", marginTop: 5, flexShrink: 0 }} /> : <div style={{ width: 7, flexShrink: 0 }} />}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600 }}>{n.title}</p>
-                <p className="muted" style={{ margin: "0 0 2px", fontSize: 12, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{n.desc}</p>
-                <span style={{ fontSize: 11, color: "var(--soft)" }}>{n.time}</span>
+            <div key={n._id} className="flex gap-2.5 py-2 border-b border-(--border)/40 items-start">
+              {!n.read ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
+              <div className="flex-1 min-w-0">
+                <p className="m-0 mb-0.5 text-[13px] font-semibold">{n.title}</p>
+                <p className="muted m-0 mb-0.5 text-xs overflow-hidden text-ellipsis whitespace-nowrap">{n.desc}</p>
+                <span className="text-[11px] text-(--soft)">{n.time}</span>
               </div>
             </div>
           ))}
@@ -286,17 +286,18 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <div className="stat-card" style={{ gap: 16 }}>
-        <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Quick Actions</p>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+        <p className="m-0 font-bold text-[15px]">Quick Actions</p>
+        <div className="flex gap-3 flex-wrap">
           {quickActions.map(({ label, icon: Icon, href, color }) => (
             <Link
               key={label}
               href={href}
-              style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 20px", border: "1px solid var(--border)", borderRadius: 14, background: "color-mix(in srgb, var(--card) 92%, transparent)", textDecoration: "none", color: "inherit", fontWeight: 600, fontSize: 14, transition: "all 150ms ease" }}
+              className="flex items-center gap-2.5 border border-(--border) rounded-[14px] no-underline text-inherit font-semibold text-sm transition-all duration-150"
+              style={{ padding: "12px 20px", background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; }}
             >
-              <div style={{ width: 32, height: 32, borderRadius: 10, background: `color-mix(in srgb, ${color} 15%, transparent)`, display: "grid", placeItems: "center", color }}>
+              <div className="w-8 h-8 rounded-[10px] grid place-items-center" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
                 <Icon size={16} />
               </div>
               {label}

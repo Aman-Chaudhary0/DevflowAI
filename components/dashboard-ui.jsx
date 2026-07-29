@@ -24,7 +24,7 @@ export function Skeleton({ width = "100%", height = 16, style = {} }) {
 export function SkeletonCard() {
   return (
     <div className="stat-card" style={{ gap: 16 }}>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div className="flex justify-between">
         <Skeleton width={80} height={13} />
         <Skeleton width={40} height={40} style={{ borderRadius: 12 }} />
       </div>
@@ -38,7 +38,7 @@ export function SkeletonRow() {
   return (
     <tr>
       {[1, 2, 3, 4, 5].map((i) => (
-        <td key={i} style={{ padding: "14px 16px" }}>
+        <td key={i} className="px-4 py-3.5">
           <Skeleton height={14} width={i === 1 ? 140 : 80} />
         </td>
       ))}
@@ -54,8 +54,8 @@ export function EmptyState({ icon: Icon, title, description, action, onAction })
         {Icon ? <Icon size={32} /> : null}
       </div>
       <div>
-        <p style={{ fontWeight: 700, fontSize: 16, margin: "0 0 6px" }}>{title}</p>
-        <p className="muted" style={{ fontSize: 14, margin: 0 }}>{description}</p>
+        <p className="font-bold text-base mb-1.5 m-0">{title}</p>
+        <p className="muted text-sm m-0">{description}</p>
       </div>
       {action ? (
         <button className="btn btn-primary" onClick={onAction} type="button" style={{ minHeight: 38, padding: "0 20px", fontSize: 14 }}>
@@ -99,10 +99,10 @@ export function ToastContainer() {
       {toasts.map((t) => (
         <div className={`toast ${t.type}`} key={t.id}>
           {icons[t.type]}
-          <span style={{ flex: 1 }}>{t.message}</span>
+          <span className="flex-1">{t.message}</span>
           <button
             onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)", padding: 0 }}
+            className="bg-transparent border-0 cursor-pointer p-0 text-(--muted)"
             type="button"
           >
             <X size={16} />
@@ -120,10 +120,10 @@ export function ConfirmDialog({ open, title, description, confirmLabel = "Confir
     <div className="dialog-overlay" onClick={onCancel}>
       <div className="dialog" onClick={(e) => e.stopPropagation()}>
         <div>
-          <p style={{ fontWeight: 800, fontSize: 18, margin: "0 0 8px" }}>{title}</p>
-          <p className="muted" style={{ margin: 0, fontSize: 14 }}>{description}</p>
+          <p className="font-extrabold text-lg m-0 mb-2">{title}</p>
+          <p className="muted m-0 text-sm">{description}</p>
         </div>
-        <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
+        <div className="flex gap-3 justify-end">
           <button className="btn btn-outline" onClick={onCancel} type="button" style={{ minHeight: 40 }}>Cancel</button>
           <button
             className="btn btn-primary"
@@ -151,7 +151,7 @@ export function StatCard({ label, value, delta, trend, icon: Icon, iconBg, suffi
           </div>
         ) : null}
       </div>
-      <div className="stat-value">{value}{suffix ? <span style={{ fontSize: 16, fontWeight: 600, color: "var(--muted)", marginLeft: 4 }}>{suffix}</span> : null}</div>
+      <div className="stat-value">{value}{suffix ? <span className="text-base font-semibold text-(--muted) ml-1">{suffix}</span> : null}</div>
       {delta ? (
         <span className={`stat-delta ${trend}`}>
           {trend === "up" ? <TrendingUp size={13} /> : trend === "down" ? <TrendingDown size={13} /> : null}
@@ -215,14 +215,14 @@ export function AvatarGroup({ members = [], max = 4, size = 32 }) {
   const visible = members.slice(0, max);
   const extra = members.length - max;
   return (
-    <div className="avatar-stack" style={{ alignItems: "center" }}>
+    <div className="avatar-stack items-center">
       {visible.map((m) => (
         <Avatar key={m._id || m.name} name={m.name} size={size} color={m.color} />
       ))}
       {extra > 0 ? (
         <div
-          className="avatar"
-          style={{ width: size, height: size, background: "var(--border)", color: "var(--muted)", fontSize: 11, border: "2px solid var(--bg)", marginLeft: -8 }}
+          className="avatar text-[11px] border-2 border-(--border) -ml-2"
+          style={{ width: size, height: size, background: "var(--border)", color: "var(--muted)" }}
         >
           +{extra}
         </div>
@@ -263,7 +263,7 @@ export function PageHeader({ title, subtitle, children }) {
         <h1 className="page-title">{title}</h1>
         {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
       </div>
-      {children ? <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>{children}</div> : null}
+      {children ? <div className="flex gap-2.5 items-center flex-wrap">{children}</div> : null}
     </div>
   );
 }
@@ -280,7 +280,7 @@ export function FilterBar({ filters, active, onChange }) {
           type="button"
         >
           {f.label}
-          {f.count !== undefined ? <span style={{ opacity: 0.7, marginLeft: 4 }}>{f.count}</span> : null}
+          {f.count !== undefined ? <span className="opacity-70 ml-1">{f.count}</span> : null}
         </button>
       ))}
     </div>
@@ -291,7 +291,7 @@ export function FilterBar({ filters, active, onChange }) {
 export function MiniBarChart({ data = [], color = "var(--primary)", height = 48 }) {
   const max = Math.max(...data, 1);
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: 3, height }}>
+    <div className="flex items-end gap-0.75" style={{ height }}>
       {data.map((v, i) => (
         <div
           key={i}
@@ -322,7 +322,7 @@ export function Sparkline({ data = [], color = "var(--primary)", width = 80, hei
   }).join(" ");
 
   return (
-    <svg width={width} height={height} style={{ overflow: "visible" }}>
+    <svg width={width} height={height} className="overflow-visible">
       <polyline points={pts} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );

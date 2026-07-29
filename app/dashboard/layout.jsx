@@ -79,8 +79,8 @@ export default function DashboardLayout({ children }) {
 
   if (!authChecked) {
     return (
-      <div style={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+      <div className="grid place-items-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
           <div className="logo-mark" style={{ width: 48, height: 48 }}><Rocket size={22} /></div>
           <div className="skeleton" style={{ width: 120, height: 12 }} />
         </div>
@@ -100,18 +100,18 @@ export default function DashboardLayout({ children }) {
 
   const sidebarContent = (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 4px 12px", borderBottom: "1px solid var(--border)", marginBottom: 8 }}>
+      <div className="flex items-center justify-between pb-3 border-b border-(--border) mb-2" style={{ padding: "4px 4px 12px" }}>
         {!collapsed ? (
           <Link className="logo" href="/dashboard" style={{ fontSize: 15 }}>
             <span className="logo-mark" style={{ width: 30, height: 30 }}><Rocket size={15} /></span>
             <span className="font-display">Devflow AI</span>
           </Link>
         ) : (
-          <Link href="/dashboard" style={{ display: "grid", placeItems: "center", width: 30, height: 30, borderRadius: 10, background: "linear-gradient(135deg, var(--primary), var(--info))", color: "white", margin: "0 auto" }}>
+          <Link href="/dashboard" className="grid place-items-center rounded-[10px] w-7.5 h-7.5 bg-linear-to-br from-(--primary) to-(--info) text-white mx-auto">
             <Rocket size={15} />
           </Link>
         )}
-        <button className="icon-btn" onClick={() => setCollapsed((c) => !c)} style={{ width: 28, height: 28, border: "none", background: "transparent", flexShrink: 0 }} type="button">
+        <button className="icon-btn w-7 h-7 border-0 bg-transparent shrink-0" onClick={() => setCollapsed((c) => !c)} type="button">
           {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
@@ -142,7 +142,7 @@ export default function DashboardLayout({ children }) {
         </>
       ) : null}
 
-      <div style={{ flex: 1 }} />
+      <div className="flex-1" />
       <div className="sidebar-divider" />
 
       {bottomNav.map(({ href, label, icon: Icon }) => (
@@ -158,7 +158,7 @@ export default function DashboardLayout({ children }) {
     <div className={`dash-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
       {/* Navbar */}
       <header className="dash-navbar">
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="flex items-center gap-3">
           <div className="dash-search">
             <Search size={16} color="var(--muted)" />
             <input placeholder="Search anything..." readOnly />
@@ -166,7 +166,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="flex items-center gap-2">
           <Link className="btn btn-primary" href="/dashboard/projects/create" style={{ minHeight: 36, padding: "0 14px", fontSize: 13, gap: 6 }}>
             <Plus size={16} /> New
           </Link>
@@ -176,49 +176,49 @@ export default function DashboardLayout({ children }) {
           <ThemeToggle />
 
           {/* Notifications */}
-          <div style={{ position: "relative" }}>
-            <button className="icon-btn" onClick={() => { setNotifOpen((o) => !o); setUserMenuOpen(false); }} type="button" style={{ position: "relative" }}>
+          <div className="relative">
+            <button className="icon-btn relative" onClick={() => { setNotifOpen((o) => !o); setUserMenuOpen(false); }} type="button">
               <Bell size={18} />
-              {unread > 0 ? <span style={{ position: "absolute", top: 6, right: 6, width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", border: "2px solid var(--bg)" }} /> : null}
+              {unread > 0 ? <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-(--danger) border-2 border-(--bg)" /> : null}
             </button>
             {notifOpen ? (
-              <div style={{ position: "absolute", right: 0, top: 52, width: 340, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, boxShadow: "0 16px 48px rgba(0,0,0,0.3)", zIndex: 50, overflow: "hidden" }}>
-                <div style={{ padding: "16px 20px", borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <strong style={{ fontSize: 15 }}>Notifications</strong>
-                  <button onClick={() => setNotifOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--muted)" }} type="button"><X size={16} /></button>
+              <div className="absolute right-0 top-13 w-85 bg-(--card) border border-(--border) rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+                <div className="flex justify-between items-center px-5 py-4 border-b border-(--border)">
+                  <strong className="text-[15px]">Notifications</strong>
+                  <button onClick={() => setNotifOpen(false)} className="bg-transparent border-0 cursor-pointer text-(--muted)" type="button"><X size={16} /></button>
                 </div>
                 {mockNotifications.slice(0, 5).map((n) => (
-                  <div key={n._id} style={{ padding: "12px 20px", borderBottom: "1px solid color-mix(in srgb, var(--border) 50%, transparent)", background: n.read ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)", display: "flex", gap: 10, alignItems: "flex-start" }}>
-                    {!n.read ? <div style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--primary)", marginTop: 5, flexShrink: 0 }} /> : <div style={{ width: 7, flexShrink: 0 }} />}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600 }}>{n.title}</p>
-                      <p className="muted" style={{ margin: "0 0 2px", fontSize: 12 }}>{n.desc}</p>
-                      <span style={{ fontSize: 11, color: "var(--soft)" }}>{n.time}</span>
+                  <div key={n._id} className="flex gap-2.5 items-start px-5 py-3 border-b border-(--border)/50" style={{ background: n.read ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                    {!n.read ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
+                    <div className="flex-1 min-w-0">
+                      <p className="m-0 mb-0.5 text-[13px] font-semibold">{n.title}</p>
+                      <p className="muted m-0 mb-0.5 text-xs">{n.desc}</p>
+                      <span className="text-[11px] text-(--soft)">{n.time}</span>
                     </div>
                   </div>
                 ))}
-                <div style={{ padding: "12px 20px" }}>
-                  <Link href="/dashboard/notifications" className="muted" style={{ fontSize: 13, fontWeight: 600 }} onClick={() => setNotifOpen(false)}>View all notifications</Link>
+                <div className="px-5 py-3">
+                  <Link href="/dashboard/notifications" className="muted text-[13px] font-semibold" onClick={() => setNotifOpen(false)}>View all notifications</Link>
                 </div>
               </div>
             ) : null}
           </div>
 
           {/* User Menu */}
-          <div style={{ position: "relative" }}>
-            <button onClick={() => { setUserMenuOpen((o) => !o); setNotifOpen(false); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }} type="button">
+          <div className="relative">
+            <button onClick={() => { setUserMenuOpen((o) => !o); setNotifOpen(false); }} className="bg-transparent border-0 cursor-pointer p-0" type="button">
               <Avatar name={user?.name || "U"} size={36} color="#3b82f6" />
             </button>
             {userMenuOpen ? (
-              <div style={{ position: "absolute", right: 0, top: 48, width: 220, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.3)", zIndex: 50, overflow: "hidden" }}>
-                <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
-                  <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>{user?.name}</p>
-                  <p className="muted" style={{ margin: 0, fontSize: 12 }}>{user?.email}</p>
+              <div className="absolute right-0 top-12 w-55 bg-(--card) border border-(--border) rounded-[14px] shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+                <div className="px-4 py-3.5 border-b border-(--border)">
+                  <p className="m-0 mb-0.5 font-bold text-sm">{user?.name}</p>
+                  <p className="muted m-0 text-xs">{user?.email}</p>
                 </div>
-                <Link href="/dashboard/profile" className="sidebar-item" style={{ borderRadius: 0 }} onClick={() => setUserMenuOpen(false)}><Users size={16} /><span>Profile</span></Link>
-                <Link href="/dashboard/settings" className="sidebar-item" style={{ borderRadius: 0 }} onClick={() => setUserMenuOpen(false)}><Settings size={16} /><span>Settings</span></Link>
-                <div style={{ borderTop: "1px solid var(--border)" }}>
-                  <button className="sidebar-item" onClick={handleLogout} style={{ borderRadius: 0, color: "var(--danger)", width: "100%" }} type="button">
+                <Link href="/dashboard/profile" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Users size={16} /><span>Profile</span></Link>
+                <Link href="/dashboard/settings" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Settings size={16} /><span>Settings</span></Link>
+                <div className="border-t border-(--border)">
+                  <button className="sidebar-item rounded-none text-(--danger) w-full" onClick={handleLogout} type="button">
                     <LogOut size={16} /><span>Logout</span>
                   </button>
                 </div>
@@ -233,10 +233,10 @@ export default function DashboardLayout({ children }) {
 
       {/* Mobile Overlay */}
       {mobileOpen ? (
-        <div style={{ position: "fixed", inset: 0, zIndex: 60, display: "flex" }}>
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.6)" }} onClick={() => setMobileOpen(false)} />
-          <aside style={{ position: "relative", width: 260, background: "var(--surface)", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", padding: "16px 12px", gap: 4, overflowY: "auto", zIndex: 1 }}>
-            <button onClick={() => setMobileOpen(false)} style={{ alignSelf: "flex-end", background: "none", border: "none", cursor: "pointer", color: "var(--muted)", marginBottom: 8 }} type="button"><X size={20} /></button>
+        <div className="fixed inset-0 z-60 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <aside className="relative w-65 bg-(--surface) border-r border-(--border) flex flex-col p-4 gap-1 overflow-y-auto z-1">
+            <button onClick={() => setMobileOpen(false)} className="self-end bg-transparent border-0 cursor-pointer text-(--muted) mb-2" type="button"><X size={20} /></button>
             {sidebarContent}
           </aside>
         </div>

@@ -13,8 +13,7 @@ import {
   User,
   X
 } from "lucide-react";
-import { toast } from "@/components/dashboard-ui";
-import { Avatar } from "@/components/dashboard-ui";
+import { Avatar, PageHeader, toast } from "@/components/dashboard-ui";
 
 const mockCommits = [
   { hash: "a1b2c3d", shortHash: "a1b2c3d", message: "feat: implement JWT authentication with refresh tokens", author: { name: "Rahul Singh", avatar: "#8b5cf6" }, branch: "main", time: "2 hours ago", date: "2026-07-26", files: 12, additions: 342, deletions: 89 },

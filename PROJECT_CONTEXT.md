@@ -321,14 +321,28 @@ All 20 dashboard pages have been implemented with full UI, mock data, and respon
 - **Border Radius**: Cards (18px), Buttons (14px), Inputs (12px)
 - **Animations**: Micro-interactions, hover effects, smooth transitions
 
+## Additional Dashboard Pages (21-28)
+
+These 8 pages were built after the original 20 and extend the dashboard with global-level features.
+
+| Page | Route | Status | Features |
+|------|-------|--------|----------|
+| Global Files | `/dashboard/files` | ✅ Complete | Workspace-wide file manager, grid/list view, folder filters, upload modal with drag-drop, file type icons, context menu |
+| Tasks | `/dashboard/tasks` | ✅ Complete | Full task list with priority filters, status filters, search, sort, create task modal, bulk actions, due date indicators |
+| Notifications | `/dashboard/notifications` | ✅ Complete | Grouped notifications (unread/today/yesterday), mark all read, filter by type (review/error/warning/info/success), clear actions |
+| Profile | `/dashboard/profile` | ✅ Complete | Avatar upload, personal info form, password change, connected accounts (Google/GitHub), danger zone |
+| Global Settings | `/dashboard/settings` | ✅ Complete | Tabbed layout (General, Appearance, Notifications, Security, Billing, Integrations), theme toggle, API keys, session management |
+| Team Dashboard | `/dashboard/team` | ✅ Complete | Team stats, member list with roles/status, activity feed, performance leaderboard, shared resources |
+| Code Editor | `/dashboard/editor` | ✅ Complete | VS Code-style layout, file tree sidebar, tab bar, syntax-highlighted editor area, terminal panel, run button |
+| Workflows | `/dashboard/workflows` | ✅ Complete | Workflow list with status, trigger types, run history, enable/disable toggle, create workflow modal |
+
 ## Remaining Future Work
 
-- Wire frontend dashboard pages to backend APIs (replace mock data with real fetch/axios calls)
+- Wire all dashboard pages to backend APIs (replace mock data with real fetch/axios calls)
 - Add 2FA (TOTP) support to backend — `/api/auth/2fa/setup`, `/api/auth/2fa/verify`
 - Replace placeholder terminal/image blocks with real product screenshots
 - Wire contact/newsletter forms to backend actions
 - Add Framer Motion page transitions and scroll reveal animations
-- Build additional dashboard pages: AI chat, code editor, Kanban board, notifications center
 - Add real legal copy for Privacy and Terms before launch
 - Add Redis-backed rate limiting and session blacklisting on logout
 - Implement BullMQ email queue for reliable email delivery

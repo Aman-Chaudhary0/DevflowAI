@@ -42,6 +42,7 @@ export function LoginForm() {
 }`
 };
 
+// WebEditorPage is a page component that renders a web-based code editor interface for the Devflow AI workspace. It provides a file explorer, code editing area, and an integrated terminal, allowing users to manage files, edit code, and run commands within the workspace. The page also includes features like AI-assisted code optimization and saving changes to files. 
 export default function WebEditorPage() {
   const [files, setFiles] = useState(initialFiles);
   const [activeFile, setActiveFile] = useState("app/page.jsx");

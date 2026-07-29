@@ -72,14 +72,14 @@ export default function CreateProjectPage() {
 
   if (success) {
     return (
-      <div style={{ display: "grid", placeItems: "center", minHeight: "60vh" }}>
-        <div style={{ textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: 20 }}>
-          <div style={{ width: 80, height: 80, borderRadius: 24, background: "color-mix(in srgb, var(--success) 15%, transparent)", display: "grid", placeItems: "center", color: "var(--success)" }}>
+      <div className="grid place-items-center min-h-[60vh]">
+        <div className="text-center flex flex-col items-center gap-5">
+          <div className="w-20 h-20 rounded-3xl grid place-items-center" style={{ background: "color-mix(in srgb, var(--success) 15%, transparent)", color: "var(--success)" }}>
             <CheckCircle2 size={40} />
           </div>
           <div>
-            <h2 style={{ margin: "0 0 8px", fontFamily: "Space Grotesk, Inter, sans-serif" }}>Project Created!</h2>
-            <p className="muted" style={{ margin: 0 }}>Redirecting to your new project...</p>
+            <h2 className="m-0 mb-2" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Project Created!</h2>
+            <p className="muted m-0">Redirecting to your new project...</p>
           </div>
           <div className="spinner" style={{ borderColor: "var(--border)", borderTopColor: "var(--primary)" }} />
         </div>
@@ -108,8 +108,8 @@ export default function CreateProjectPage() {
       {/* Step Content */}
       <div className="stat-card" style={{ minHeight: 360 }}>
         {step === 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <h3 style={{ margin: 0, fontFamily: "Space Grotesk, Inter, sans-serif" }}>Basic Information</h3>
+          <div className="flex flex-col gap-5">
+            <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Basic Information</h3>
             <div className="dash-grid-2">
               <label className="form-field">
                 <span style={{ fontSize: 13, fontWeight: 600 }}>Project Name *</span>
@@ -121,31 +121,31 @@ export default function CreateProjectPage() {
               </label>
             </div>
             <label className="form-field">
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Description</span>
+              <span className="text-[13px] font-semibold">Description</span>
               <textarea className="textarea" placeholder="What is this project about?" value={form.description} onChange={(e) => update("description", e.target.value)} style={{ minHeight: 90 }} />
             </label>
             <div className="form-field">
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Project Color</span>
-              <div style={{ display: "flex", gap: 10 }}>
+              <span className="text-[13px] font-semibold">Project Color</span>
+              <div className="flex gap-2.5">
                 {colorOptions.map((c) => (
-                  <button key={c} onClick={() => update("color", c)} style={{ width: 32, height: 32, borderRadius: "50%", background: c, border: form.color === c ? "3px solid var(--text)" : "3px solid transparent", cursor: "pointer", transition: "border 150ms ease" }} type="button" />
+                  <button key={c} onClick={() => update("color", c)} className="w-8 h-8 rounded-full cursor-pointer transition-all duration-150" style={{ background: c, border: form.color === c ? "3px solid var(--text)" : "3px solid transparent" }} type="button" />
                 ))}
               </div>
             </div>
             <div className="form-field">
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Logo</span>
-              <div style={{ border: "2px dashed var(--border)", borderRadius: 14, padding: "24px", textAlign: "center", cursor: "pointer" }}>
-                <Upload size={24} color="var(--muted)" style={{ margin: "0 auto 8px" }} />
-                <p className="muted" style={{ margin: 0, fontSize: 13 }}>Drag & drop or click to upload</p>
+              <span className="text-[13px] font-semibold">Logo</span>
+              <div className="border-2 border-dashed border-[var(--border)] rounded-[14px] p-6 text-center cursor-pointer">
+                <Upload size={24} color="var(--muted)" className="mx-auto mb-2" />
+                <p className="muted m-0 text-[13px]">Drag & drop or click to upload</p>
               </div>
             </div>
           </div>
         )}
 
         {step === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <h3 style={{ margin: 0, fontFamily: "Space Grotesk, Inter, sans-serif" }}>Technology Stack</h3>
-            <p className="muted" style={{ margin: 0, fontSize: 13 }}>Select all technologies used in this project.</p>
+          <div className="flex flex-col gap-5">
+            <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Technology Stack</h3>
+            <p className="muted m-0 text-[13px]">Select all technologies used in this project.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
               {techOptions.map((t) => (
                 <button
@@ -160,7 +160,7 @@ export default function CreateProjectPage() {
               ))}
             </div>
             {form.tech.length > 0 ? (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div className="flex gap-2 flex-wrap">
                 {form.tech.map((t) => <span key={t} className="badge" style={{ padding: "4px 10px" }}>{t}</span>)}
               </div>
             ) : null}
@@ -168,9 +168,9 @@ export default function CreateProjectPage() {
         )}
 
         {step === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <h3 style={{ margin: 0, fontFamily: "Space Grotesk, Inter, sans-serif" }}>Repository</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <div className="flex flex-col gap-5">
+            <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Repository</h3>
+            <div className="flex flex-col gap-2.5">
               {[["empty", "Create Empty Repository", "Start fresh with a blank repository"], ["github", "Import from GitHub", "Connect an existing GitHub repository"]].map(([val, label, desc]) => (
                 <button
                   key={val}
@@ -198,27 +198,27 @@ export default function CreateProjectPage() {
         )}
 
         {step === 3 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <h3 style={{ margin: 0, fontFamily: "Space Grotesk, Inter, sans-serif" }}>Invite Team Members</h3>
+          <div className="flex flex-col gap-5">
+            <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Invite Team Members</h3>
             {form.invites.map((inv, i) => (
-              <div key={i} style={{ display: "flex", gap: 10, alignItems: "center" }}>
+              <div key={i} className="flex gap-2.5 items-center">
                 <input className="input" placeholder="teammate@company.com" value={inv.email} onChange={(e) => updateInvite(i, "email", e.target.value)} style={{ flex: 1 }} />
                 <select className="input" value={inv.role} onChange={(e) => updateInvite(i, "role", e.target.value)} style={{ width: 140 }}>
                   {roleOptions.map((r) => <option key={r}>{r}</option>)}
                 </select>
                 {form.invites.length > 1 ? (
-                  <button className="icon-btn" onClick={() => removeInvite(i)} style={{ width: 36, height: 36, border: "none", background: "transparent", color: "var(--danger)", flexShrink: 0 }} type="button"><X size={16} /></button>
+                  <button className="icon-btn w-9 h-9 border-0 bg-transparent text-[var(--danger)] shrink-0" onClick={() => removeInvite(i)} type="button"><X size={16} /></button>
                 ) : null}
               </div>
             ))}
-            <button className="btn btn-outline" onClick={addInvite} style={{ minHeight: 38, fontSize: 13, alignSelf: "flex-start" }} type="button"><Plus size={15} /> Add Another</button>
+            <button className="btn btn-outline self-start" onClick={addInvite} style={{ minHeight: 38, fontSize: 13 }} type="button"><Plus size={15} /> Add Another</button>
           </div>
         )}
 
         {step === 4 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <h3 style={{ margin: 0, fontFamily: "Space Grotesk, Inter, sans-serif" }}>Review & Create</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+          <div className="flex flex-col gap-5">
+            <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Review & Create</h3>
+            <div className="grid grid-cols-2 gap-4">
               {[
                 ["Project Name", form.name || "—"],
                 ["Slug", form.slug || "—"],
@@ -227,22 +227,22 @@ export default function CreateProjectPage() {
                 ["Tech Stack", form.tech.join(", ") || "None selected"],
                 ["Team Invites", form.invites.filter((i) => i.email).length + " members"]
               ].map(([label, value]) => (
-                <div key={label} style={{ padding: "14px 16px", border: "1px solid var(--border)", borderRadius: 12 }}>
-                  <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>{label}</p>
-                  <p style={{ margin: 0, fontWeight: 600, fontSize: 14 }}>{value}</p>
+                <div key={label} className="p-3.5 border border-[var(--border)] rounded-xl">
+                  <p className="muted m-0 mb-1 text-xs">{label}</p>
+                  <p className="m-0 font-semibold text-sm">{value}</p>
                 </div>
               ))}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", background: "color-mix(in srgb, var(--success) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--success) 30%, transparent)", borderRadius: 12 }}>
+            <div className="flex items-center gap-3 px-4 py-3.5 rounded-xl border" style={{ background: "color-mix(in srgb, var(--success) 8%, transparent)", borderColor: "color-mix(in srgb, var(--success) 30%, transparent)" }}>
               <Rocket size={18} color="var(--success)" />
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Everything looks good! Click Create Project to launch.</span>
+              <span className="text-[13px] font-semibold">Everything looks good! Click Create Project to launch.</span>
             </div>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div className="flex justify-between items-center">
         <button className="btn btn-outline" onClick={() => step > 0 ? setStep((s) => s - 1) : router.back()} style={{ minHeight: 40, fontSize: 13 }} type="button">
           <ChevronLeft size={16} /> {step === 0 ? "Cancel" : "Back"}
         </button>

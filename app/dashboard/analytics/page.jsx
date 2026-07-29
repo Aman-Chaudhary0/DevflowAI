@@ -61,6 +61,7 @@ const heatmapDays = Array.from({ length: 35 }, (_, i) => {
   };
 });
 
+// AnalyticsPage is a page component that renders the "Analytics" dashboard of the application. It displays key performance metrics such as tasks completed, total commits, deployments, and AI requests, along with visualizations like area charts, pie charts, and heatmaps. The page also includes filters for time and project selection, as well as a team leaderboard showcasing top performers.
 export default function AnalyticsPage() {
   const [timeFilter, setTimeFilter] = useState("week");
   const [projectFilterVal, setProjectFilterVal] = useState("all");

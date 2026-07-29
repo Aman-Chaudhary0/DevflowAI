@@ -65,7 +65,7 @@ export default function ProjectsPage() {
       </PageHeader>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="dash-search" style={{ minWidth: 220, flex: 1, maxWidth: 360 }}>
           <Search size={15} color="var(--muted)" />
           <input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
@@ -73,7 +73,7 @@ export default function ProjectsPage() {
         <select className="input" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: "auto", minWidth: 180, height: 40, padding: "0 12px" }}>
           {sortOptions.map((o) => <option key={o}>{o}</option>)}
         </select>
-        <div style={{ display: "flex", gap: 4, border: "1px solid var(--border)", borderRadius: 10, padding: 3 }}>
+        <div className="flex gap-1 border border-(--border) rounded-[10px] p-0.75">
           <button className={`icon-btn ${view === "grid" ? "active" : ""}`} onClick={() => setView("grid")} style={{ width: 32, height: 32, border: "none", background: view === "grid" ? "var(--primary)" : "transparent", color: view === "grid" ? "white" : "var(--muted)", borderRadius: 8 }} type="button"><Grid3X3 size={15} /></button>
           <button className={`icon-btn ${view === "list" ? "active" : ""}`} onClick={() => setView("list")} style={{ width: 32, height: 32, border: "none", background: view === "list" ? "var(--primary)" : "transparent", color: view === "list" ? "white" : "var(--muted)", borderRadius: 8 }} type="button"><List size={15} /></button>
         </div>
@@ -83,8 +83,8 @@ export default function ProjectsPage() {
 
       {/* Bulk Actions */}
       {selected.length > 0 ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "color-mix(in srgb, var(--primary) 10%, transparent)", border: "1px solid color-mix(in srgb, var(--primary) 30%, transparent)", borderRadius: 12 }}>
-          <span style={{ fontSize: 13, fontWeight: 600 }}>{selected.length} selected</span>
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+          <span className="text-[13px] font-semibold">{selected.length} selected</span>
           <button className="btn btn-outline" onClick={() => { toast("Projects archived", "success"); setSelected([]); }} style={{ minHeight: 32, padding: "0 12px", fontSize: 12 }} type="button"><Archive size={14} /> Archive</button>
           <button className="btn btn-outline" onClick={() => setDeleteDialog("bulk")} style={{ minHeight: 32, padding: "0 12px", fontSize: 12, color: "var(--danger)", borderColor: "var(--danger)" }} type="button"><Trash2 size={14} /> Delete</button>
           <button className="btn btn-ghost" onClick={() => setSelected([])} style={{ minHeight: 32, padding: "0 12px", fontSize: 12 }} type="button">Clear</button>
@@ -96,22 +96,22 @@ export default function ProjectsPage() {
       ) : view === "grid" ? (
         <div className="dash-grid-3">
           {filtered.map((p) => (
-            <div key={p._id} className="project-card" style={{ position: "relative" }}>
-              <input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} style={{ position: "absolute", top: 16, left: 16, width: 16, height: 16, cursor: "pointer" }} />
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", paddingLeft: 28 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: p.color, display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 16, flexShrink: 0 }}>{p.name.charAt(0)}</div>
+            <div key={p._id} className="project-card relative">
+              <input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} className="absolute top-4 left-4 w-4 h-4 cursor-pointer" />
+              <div className="flex items-start justify-between pl-7">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-10 h-10 rounded-xl grid place-items-center text-white font-extrabold text-base shrink-0" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                   <div>
-                    <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>{p.name}</p>
+                    <p className="m-0 mb-0.5 font-bold text-sm">{p.name}</p>
                     <StatusBadge status={p.status} />
                   </div>
                 </div>
-                <div style={{ position: "relative" }}>
-                  <button className="icon-btn" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p._id ? null : p._id); }} style={{ width: 30, height: 30, border: "none", background: "transparent" }} type="button"><MoreHorizontal size={16} /></button>
+                <div className="relative">
+                  <button className="icon-btn w-7.5 h-7.5 border-0 bg-transparent" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p._id ? null : p._id); }} type="button"><MoreHorizontal size={16} /></button>
                   {menuOpen === p._id ? (
-                    <div style={{ position: "absolute", right: 0, top: 36, width: 160, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.2)", zIndex: 10, overflow: "hidden" }}>
+                    <div className="absolute right-0 top-9 w-40 bg-(--card) border border-(--border) rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-10 overflow-hidden">
                       {[["Star", Star], ["Share", Share2], ["Settings", Settings], ["Archive", Archive], ["Delete", Trash2]].map(([label, Icon]) => (
-                        <button key={label} className="sidebar-item" onClick={() => { setMenuOpen(null); if (label === "Delete") setDeleteDialog(p._id); else toast(`${label} action`, "success"); }} style={{ borderRadius: 0, color: label === "Delete" ? "var(--danger)" : undefined, width: "100%" }} type="button">
+                        <button key={label} className="sidebar-item rounded-none w-full" onClick={() => { setMenuOpen(null); if (label === "Delete") setDeleteDialog(p._id); else toast(`${label} action`, "success"); }} style={{ color: label === "Delete" ? "var(--danger)" : undefined }} type="button">
                           <Icon size={15} /><span>{label}</span>
                         </button>
                       ))}
@@ -119,22 +119,22 @@ export default function ProjectsPage() {
                   ) : null}
                 </div>
               </div>
-              <p className="muted" style={{ margin: 0, fontSize: 13, paddingLeft: 28, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.description}</p>
-              <div style={{ paddingLeft: 28 }}>
-                <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+              <p className="muted m-0 text-[13px] pl-7 overflow-hidden" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.description}</p>
+              <div className="pl-7">
+                <div className="flex gap-1.5 mb-2.5 flex-wrap">
                   {p.stack.map((s) => <span key={s} className="badge" style={{ padding: "2px 8px", fontSize: 11 }}>{s}</span>)}
                 </div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span className="muted" style={{ fontSize: 12 }}>Progress</span>
-                  <span style={{ fontSize: 12, fontWeight: 700 }}>{p.progress}%</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="muted text-xs">Progress</span>
+                  <span className="text-xs font-bold">{p.progress}%</span>
                 </div>
                 <ProgressBar value={p.progress} />
               </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingLeft: 28 }}>
+              <div className="flex items-center justify-between pl-7">
                 <AvatarGroup members={p.members} max={3} size={26} />
-                <span className="muted" style={{ fontSize: 11 }}>Updated {new Date(p.updatedAt).toLocaleDateString()}</span>
+                <span className="muted text-[11px]">Updated {new Date(p.updatedAt).toLocaleDateString()}</span>
               </div>
-              <div style={{ display: "flex", gap: 8, paddingLeft: 28 }}>
+              <div className="flex gap-2 pl-7">
                 <Link className="btn btn-primary" href={`/dashboard/projects/${p._id}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Open</Link>
                 <button className="btn btn-outline" onClick={() => toast("Link copied", "success")} style={{ minHeight: 34, padding: "0 12px", fontSize: 12 }} type="button"><Share2 size={13} /></button>
               </div>
@@ -161,28 +161,28 @@ export default function ProjectsPage() {
                 <tr key={p._id}>
                   <td><input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} /></td>
                   <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, background: p.color, display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{p.name.charAt(0)}</div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg grid place-items-center text-white font-extrabold text-[13px] shrink-0" style={{ background: p.color }}>{p.name.charAt(0)}</div>
                       <div>
-                        <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: 13 }}>{p.name}</p>
-                        <p className="muted" style={{ margin: 0, fontSize: 11 }}>{p.stack.slice(0, 2).join(" · ")}</p>
+                        <p className="m-0 mb-0.5 font-semibold text-[13px]">{p.name}</p>
+                        <p className="muted m-0 text-[11px]">{p.stack.slice(0, 2).join(" · ")}</p>
                       </div>
                     </div>
                   </td>
                   <td><StatusBadge status={p.status} /></td>
                   <td><AvatarGroup members={p.members} max={3} size={24} /></td>
-                  <td><span style={{ fontSize: 13 }}>{p.tasks.open} open</span></td>
+                  <td><span className="text-[13px]">{p.tasks.open} open</span></td>
                   <td>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 100 }}>
+                    <div className="flex items-center gap-2 min-w-25">
                       <ProgressBar value={p.progress} />
-                      <span style={{ fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{p.progress}%</span>
+                      <span className="text-xs font-bold shrink-0">{p.progress}%</span>
                     </div>
                   </td>
-                  <td><span className="muted" style={{ fontSize: 12 }}>{new Date(p.updatedAt).toLocaleDateString()}</span></td>
+                  <td><span className="muted text-xs">{new Date(p.updatedAt).toLocaleDateString()}</span></td>
                   <td>
-                    <div style={{ display: "flex", gap: 6 }}>
+                    <div className="flex gap-1.5">
                       <Link className="btn btn-outline" href={`/dashboard/projects/${p._id}`} style={{ minHeight: 30, padding: "0 10px", fontSize: 12 }}>Open</Link>
-                      <button className="icon-btn" onClick={() => setDeleteDialog(p._id)} style={{ width: 30, height: 30, border: "none", background: "transparent", color: "var(--danger)" }} type="button"><Trash2 size={14} /></button>
+                      <button className="icon-btn text-(--danger) border-0 bg-transparent w-7.5 h-7.5" onClick={() => setDeleteDialog(p._id)} type="button"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>

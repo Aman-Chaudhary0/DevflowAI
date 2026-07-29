@@ -3,23 +3,18 @@
 import { useState } from "react";
 import {
   AlertTriangle,
-  Bug,
   CheckCircle2,
-  ChevronDown,
   Clock,
   Code2,
   FileDiff,
-  GitBranch,
   GitPullRequest,
   MessageSquare,
-  MoreVertical,
   Shield,
-  ShieldAlert,
+  Sparkles,
   XCircle,
   X
 } from "lucide-react";
-import { toast } from "@/components/dashboard-ui";
-import { Avatar, StatusBadge } from "@/components/dashboard-ui";
+import { Avatar, EmptyState, FilterBar, PageHeader, StatusBadge, toast } from "@/components/dashboard-ui";
 
 const mockPRs = [
   {

@@ -4,6 +4,7 @@ import { CodeBlock, Rating } from "@/components/ui-blocks";
 
 const tocItems = ["Principles", "Context", "Review loops", "Shipping"];
 
+// BlogDetailPage is a page component that renders the detailed view of a blog post about designing AI workspaces. It includes a hero section with the article title, metadata, and a share button, followed by the main content area with a table of contents, article sections, and related articles. The page also features a comments section for user interaction.
 export default function BlogDetailPage() {
   return (
     <>
