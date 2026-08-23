@@ -1350,6 +1350,91 @@ select {
 .stat-delta.down { color: var(--danger); }
 .stat-delta.neutral { color: var(--muted); }
 
+/* Dashboard layout compatibility ------------------------------------------------
+   Dashboard screens use a small set of utility-style classes. Keep these rules
+   explicit so their responsive layout is reliable even when Tailwind utilities
+   are not emitted by the host build. */
+.dash-main .flex { display: flex; }
+.dash-main .grid { display: grid; }
+.dash-main .items-center { align-items: center; }
+.dash-main .items-start { align-items: flex-start; }
+.dash-main .justify-between { justify-content: space-between; }
+.dash-main .justify-end { justify-content: flex-end; }
+.dash-main .flex-wrap { flex-wrap: wrap; }
+.dash-main .flex-1 { flex: 1 1 0%; }
+.dash-main .shrink-0 { flex-shrink: 0; }
+.dash-main .min-w-0 { min-width: 0; }
+.dash-main .w-full { width: 100%; }
+.dash-main .h-fit { height: fit-content; }
+.dash-main .gap-1 { gap: .25rem; }
+.dash-main .gap-2 { gap: .5rem; }
+.dash-main .gap-2\.5 { gap: .625rem; }
+.dash-main .gap-3 { gap: .75rem; }
+.dash-main .gap-4 { gap: 1rem; }
+.dash-main .gap-5 { gap: 1.25rem; }
+.dash-main .gap-6 { gap: 1.5rem; }
+.dash-main .mt-1 { margin-top: .25rem; }
+.dash-main .mt-2 { margin-top: .5rem; }
+.dash-main .mt-3 { margin-top: .75rem; }
+.dash-main .mt-4 { margin-top: 1rem; }
+.dash-main .mt-5 { margin-top: 1.25rem; }
+.dash-main .mt-6 { margin-top: 1.5rem; }
+.dash-main .mb-0 { margin-bottom: 0; }
+.dash-main .mb-1 { margin-bottom: .25rem; }
+.dash-main .mb-2 { margin-bottom: .5rem; }
+.dash-main .mb-3 { margin-bottom: .75rem; }
+.dash-main .mb-4 { margin-bottom: 1rem; }
+.dash-main .mb-5 { margin-bottom: 1.25rem; }
+.dash-main .p-3 { padding: .75rem; }
+.dash-main .p-4 { padding: 1rem; }
+.dash-main .p-5 { padding: 1.25rem; }
+.dash-main .p-6 { padding: 1.5rem; }
+.dash-main .p-8 { padding: 2rem; }
+.dash-main .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.dash-main .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dash-main .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.dash-main .grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.dash-main .grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.dash-main .grid-cols-\[1\.35fr_auto\] { grid-template-columns: minmax(0, 1.35fr) auto; }
+.dash-main .grid-cols-\[1\.4fr_0\.9fr\] { grid-template-columns: minmax(0, 1.4fr) minmax(0, .9fr); }
+.dash-main .grid-cols-\[1\.45fr_0\.55fr\] { grid-template-columns: minmax(0, 1.45fr) minmax(0, .55fr); }
+.dash-main .col-span-4 { grid-column: span 4 / span 4; }
+.dash-main .col-span-5 { grid-column: span 5 / span 5; }
+.dash-main .col-span-7 { grid-column: span 7 / span 7; }
+.dash-main .col-span-8 { grid-column: span 8 / span 8; }
+.dash-main .min-h-\[190px\] { min-height: 190px; }
+.dash-main .min-h-\[510px\] { min-height: 510px; }
+.dash-main .resize-y { resize: vertical; }
+.dash-main .text-left { text-align: left; }
+.dash-main .text-center { text-align: center; }
+.dash-main .leading-7 { line-height: 1.75rem; }
+.dash-main .text-sm { font-size: .875rem; }
+.dash-main .text-xs { font-size: .75rem; }
+.dash-main .font-semibold { font-weight: 600; }
+.dash-main .font-medium { font-weight: 500; }
+.dash-main .rounded-xl { border-radius: .75rem; }
+.dash-main .rounded-2xl { border-radius: 1rem; }
+.dash-main .border { border-width: 1px; border-style: solid; }
+.dash-main .border-dashed { border-style: dashed; }
+.dash-main .border-\(--border\) { border-color: var(--border); }
+.dash-main .bg-\(--bg\) { background-color: var(--bg); }
+.dash-main .transition-colors { transition: border-color .18s ease, background-color .18s ease; }
+.dash-main .hover\:border-\(--primary\):hover { border-color: var(--primary); }
+.dash-main .grid.place-items-center { place-items: center; }
+
+@media (max-width: 980px) {
+  .dash-main .grid-cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dash-main .grid-cols-12 { grid-template-columns: 1fr; }
+  .dash-main .col-span-4, .dash-main .col-span-5, .dash-main .col-span-7, .dash-main .col-span-8 { grid-column: auto; }
+}
+
+@media (max-width: 640px) {
+  .dash-main .grid-cols-2, .dash-main .grid-cols-3, .dash-main .grid-cols-4, .dash-main .grid-cols-5,
+  .dash-main .grid-cols-\[1\.35fr_auto\], .dash-main .grid-cols-\[1\.4fr_0\.9fr\], .dash-main .grid-cols-\[1\.45fr_0\.55fr\] { grid-template-columns: 1fr; }
+  .dash-main .page-header > div:last-child { width: 100%; }
+  .dash-main .page-header > div:last-child .btn { flex: 1; }
+}
+
 /* ─── Progress ─────────────────────────────────────────────── */
 
 .progress-bar {

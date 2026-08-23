@@ -23,10 +23,10 @@ export function Skeleton({ width = "100%", height = 16, style = {} }) {
 
 export function SkeletonCard() {
   return (
-    <div className="stat-card" style={{ gap: 16 }}>
+    <div className="stat-card gap-4">
       <div className="flex justify-between">
         <Skeleton width={80} height={13} />
-        <Skeleton width={40} height={40} style={{ borderRadius: 12 }} />
+        <Skeleton width={40} height={40} className="rounded-xl" />
       </div>
       <Skeleton width={60} height={32} />
       <Skeleton width={100} height={12} />
@@ -58,7 +58,7 @@ export function EmptyState({ icon: Icon, title, description, action, onAction })
         <p className="muted text-sm m-0">{description}</p>
       </div>
       {action ? (
-        <button className="btn btn-primary" onClick={onAction} type="button" style={{ minHeight: 38, padding: "0 20px", fontSize: 14 }}>
+        <button className="btn btn-primary min-h-[38px] px-5 text-sm" onClick={onAction} type="button">
           {action}
         </button>
       ) : null}
@@ -124,12 +124,12 @@ export function ConfirmDialog({ open, title, description, confirmLabel = "Confir
           <p className="muted m-0 text-sm">{description}</p>
         </div>
         <div className="flex gap-3 justify-end">
-          <button className="btn btn-outline" onClick={onCancel} type="button" style={{ minHeight: 40 }}>Cancel</button>
+          <button className="btn btn-outline min-h-[40px]" onClick={onCancel} type="button">Cancel</button>
           <button
-            className="btn btn-primary"
+            className="btn btn-primary min-h-[40px]"
             onClick={onConfirm}
             type="button"
-            style={{ minHeight: 40, background: danger ? "var(--danger)" : undefined }}
+            style={{ background: danger ? "var(--danger)" : undefined }}
           >
             {confirmLabel}
           </button>

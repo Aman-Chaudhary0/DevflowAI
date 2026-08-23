@@ -52,30 +52,12 @@ function CodeBlock({ language, code, onCopy }) {
   };
 
   return (
-    <div style={{ position: "relative", borderRadius: 12, overflow: "hidden", margin: "12px 0" }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "8px 12px",
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)",
-        fontSize: 12,
-        color: "var(--muted)"
-      }}>
-        <span style={{ fontWeight: 600 }}>{language || "code"}</span>
+    <div className="relative rounded-xl overflow-hidden my-3">
+      <div className="flex justify-between items-center px-3 py-2 bg-(--surface) border-b border-(--border) text-sm text-(--muted)">
+        <span className="font-semibold">{language || "code"}</span>
         <button
           onClick={handleCopy}
-          style={{
-            background: "none",
-            border: "none",
-            cursor: "pointer",
-            color: "var(--muted)",
-            display: "flex",
-            alignItems: "center",
-            gap: 4,
-            fontSize: 12
-          }}
+          className="bg-none border-none cursor-pointer text-(--muted) flex items-center gap-1 text-sm"
           type="button"
         >
           {copied ? <Check size={14} color="var(--success)" /> : <Copy size={14} />}
@@ -186,44 +168,21 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
   const [showActions, setShowActions] = useState(false);
 
   return (
-    <div style={{
-      display: "flex",
-      gap: 12,
-      padding: "16px 0",
-      animation: "fadeIn 0.3s ease"
-    }}>
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        background: "linear-gradient(135deg, var(--primary), var(--purple))",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
-      }}>
+    <div className="flex gap-3 p-4 animate-fadeIn">
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-(--primary) to-(--purple) grid place-items-center flex-shrink-0">
         <Sparkles size={16} color="white" />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontWeight: 600, fontSize: 14, margin: "0 0 8px" }}>AI Assistant</div>
-        <div className="ai-message-content" style={{ fontSize: 14, lineHeight: 1.7 }}>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm mb-2">AI Assistant</div>
+        <div className="ai-message-content text-sm leading-relaxed">
           <MarkdownContent content={message.content} />
         </div>
 
         {/* File references */}
         {message.files && message.files.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 12 }}>
+          <div className="flex gap-2 flex-wrap mt-3">
             {message.files.map((file, i) => (
-              <div key={i} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "4px 10px",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 12,
-                color: "var(--muted)"
-              }}>
+              <div key={i} className="flex items-center gap-1.5 px-2.5 py-1 bg-(--surface) border border-(--border) rounded-lg text-xs text-(--muted)">
                 <FileCode size={12} />
                 {file}
               </div>
@@ -233,7 +192,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
 
         {/* Action buttons */}
         <div
-          style={{ display: "flex", gap: 4, marginTop: 12 }}
+          className="flex gap-1 mt-3"
           onMouseEnter={() => setShowActions(true)}
           onMouseLeave={() => setShowActions(false)}
         >
@@ -241,7 +200,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
             <>
               <button
                 onClick={() => onCopy && onCopy(message.content)}
-                style={{ actionButton: true }}
+                className="action-btn"
                 title="Copy"
                 type="button"
               >
@@ -249,7 +208,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               </button>
               <button
                 onClick={() => onRegenerate && onRegenerate(message.id)}
-                style={{ actionButton: true }}
+                className="action-btn"
                 title="Regenerate"
                 type="button"
               >
@@ -257,7 +216,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               </button>
               <button
                 onClick={() => onLike && onLike(message.id)}
-                style={{ actionButton: true }}
+                className="action-btn"
                 title="Like"
                 type="button"
               >
@@ -265,7 +224,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               </button>
               <button
                 onClick={() => onDislike && onDislike(message.id)}
-                style={{ actionButton: true }}
+                className="action-btn"
                 title="Dislike"
                 type="button"
               >
@@ -274,7 +233,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               {onContinue && (
                 <button
                   onClick={() => onContinue(message.id)}
-                  style={{ actionButton: true }}
+                  className="action-btn"
                   title="Continue"
                   type="button"
                 >
@@ -284,7 +243,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               {onExplain && (
                 <button
                   onClick={() => onExplain(message.id)}
-                  style={{ actionButton: true }}
+                  className="action-btn"
                   title="Explain"
                   type="button"
                 >
@@ -294,7 +253,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
               {onInsert && (
                 <button
                   onClick={() => onInsert(message.content)}
-                  style={{ actionButton: true }}
+                  className="action-btn"
                   title="Insert into Project"
                   type="button"
                 >
@@ -312,33 +271,11 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
 // ─── User Message Bubble ───────────────────────────────────────
 export function UserMessage({ message }) {
   return (
-    <div style={{
-      display: "flex",
-      gap: 12,
-      padding: "16px 0",
-      flexDirection: "row-reverse",
-      animation: "fadeIn 0.3s ease"
-    }}>
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        background: "var(--primary)",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
-      }}>
-        <span style={{ color: "white", fontWeight: 700, fontSize: 14 }}>U</span>
+    <div className="flex gap-3 p-4 flex-row-reverse animate-fadeIn">
+      <div className="w-8 h-8 rounded-lg bg-(--primary) grid place-items-center flex-shrink-0">
+        <span className="text-white font-bold text-sm">U</span>
       </div>
-      <div style={{
-        maxWidth: "70%",
-        padding: "12px 16px",
-        background: "var(--primary)",
-        color: "white",
-        borderRadius: "18px 18px 4px 18px",
-        fontSize: 14,
-        lineHeight: 1.6
-      }}>
+      <div className="max-w-[70%] p-3 bg-(--primary) text-white rounded-[18px_18px_4px_18px] text-sm leading-relaxed">
         {message.content}
       </div>
     </div>
@@ -348,43 +285,14 @@ export function UserMessage({ message }) {
 // ─── Typing Indicator ──────────────────────────────────────────
 export function TypingIndicator() {
   return (
-    <div style={{ display: "flex", gap: 12, padding: "16px 0" }}>
-      <div style={{
-        width: 32,
-        height: 32,
-        borderRadius: 10,
-        background: "linear-gradient(135deg, var(--primary), var(--purple))",
-        display: "grid",
-        placeItems: "center",
-        flexShrink: 0
-      }}>
+    <div className="flex gap-3 p-4">
+      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-(--primary) to-(--purple) grid place-items-center flex-shrink-0">
         <Sparkles size={16} color="white" />
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "8px 0" }}>
-        <span style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: "var(--muted)",
-          animation: "bounce 1.4s infinite ease-in-out both",
-          animationDelay: "0s"
-        }} />
-        <span style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: "var(--muted)",
-          animation: "bounce 1.4s infinite ease-in-out both",
-          animationDelay: "0.2s"
-        }} />
-        <span style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: "var(--muted)",
-          animation: "bounce 1.4s infinite ease-in-out both",
-          animationDelay: "0.4s"
-        }} />
+      <div className="flex items-center gap-1 p-2">
+        <span className="w-2 h-2 rounded-full bg-(--muted)" style={{ animation: "bounce 1.4s infinite ease-in-out both" }} />
+        <span className="w-2 h-2 rounded-full bg-(--muted)" style={{ animation: "bounce 1.4s infinite ease-in-out both", animationDelay: "0.2s" }} />
+        <span className="w-2 h-2 rounded-full bg-(--muted)" style={{ animation: "bounce 1.4s infinite ease-in-out both", animationDelay: "0.4s" }} />
       </div>
     </div>
   );
@@ -423,55 +331,28 @@ export function ChatInput({
   };
 
   return (
-    <div style={{
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      background: "var(--card)",
-      padding: 12,
-      transition: "border-color 200ms ease"
-    }}>
+    <div className="border border-(--border) rounded-2xl bg-(--card) p-3 transition-colors duration-200">
       {/* Suggestions */}
       {suggestions.length > 0 && !value && (
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+        <div className="flex gap-2 flex-wrap mb-2">
           {suggestions.map((s, i) => (
             <button
               key={i}
               onClick={() => onChange(s)}
-              style={{
-                padding: "6px 12px",
-                background: "var(--surface)",
-                border: "1px solid var(--border)",
-                borderRadius: 999,
-                fontSize: 12,
-                color: "var(--muted)",
-                cursor: "pointer",
-                transition: "all 150ms ease",
-                whiteSpace: "nowrap"
-              }}
+              className="px-3 py-1.5 bg-(--surface) border border-(--border) rounded-full text-xs text-(--muted) cursor-pointer transition-all duration-150 whitespace-nowrap"
               type="button"
             >
-              <Sparkles size={12} style={{ marginRight: 4 }} />
+              <Sparkles size={12} className="mr-1" />
               {s}
             </button>
           ))}
         </div>
       )}
 
-      <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+      <div className="flex gap-2 items-end">
         <button
           onClick={onAttach}
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 10,
-            background: "var(--surface)",
-            border: "none",
-            cursor: "pointer",
-            display: "grid",
-            placeItems: "center",
-            color: "var(--muted)",
-            flexShrink: 0
-          }}
+          className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) flex-shrink-0"
           title="Attach file"
           type="button"
         >
@@ -484,36 +365,13 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={rows}
-          style={{
-            flex: 1,
-            border: "none",
-            outline: "none",
-            background: "transparent",
-            resize: "none",
-            fontSize: 14,
-            lineHeight: 1.6,
-            padding: "8px 0",
-            minHeight: 24,
-            maxHeight: 150,
-            fontFamily: "inherit"
-          }}
+          className="flex-1 border-none outline-none bg-transparent resize-none text-sm leading-relaxed py-2 min-h-6 max-h-[150px] font-inherit"
         />
 
-        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+        <div className="flex gap-1 flex-shrink-0">
           <button
             onClick={onVoice}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: 10,
-              background: "var(--surface)",
-              border: "none",
-              cursor: "pointer",
-              display: "grid",
-              placeItems: "center",
-              color: "var(--muted)",
-              transition: "all 150ms ease"
-            }}
+            className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) transition-all duration-150"
             title="Voice input"
             type="button"
           >
@@ -523,17 +381,7 @@ export function ChatInput({
           {isGenerating ? (
             <button
               onClick={onStop}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: "var(--danger)",
-                border: "none",
-                cursor: "pointer",
-                display: "grid",
-                placeItems: "center",
-                color: "white"
-              }}
+              className="w-9 h-9 rounded-lg bg-(--danger) border-none cursor-pointer grid place-items-center text-white"
               title="Stop generation"
               type="button"
             >
@@ -549,18 +397,7 @@ export function ChatInput({
                 }
               }}
               disabled={!value.trim()}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: value.trim() ? "var(--primary)" : "var(--border)",
-                border: "none",
-                cursor: value.trim() ? "pointer" : "not-allowed",
-                display: "grid",
-                placeItems: "center",
-                color: value.trim() ? "white" : "var(--muted)",
-                transition: "all 150ms ease"
-              }}
+              className="w-9 h-9 rounded-lg bg-(--primary) border-none cursor-pointer grid place-items-center text-white transition-all duration-150"
               title="Send message"
               type="button"
             >
@@ -576,46 +413,38 @@ export function ChatInput({
 // ─── Context Panel ─────────────────────────────────────────────
 export function ContextPanel({ project, files, branch, framework, language, memory }) {
   return (
-    <div style={{
-      border: "1px solid var(--border)",
-      borderRadius: 16,
-      background: "var(--card)",
-      padding: 16,
-      display: "flex",
-      flexDirection: "column",
-      gap: 16
-    }}>
+    <div className="border border-(--border) rounded-2xl bg-(--card) p-4 flex flex-col gap-4">
       <div>
-        <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)", marginBottom: 8 }}>
+        <div className="text-[11px] font-extrabold uppercase tracking-wider text-(--soft) mb-2">
           Current Context
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div className="flex flex-col gap-2">
           {project && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <div className="flex items-center gap-2 text-sm">
               <FolderOpen size={14} color="var(--muted)" />
-              <span style={{ color: "var(--muted)" }}>Project:</span>
-              <span style={{ fontWeight: 600 }}>{project}</span>
+              <span className="text-(--muted)">Project:</span>
+              <span className="font-semibold">{project}</span>
             </div>
           )}
           {branch && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <div className="flex items-center gap-2 text-sm">
               <GitBranch size={14} color="var(--muted)" />
-              <span style={{ color: "var(--muted)" }}>Branch:</span>
-              <span style={{ fontWeight: 600 }}>{branch}</span>
+              <span className="text-(--muted)">Branch:</span>
+              <span className="font-semibold">{branch}</span>
             </div>
           )}
           {framework && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <div className="flex items-center gap-2 text-sm">
               <FileCode size={14} color="var(--muted)" />
-              <span style={{ color: "var(--muted)" }}>Framework:</span>
-              <span style={{ fontWeight: 600 }}>{framework}</span>
+              <span className="text-(--muted)">Framework:</span>
+              <span className="font-semibold">{framework}</span>
             </div>
           )}
           {language && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
+            <div className="flex items-center gap-2 text-sm">
               <FileText size={14} color="var(--muted)" />
-              <span style={{ color: "var(--muted)" }}>Language:</span>
-              <span style={{ fontWeight: 600 }}>{language}</span>
+              <span className="text-(--muted)">Language:</span>
+              <span className="font-semibold">{language}</span>
             </div>
           )}
         </div>
@@ -623,20 +452,12 @@ export function ContextPanel({ project, files, branch, framework, language, memo
 
       {files && files.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)", marginBottom: 8 }}>
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-(--soft) mb-2">
             Selected Files
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {files.map((file, i) => (
-              <div key={i} style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "6px 10px",
-                background: "var(--surface)",
-                borderRadius: 8,
-                fontSize: 12
-              }}>
+              <div key={i} className="flex items-center gap-2 px-2.5 py-1.5 bg-(--surface) rounded-lg text-xs">
                 <FileCode size={12} color="var(--primary)" />
                 <span>{file}</span>
               </div>
@@ -647,21 +468,12 @@ export function ContextPanel({ project, files, branch, framework, language, memo
 
       {memory && memory.length > 0 && (
         <div>
-          <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)", marginBottom: 8 }}>
+          <div className="text-[11px] font-extrabold uppercase tracking-wider text-(--soft) mb-2">
             Recent AI Memory
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div className="flex flex-col gap-1">
             {memory.slice(0, 3).map((m, i) => (
-              <div key={i} style={{
-                padding: "6px 10px",
-                background: "var(--surface)",
-                borderRadius: 8,
-                fontSize: 12,
-                color: "var(--muted)",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis"
-              }}>
+              <div key={i} className="px-2.5 py-1.5 bg-(--surface) rounded-lg text-xs text-(--muted) whitespace-nowrap overflow-hidden text-ellipsis">
                 {m}
               </div>
             ))}
@@ -694,34 +506,12 @@ export function ChatHistory({
     : conversations;
 
   return (
-    <div style={{
-      display: "flex",
-      flexDirection: "column",
-      height: "100%",
-      borderRight: "1px solid var(--border)",
-      background: "var(--surface)",
-      minWidth: collapsed ? 0 : 260,
-      width: collapsed ? 0 : 260
-    }}>
+    <div className="flex flex-col h-full border-r border-(--border) bg-(--surface) min-w-[260px] w-[260px]" style={{ minWidth: collapsed ? 0 : 260, width: collapsed ? 0 : 260 }}>
       {/* New Chat Button */}
-      <div style={{ padding: 12 }}>
+      <div className="p-3">
         <button
           onClick={onNew}
-          style={{
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "10px 12px",
-            background: "var(--primary)",
-            border: "none",
-            borderRadius: 12,
-            color: "white",
-            fontWeight: 600,
-            fontSize: 14,
-            cursor: "pointer",
-            transition: "all 150ms ease"
-          }}
+          className="w-full flex items-center gap-2 px-3 py-2.5 bg-(--primary) border-none rounded-xl text-white font-semibold text-sm cursor-pointer transition-all duration-150"
           type="button"
         >
           <Wand2 size={16} />
@@ -731,70 +521,38 @@ export function ChatHistory({
 
       {/* Search */}
       {!collapsed && (
-        <div style={{ padding: "0 12px 12px" }}>
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "8px 12px",
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 10
-          }}>
+        <div className="px-3 pb-3">
+          <div className="flex items-center gap-2 px-3 py-2 bg-(--card) border border-(--border) rounded-lg">
             <Search size={14} color="var(--muted)" />
             <input
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Search chats..."
-              style={{
-                flex: 1,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                fontSize: 13,
-                color: "var(--text)"
-              }}
+              className="flex-1 border-none outline-none bg-transparent text-sm text-(--text)"
             />
           </div>
         </div>
       )}
 
       {/* Folders & Conversations */}
-      <div style={{ flex: 1, overflowY: "auto", padding: "0 8px" }}>
+      <div className="flex-1 overflow-y-auto px-2">
         {/* Pinned */}
         {!collapsed && conversations.some(c => c.pinned) && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)", padding: "4px 8px" }}>
+          <div className="mb-4">
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-(--soft) px-2 py-1">
               Pinned
             </div>
             {conversations.filter(c => c.pinned).map(c => (
               <button
                 key={c.id}
                 onClick={() => onSelect(c.id)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "8px 10px",
-                  background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent",
-                  border: "none",
-                  borderRadius: 8,
-                  cursor: "pointer",
-                  textAlign: "left"
-                }}
+                className="w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
                 type="button"
               >
                 <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                <div style={{ flex: 1, overflow: "hidden" }}>
-                  <div style={{
-                    fontSize: 13,
-                    fontWeight: 600,
-                    whiteSpace: "nowrap",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    color: c.id === activeId ? "var(--primary)" : "var(--text)"
-                  }}>
+                <div className="flex-1 overflow-hidden">
+                  <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
                     {c.title}
                   </div>
                 </div>
@@ -810,66 +568,34 @@ export function ChatHistory({
           const isExpanded = expandedFolders[folder.id] !== false;
 
           return (
-            <div key={folder.id} style={{ marginBottom: 8 }}>
+            <div key={folder.id} className="mb-2">
               <button
                 onClick={() => toggleFolder(folder.id)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  padding: "6px 8px",
-                  background: "transparent",
-                  border: "none",
-                  borderRadius: 6,
-                  cursor: "pointer",
-                  textAlign: "left"
-                }}
+                className="w-full flex items-center gap-2 px-2 py-1.5 bg-transparent border-none rounded-md cursor-pointer text-left"
                 type="button"
               >
                 {isExpanded ? <ChevronDown size={14} color="var(--muted)" /> : <ChevronRight size={14} color="var(--muted)" />}
-                <span style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--soft)" }}>
+                <span className="text-xs font-bold uppercase tracking-wider text-(--soft)">
                   {folder.name}
                 </span>
-                <span style={{
-                  fontSize: 11,
-                  color: "var(--soft)",
-                  marginLeft: "auto"
-                }}>
+                <span className="text-[11px] text-(--soft) ml-auto">
                   {folderConversations.length}
                 </span>
               </button>
 
               {isExpanded && (
-                <div style={{ paddingLeft: 8 }}>
+                <div className="pl-2">
                   {folderConversations.map(c => (
                     <button
                       key={c.id}
                       onClick={() => onSelect(c.id)}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                        padding: "7px 10px",
-                        background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent",
-                        border: "none",
-                        borderRadius: 8,
-                        cursor: "pointer",
-                        textAlign: "left"
-                      }}
+                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                      style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
                       type="button"
                     >
                       <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                      <div style={{ flex: 1, overflow: "hidden" }}>
-                        <div style={{
-                          fontSize: 13,
-                          fontWeight: 600,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          color: c.id === activeId ? "var(--primary)" : "var(--text)"
-                        }}>
+                      <div className="flex-1 overflow-hidden">
+                        <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
                           {c.title}
                         </div>
                       </div>
@@ -889,7 +615,7 @@ export function ChatHistory({
           return (
             <div>
               {!collapsed && (
-                <div style={{ fontSize: 11, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)", padding: "4px 8px" }}>
+                <div className="text-[11px] font-extrabold uppercase tracking-wider text-(--soft) px-2 py-1">
                   Recent
                 </div>
               )}
@@ -897,30 +623,13 @@ export function ChatHistory({
                 <button
                   key={c.id}
                   onClick={() => onSelect(c.id)}
-                  style={{
-                    width: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "8px 10px",
-                    background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent",
-                    border: "none",
-                    borderRadius: 8,
-                    cursor: "pointer",
-                    textAlign: "left"
-                  }}
+                  className="w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                  style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
                   type="button"
                 >
                   <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                  <div style={{ flex: 1, overflow: "hidden" }}>
-                    <div style={{
-                      fontSize: 13,
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      color: c.id === activeId ? "var(--primary)" : "var(--text)"
-                    }}>
+                  <div className="flex-1 overflow-hidden">
+                    <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
                       {c.title}
                     </div>
                   </div>
@@ -941,67 +650,35 @@ export function ModelSelector({ value, onChange, options = [] }) {
   const selected = options.find(o => o.id === value) || options[0];
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "8px 12px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 10,
-          cursor: "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text)"
-        }}
+        className="flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
         type="button"
       >
-        <img src={selected.icon} alt={selected.name} style={{ width: 20, height: 20, borderRadius: 4 }} />
+        <img src={selected.icon} alt={selected.name} className="w-5 h-5 rounded" />
         {selected.name}
         <ChevronDown size={14} color="var(--muted)" />
       </button>
 
       {open && (
         <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-          <div style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            left: 0,
-            minWidth: 200,
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
-            zIndex: 50,
-            overflow: "hidden"
-          }}>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-[calc(100%+8px)] left-0 min-w-[200px] bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
             {options.map(option => (
               <button
                 key={option.id}
                 onClick={() => { onChange(option.id); setOpen(false); }}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  padding: "10px 12px",
-                  background: option.id === value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  textAlign: "left"
-                }}
+                className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] border-none cursor-pointer text-left"
+                style={{ background: option.id === value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }}
                 type="button"
               >
-                <img src={option.icon} alt={option.name} style={{ width: 20, height: 20, borderRadius: 4 }} />
+                <img src={option.icon} alt={option.name} className="w-5 h-5 rounded" />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 600 }}>{option.name}</div>
-                  <div style={{ fontSize: 11, color: "var(--muted)" }}>{option.description}</div>
+                  <div className="text-sm font-semibold">{option.name}</div>
+                  <div className="text-xs text-(--muted)">{option.description}</div>
                 </div>
-                {option.id === value && <Check size={14} color="var(--primary)" style={{ marginLeft: "auto" }} />}
+                {option.id === value && <Check size={14} color="var(--primary)" className="ml-auto" />}
               </button>
             ))}
           </div>
@@ -1016,22 +693,10 @@ export function ExportMenu({ onExport }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div style={{ position: "relative" }}>
+    <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          padding: "8px 12px",
-          background: "var(--surface)",
-          border: "1px solid var(--border)",
-          borderRadius: 10,
-          cursor: "pointer",
-          fontSize: 13,
-          fontWeight: 600,
-          color: "var(--text)"
-        }}
+        className="flex items-center gap-1.5 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
         type="button"
       >
         <Download size={14} />
@@ -1040,33 +705,11 @@ export function ExportMenu({ onExport }) {
 
       {open && (
         <>
-          <div style={{ position: "fixed", inset: 0, zIndex: 40 }} onClick={() => setOpen(false)} />
-          <div style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            right: 0,
-            minWidth: 160,
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-            borderRadius: 12,
-            boxShadow: "0 16px 48px rgba(0,0,0,0.3)",
-            zIndex: 50,
-            overflow: "hidden"
-          }}>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute top-[calc(100%+8px)] right-0 min-w-[160px] bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
             <button
               onClick={() => { onExport("md"); setOpen(false); }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 12px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-                fontSize: 13
-              }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left text-sm"
               type="button"
             >
               <FileText size={14} />
@@ -1074,18 +717,7 @@ export function ExportMenu({ onExport }) {
             </button>
             <button
               onClick={() => { onExport("pdf"); setOpen(false); }}
-              style={{
-                width: "100%",
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "10px 12px",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                textAlign: "left",
-                fontSize: 13
-              }}
+              className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left text-sm"
               type="button"
             >
               <FileText size={14} />
@@ -1103,44 +735,21 @@ export function DiffViewer({ original, fixed, language = "javascript" }) {
   const [view, setView] = useState("split"); // split, unified
 
   return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "hidden" }}>
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "8px 12px",
-        background: "var(--surface)",
-        borderBottom: "1px solid var(--border)"
-      }}>
-        <div style={{ display: "flex", gap: 8 }}>
+    <div className="border border-(--border) rounded-xl overflow-hidden">
+      <div className="flex justify-between items-center px-3 py-2 bg-(--surface) border-b border-(--border)">
+        <div className="flex gap-2">
           <button
             onClick={() => setView("split")}
-            style={{
-              padding: "4px 10px",
-              background: view === "split" ? "var(--primary)" : "transparent",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-              color: view === "split" ? "white" : "var(--muted)"
-            }}
+            className="px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer"
+            style={{ background: view === "split" ? "var(--primary)" : "transparent", color: view === "split" ? "white" : "var(--muted)" }}
             type="button"
           >
             Split
           </button>
           <button
             onClick={() => setView("unified")}
-            style={{
-              padding: "4px 10px",
-              background: view === "unified" ? "var(--primary)" : "transparent",
-              border: "none",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-              color: view === "unified" ? "white" : "var(--muted)"
-            }}
+            className="px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer"
+            style={{ background: view === "unified" ? "var(--primary)" : "transparent", color: view === "unified" ? "white" : "var(--muted)" }}
             type="button"
           >
             Unified
@@ -1149,17 +758,17 @@ export function DiffViewer({ original, fixed, language = "javascript" }) {
       </div>
 
       {view === "split" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 0 }}>
+        <div className="grid grid-cols-2 gap-0">
           <div>
-            <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--danger) 10%, transparent)", fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>
+            <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--danger)_10%,transparent)] text-xs font-semibold text-(--danger)">
               Original
             </div>
             <SyntaxHighlighter language={language} style={vscDarkPlus} customStyle={{ margin: 0, borderRadius: 0, fontSize: 13 }}>
               {original}
             </SyntaxHighlighter>
           </div>
-          <div style={{ borderLeft: "1px solid var(--border)" }}>
-            <div style={{ padding: "8px 12px", background: "color-mix(in srgb, var(--success) 10%, transparent)", fontSize: 12, fontWeight: 600, color: "var(--success)" }}>
+          <div className="border-l border-(--border)">
+            <div className="px-3 py-2 bg-[color-mix(in_srgb,var(--success)_10%,transparent)] text-xs font-semibold text-(--success)">
               Fixed
             </div>
             <SyntaxHighlighter language={language} style={vscDarkPlus} customStyle={{ margin: 0, borderRadius: 0, fontSize: 13 }}>
@@ -1187,8 +796,8 @@ export function ScoreCard({ score, label, max = 100, size = 120 }) {
   const color = score >= 80 ? "var(--success)" : score >= 60 ? "var(--warning)" : "var(--danger)";
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+    <div className="relative flex flex-col items-center gap-2">
+      <svg width={size} height={size} className="-rotate-90">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -1210,11 +819,11 @@ export function ScoreCard({ score, label, max = 100, size = 120 }) {
           style={{ transition: "stroke-dashoffset 800ms ease" }}
         />
       </svg>
-      <div style={{ position: "absolute", display: "grid", placeItems: "center" }}>
-        <span style={{ fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk" }}>{score}</span>
-        <span style={{ fontSize: 11, color: "var(--muted)" }}>/{max}</span>
+      <div className="absolute grid place-items-center">
+        <span className="text-[28px] font-extrabold font-display">{score}</span>
+        <span className="text-xs text-(--muted)">/{max}</span>
       </div>
-      {label && <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{label}</span>}
+      {label && <span className="text-xs text-(--muted) font-semibold">{label}</span>}
     </div>
   );
 }
@@ -1231,49 +840,24 @@ export function IssueCard({ severity, title, description, location, fix }) {
   const color = colors[severity] || colors.low;
 
   return (
-    <div style={{
-      border: "1px solid",
-      borderColor: color.border,
-      borderRadius: 12,
-      background: color.bg,
-      padding: 16,
-      marginBottom: 8
-    }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{
-          padding: "2px 8px",
-          background: color.border,
-          borderRadius: 6,
-          fontSize: 11,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          color: "white"
-        }}>
+    <div className="border border-(--border) rounded-xl p-4 mb-2" style={{ borderColor: color.border, background: color.bg }}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold uppercase text-white" style={{ background: color.border }}>
           {severity}
         </span>
-        <span style={{ fontWeight: 600, fontSize: 14 }}>{title}</span>
+        <span className="font-semibold text-sm">{title}</span>
       </div>
-      <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>{description}</p>
+      <p className="mb-2 text-sm text-(--muted) leading-relaxed">{description}</p>
       {location && (
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 4,
-          padding: "4px 8px",
-          background: "var(--surface)",
-          borderRadius: 6,
-          fontSize: 12,
-          fontFamily: "JetBrains Mono",
-          color: "var(--muted)"
-        }}>
+        <div className="inline-flex items-center gap-2 px-2 py-1 bg-(--surface) rounded-md text-xs font-code text-(--muted)">
           <FileCode size={12} />
           {location}
         </div>
       )}
       {fix && (
-        <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid color-mix(in srgb, var(--border) 50%, transparent)" }}>
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>Fix: </span>
-          <span style={{ fontSize: 13 }}>{fix}</span>
+        <div className="mt-3 pt-3 border-t border-[color-mix(in_srgb,var(--border)_50%,transparent)]">
+          <span className="text-xs font-semibold text-(--success)">Fix: </span>
+          <span className="text-sm">{fix}</span>
         </div>
       )}
     </div>
@@ -1283,21 +867,21 @@ export function IssueCard({ severity, title, description, location, fix }) {
 // Add CSS for action buttons
 const style = document.createElement("style");
 style.textContent = `
-  [style*="actionButton: true"] {
+  .action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28;
-    height: 28;
+    width: 28px;
+    height: 28px;
     padding: 0;
     background: var(--surface);
     border: 1px solid var(--border);
-    border-radius: 8;
+    border-radius: 8px;
     cursor: pointer;
     color: var(--muted);
     transition: all 150ms ease;
   }
-  [style*="actionButton: true"]:hover {
+  .action-btn:hover {
     background: var(--card);
     color: var(--text);
     border-color: var(--primary);

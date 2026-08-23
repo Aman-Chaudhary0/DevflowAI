@@ -10,16 +10,22 @@ import {
   Bot,
   ChevronLeft,
   ChevronRight,
+  Code2,
+  Bug,
   FileText,
   FolderOpen,
+  Globe,
   Github,
+  History,
   LayoutDashboard,
   LogOut,
   Plus,
   Rocket,
   Search,
+  MessageSquare,
   Settings,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Users,
   Workflow,
@@ -55,12 +61,41 @@ const projectNav = [
   { label: "Settings", icon: Settings2, segment: "settings" }
 ];
 
+const aiNav = [
+  { label: "AI Hub", href: "/dashboard/ai", icon: Bot },
+  { label: "Chat", href: "/dashboard/ai/chat", icon: MessageSquare },
+  { label: "Code Generator", href: "/dashboard/ai/code-generator", icon: Code2 },
+  { label: "Code Review", href: "/dashboard/ai/code-review", icon: ShieldCheck },
+  { label: "Docs Generator", href: "/dashboard/ai/docs-generator", icon: FileText },
+  { label: "Bug Fixer", href: "/dashboard/ai/bug-fixer", icon: Bug },
+  { label: "Backend Generator", href: "/dashboard/ai/backend-generator", icon: Sparkles },
+  { label: "AI History", href: "/dashboard/ai/history", icon: History }
+];
+
+const githubNav = [
+  { label: "Repositories", href: "/dashboard/github/repositories", icon: Github },
+  { label: "Pull Requests", href: "/dashboard/github/pull-requests", icon: Github },
+  { label: "Commits", href: "/dashboard/github/commits", icon: Github },
+  { label: "Branches", href: "/dashboard/github/branches", icon: Github },
+  { label: "Releases", href: "/dashboard/github/releases", icon: Github },
+  { label: "Issues", href: "/dashboard/github/issues", icon: Github }
+];
+
+const deploymentNav = [
+  { label: "Deployments", href: "/dashboard/deployments", icon: Rocket },
+  { label: "Domains", href: "/dashboard/deployments/domains", icon: Globe },
+  { label: "Workflows", href: "/dashboard/workflows", icon: Workflow }
+];
+
 export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
   const [user, setUser] = useState(mockUser);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem("devflow-sidebar-collapsed") === "1";
+  });
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -68,6 +103,9 @@ export default function DashboardLayout({ children }) {
 
   const projectId = params?.projectId;
   const unread = mockNotifications.filter((n) => !n.read).length;
+  const showAiNav = pathname.startsWith("/dashboard/ai");
+  const showGithubNav = pathname.startsWith("/dashboard/github");
+  const showDeploymentNav = pathname.startsWith("/dashboard/deployments") || pathname.startsWith("/dashboard/workflows");
 
   useEffect(() => {
     api.me()
@@ -75,14 +113,18 @@ export default function DashboardLayout({ children }) {
       .catch(() => router.replace("/login"));
   }, [router]);
 
+  useEffect(() => {
+    window.localStorage.setItem("devflow-sidebar-collapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
+
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   if (!authChecked) {
     return (
       <div className="grid place-items-center min-h-screen">
         <div className="flex flex-col items-center gap-4">
-          <div className="logo-mark" style={{ width: 48, height: 48 }}><Rocket size={22} /></div>
-          <div className="skeleton" style={{ width: 120, height: 12 }} />
+          <div className="logo-mark w-12 h-12"><Rocket size={22} /></div>
+          <div className="skeleton w-30 h-3" />
         </div>
       </div>
     );
@@ -100,10 +142,10 @@ export default function DashboardLayout({ children }) {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center justify-between pb-3 border-b border-(--border) mb-2" style={{ padding: "4px 4px 12px" }}>
+      <div className="flex items-center justify-between pb-3 border-b border-(--border) mb-2 px-1 pt-1">
         {!collapsed ? (
-          <Link className="logo" href="/dashboard" style={{ fontSize: 15 }}>
-            <span className="logo-mark" style={{ width: 30, height: 30 }}><Rocket size={15} /></span>
+          <Link className="logo text-sm" href="/dashboard">
+            <span className="logo-mark w-7.5 h-7.5"><Rocket size={15} /></span>
             <span className="font-display">Devflow AI</span>
           </Link>
         ) : (
@@ -120,7 +162,7 @@ export default function DashboardLayout({ children }) {
 
       {globalNav.map(({ href, label, icon: Icon, badge }) => (
         <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-          <Icon size={18} style={{ flexShrink: 0 }} />
+          <Icon size={18} className="shrink-0" />
           {!collapsed ? <span className="sidebar-label">{label}</span> : null}
           {!collapsed && badge ? <span className="sidebar-badge">{badge}</span> : null}
         </Link>
@@ -134,7 +176,7 @@ export default function DashboardLayout({ children }) {
             const href = `/dashboard/projects/${projectId}${segment ? `/${segment}` : ""}`;
             return (
               <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={label} title={collapsed ? label : undefined}>
-                <Icon size={18} style={{ flexShrink: 0 }} />
+                <Icon size={18} className="shrink-0" />
                 {!collapsed ? <span className="sidebar-label">{label}</span> : null}
               </Link>
             );
@@ -142,12 +184,51 @@ export default function DashboardLayout({ children }) {
         </>
       ) : null}
 
+        {showAiNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!collapsed ? <span className="sidebar-section">AI</span> : null}
+            {aiNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+                <Icon size={18} className="shrink-0" />
+                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+              </Link>
+            ))}
+          </>
+        ) : null}
+
+        {showGithubNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!collapsed ? <span className="sidebar-section">GitHub</span> : null}
+            {githubNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+                <Icon size={18} className="shrink-0" />
+                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+              </Link>
+            ))}
+          </>
+        ) : null}
+
+        {showDeploymentNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!collapsed ? <span className="sidebar-section">Developer</span> : null}
+            {deploymentNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+                <Icon size={18} className="shrink-0" />
+                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+              </Link>
+            ))}
+          </>
+        ) : null}
+
       <div className="flex-1" />
       <div className="sidebar-divider" />
 
       {bottomNav.map(({ href, label, icon: Icon }) => (
         <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-          <Icon size={18} style={{ flexShrink: 0 }} />
+          <Icon size={18} className="shrink-0" />
           {!collapsed ? <span className="sidebar-label">{label}</span> : null}
         </Link>
       ))}
@@ -167,7 +248,7 @@ export default function DashboardLayout({ children }) {
         </div>
 
         <div className="flex items-center gap-2">
-          <Link className="btn btn-primary" href="/dashboard/projects/create" style={{ minHeight: 36, padding: "0 14px", fontSize: 13, gap: 6 }}>
+          <Link className="btn btn-primary min-h-9 px-3.5 text-xs gap-1.5" href="/dashboard/projects/create">
             <Plus size={16} /> New
           </Link>
           <Link className="icon-btn" href="/dashboard/ai" title="AI Assistant">

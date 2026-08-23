@@ -23,21 +23,21 @@ export default function ProjectOverviewPage() {
     <>
       {/* Hero */}
       <div className="welcome-banner">
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: project.color, display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 22, flexShrink: 0 }}>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl grid place-items-center text-white font-extrabold text-[22px] shrink-0" style={{ background: project.color }}>
             {project.name.charAt(0)}
           </div>
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>{project.name}</h1>
+            <div className="flex items-center gap-2.5 mb-1">
+              <h1 className="m-0 text-[22px] font-extrabold" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>{project.name}</h1>
               <StatusBadge status={project.status} />
               <span className="badge" style={{ padding: "2px 8px", fontSize: 11 }}>{project.visibility}</span>
             </div>
-            <p className="muted" style={{ margin: "0 0 8px", fontSize: 13 }}>{project.description}</p>
+            <p className="muted m-0 mb-2 text-[13px]">{project.description}</p>
             <AvatarGroup members={project.members} max={5} size={26} />
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className="flex gap-2 flex-wrap">
           <button className="btn btn-outline" onClick={() => toast("Added to favorites", "success")} style={{ minHeight: 36, fontSize: 13 }} type="button"><Star size={15} /> Star {project.stars}</button>
           <button className="btn btn-outline" onClick={() => toast("Link copied", "success")} style={{ minHeight: 36, fontSize: 13 }} type="button"><Share2 size={15} /> Share</button>
           <button className="btn btn-primary" onClick={() => toast("Cloning...", "info")} style={{ minHeight: 36, fontSize: 13 }} type="button"><GitCommit size={15} /> Clone</button>
@@ -47,79 +47,79 @@ export default function ProjectOverviewPage() {
       {/* Progress + Stats */}
       <div className="dash-grid-3">
         <div className="stat-card" style={{ gap: 14 }}>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Development Progress</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <p className="m-0 font-bold text-sm">Development Progress</p>
+          <div className="flex items-center gap-4">
             <ProgressRing value={project.progress} size={72} stroke={7} />
             <div>
-              <p style={{ margin: "0 0 4px", fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>{project.progress}%</p>
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>Overall completion</p>
+              <p className="m-0 mb-1 text-[28px] font-extrabold" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>{project.progress}%</p>
+              <p className="muted m-0 text-xs">Overall completion</p>
             </div>
           </div>
           <ProgressBar value={project.progress} />
         </div>
         <div className="stat-card" style={{ gap: 14 }}>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Tasks</p>
+          <p className="m-0 font-bold text-sm">Tasks</p>
           {[["Open", project.tasks.open, "var(--info)"], ["Completed", project.tasks.completed, "var(--success)"], ["Overdue", project.tasks.overdue, "var(--danger)"]].map(([label, val, color]) => (
-            <div key={label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span className="muted" style={{ fontSize: 13 }}>{label}</span>
-              <strong style={{ color, fontSize: 16 }}>{val}</strong>
+            <div key={label} className="flex justify-between items-center">
+              <span className="muted text-[13px]">{label}</span>
+              <strong className="text-base" style={{ color }}>{val}</strong>
             </div>
           ))}
         </div>
         <div className="stat-card" style={{ gap: 14 }}>
-          <p style={{ margin: 0, fontWeight: 700, fontSize: 14 }}>Deployment</p>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 12, background: "color-mix(in srgb, var(--success) 15%, transparent)", display: "grid", placeItems: "center" }}>
+          <p className="m-0 font-bold text-sm">Deployment</p>
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl grid place-items-center" style={{ background: "color-mix(in srgb, var(--success) 15%, transparent)" }}>
               <Rocket size={20} color="var(--success)" />
             </div>
             <div>
               <StatusBadge status={project.deployments.status} />
-              <p className="muted" style={{ margin: "4px 0 0", fontSize: 12 }}>{project.deployments.env}</p>
+              <p className="muted mt-1 mb-0 text-xs">{project.deployments.env}</p>
             </div>
           </div>
-          <p className="muted" style={{ margin: 0, fontSize: 12 }}>Last deploy: {project.deployments.lastDeploy}</p>
-          <p style={{ margin: 0, fontSize: 12, fontWeight: 600 }}>{project.commits} total commits</p>
+          <p className="muted m-0 text-xs">Last deploy: {project.deployments.lastDeploy}</p>
+          <p className="m-0 text-xs font-semibold">{project.commits} total commits</p>
         </div>
       </div>
 
       {/* Files + Commits */}
       <div className="dash-grid-2">
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Recent Files</p>
-            <Link href={`/dashboard/projects/${projectId}/files`} className="muted" style={{ fontSize: 13, fontWeight: 600 }}>View all</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Recent Files</p>
+            <Link href={`/dashboard/projects/${projectId}/files`} className="muted text-[13px] font-semibold">View all</Link>
           </div>
           {projectFiles.map((f) => (
-            <div key={f._id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)" }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--primary) 12%, transparent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+            <div key={f._id} className="flex items-center gap-3 py-2 border-b border-(--border)/40">
+              <div className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0" style={{ background: "color-mix(in srgb, var(--primary) 12%, transparent)" }}>
                 <FileText size={16} color="var(--primary)" />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</p>
-                <span className="muted" style={{ fontSize: 11 }}>{f.size} · {f.updatedAt}</span>
+              <div className="flex-1 min-w-0">
+                <p className="m-0 mb-0.5 text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{f.name}</p>
+                <span className="muted text-[11px]">{f.size} · {f.updatedAt}</span>
               </div>
-              <div style={{ display: "flex", gap: 6 }}>
-                <button className="icon-btn" onClick={() => toast("Opening preview", "info")} style={{ width: 28, height: 28, border: "none", background: "transparent" }} type="button"><Eye size={14} /></button>
-                <button className="icon-btn" onClick={() => toast("Downloading", "success")} style={{ width: 28, height: 28, border: "none", background: "transparent" }} type="button"><Download size={14} /></button>
+              <div className="flex gap-1.5">
+                <button className="icon-btn w-7 h-7 border-0 bg-transparent" onClick={() => toast("Opening preview", "info")} type="button"><Eye size={14} /></button>
+                <button className="icon-btn w-7 h-7 border-0 bg-transparent" onClick={() => toast("Downloading", "success")} type="button"><Download size={14} /></button>
               </div>
             </div>
           ))}
         </div>
 
         <div className="stat-card" style={{ gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Recent Commits</p>
-            <Link href={`/dashboard/projects/${projectId}/activity`} className="muted" style={{ fontSize: 13, fontWeight: 600 }}>View all</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Recent Commits</p>
+            <Link href={`/dashboard/projects/${projectId}/activity`} className="muted text-[13px] font-semibold">View all</Link>
           </div>
           <div className="timeline">
             {recentCommits.map((c) => (
               <div className="timeline-item" key={c.hash}>
                 <div className="timeline-dot"><GitCommit size={16} color="var(--primary)" /></div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600 }}>{c.message}</p>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <code style={{ fontSize: 11, color: "var(--primary)", fontFamily: "JetBrains Mono, monospace" }}>{c.hash}</code>
-                    <span style={{ fontSize: 11, color: "var(--soft)" }}>{c.author} · {c.time}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="m-0 mb-0.5 text-[13px] font-semibold">{c.message}</p>
+                  <div className="flex gap-2 items-center">
+                    <code className="text-[11px] text-(--primary) font-mono">{c.hash}</code>
+                    <span className="text-[11px] text-(--soft)">{c.author} · {c.time}</span>
                   </div>
                 </div>
               </div>
@@ -131,48 +131,48 @@ export default function ProjectOverviewPage() {
       {/* AI Widget + Docs + Team */}
       <div className="dash-grid-3">
         <div className="stat-card" style={{ gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div className="flex items-center gap-2.5">
             <div className="logo-mark" style={{ width: 36, height: 36, background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>AI Assistant</p>
+            <p className="m-0 font-bold text-[15px]">AI Assistant</p>
           </div>
           {[["Generate Docs", "Auto-document this project"], ["Explain Folder", "Understand the codebase"], ["Review Project", "Get AI code review"]].map(([label, desc]) => (
-            <button key={label} className="sidebar-item" onClick={() => toast(`${label} started`, "info")} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", height: "auto", flexDirection: "column", alignItems: "flex-start", gap: 2 }} type="button">
-              <span style={{ fontWeight: 700, fontSize: 13 }}>{label}</span>
-              <span className="muted" style={{ fontSize: 11 }}>{desc}</span>
+            <button key={label} className="sidebar-item border border-(--border)/40 rounded-xl flex-col items-start h-auto" style={{ padding: "10px 14px", gap: 2 }} onClick={() => toast(`${label} started`, "info")} type="button">
+              <span className="font-bold text-[13px]">{label}</span>
+              <span className="muted text-[11px]">{desc}</span>
             </button>
           ))}
         </div>
 
         <div className="stat-card" style={{ gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Documentation</p>
-            <Link href={`/dashboard/projects/${projectId}/docs`} className="muted" style={{ fontSize: 13, fontWeight: 600 }}>Open</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Documentation</p>
+            <Link href={`/dashboard/projects/${projectId}/docs`} className="muted text-[13px] font-semibold">Open</Link>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="flex items-center gap-3">
             <ProgressRing value={68} size={56} stroke={6} color="var(--info)" />
             <div>
-              <p style={{ margin: "0 0 2px", fontSize: 20, fontWeight: 800 }}>68%</p>
-              <p className="muted" style={{ margin: 0, fontSize: 12 }}>Docs complete</p>
+              <p className="m-0 mb-0.5 text-[20px] font-extrabold">68%</p>
+              <p className="muted m-0 text-xs">Docs complete</p>
             </div>
           </div>
           {["README", "API Reference", "Database Schema", "Deployment Guide"].map((doc) => (
-            <div key={doc} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div key={doc} className="flex items-center gap-2">
               <CheckCircle2 size={14} color="var(--success)" />
-              <span style={{ fontSize: 13 }}>{doc}</span>
+              <span className="text-[13px]">{doc}</span>
             </div>
           ))}
           <Link className="btn btn-outline" href={`/dashboard/projects/${projectId}/docs`} style={{ minHeight: 34, fontSize: 12 }}>Improve Docs</Link>
         </div>
 
         <div className="stat-card" style={{ gap: 14 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Team</p>
-            <Link href={`/dashboard/projects/${projectId}/team`} className="muted" style={{ fontSize: 13, fontWeight: 600 }}>Manage</Link>
+          <div className="flex items-center justify-between">
+            <p className="m-0 font-bold text-[15px]">Team</p>
+            <Link href={`/dashboard/projects/${projectId}/team`} className="muted text-[13px] font-semibold">Manage</Link>
           </div>
           {project.members.map((m) => (
-            <div key={m._id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: "50%", background: m.color, display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 13, flexShrink: 0 }}>{m.name.charAt(0)}</div>
-              <span style={{ fontSize: 13, fontWeight: 600 }}>{m.name}</span>
+            <div key={m._id} className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full grid place-items-center text-white font-extrabold text-[13px] shrink-0" style={{ background: m.color }}>{m.name.charAt(0)}</div>
+              <span className="text-[13px] font-semibold">{m.name}</span>
             </div>
           ))}
           <button className="btn btn-outline" onClick={() => toast("Invite sent", "success")} style={{ minHeight: 34, fontSize: 12 }} type="button"><Users size={14} /> Invite Member</button>

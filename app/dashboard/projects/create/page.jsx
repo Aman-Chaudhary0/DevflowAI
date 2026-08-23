@@ -99,7 +99,7 @@ export default function CreateProjectPage() {
               <div className="wizard-step-num">
                 {i < step ? <Check size={14} /> : i + 1}
               </div>
-              <span style={{ fontSize: 13, fontWeight: 600, color: i === step ? "var(--text)" : "var(--muted)", whiteSpace: "nowrap" }}>{s}</span>
+              <span className="text-[13px] font-semibold whitespace-nowrap" style={{ color: i === step ? "var(--text)" : "var(--muted)" }}>{s}</span>
             </div>
           ))}
         </div>
@@ -112,11 +112,11 @@ export default function CreateProjectPage() {
             <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Basic Information</h3>
             <div className="dash-grid-2">
               <label className="form-field">
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Project Name *</span>
+                <span className="text-[13px] font-semibold">Project Name *</span>
                 <input className="input" placeholder="My Awesome Project" value={form.name} onChange={(e) => update("name", e.target.value)} />
               </label>
               <label className="form-field">
-                <span style={{ fontSize: 13, fontWeight: 600 }}>Slug</span>
+                <span className="text-[13px] font-semibold">Slug</span>
                 <input className="input" placeholder="my-awesome-project" value={form.slug} onChange={(e) => update("slug", e.target.value)} />
               </label>
             </div>
@@ -134,7 +134,7 @@ export default function CreateProjectPage() {
             </div>
             <div className="form-field">
               <span className="text-[13px] font-semibold">Logo</span>
-              <div className="border-2 border-dashed border-[var(--border)] rounded-[14px] p-6 text-center cursor-pointer">
+              <div className="border-2 border-dashed border-(--border) rounded-[14px] p-6 text-center cursor-pointer">
                 <Upload size={24} color="var(--muted)" className="mx-auto mb-2" />
                 <p className="muted m-0 text-[13px]">Drag & drop or click to upload</p>
               </div>
@@ -146,15 +146,16 @@ export default function CreateProjectPage() {
           <div className="flex flex-col gap-5">
             <h3 className="m-0" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>Technology Stack</h3>
             <p className="muted m-0 text-[13px]">Select all technologies used in this project.</p>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))", gap: 10 }}>
+            <div className="grid gap-2.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))" }}>
               {techOptions.map((t) => (
                 <button
                   key={t.label}
                   onClick={() => toggleTech(t.label)}
-                  style={{ padding: "10px 14px", border: `2px solid ${form.tech.includes(t.label) ? t.color : "var(--border)"}`, borderRadius: 12, background: form.tech.includes(t.label) ? `color-mix(in srgb, ${t.color} 12%, transparent)` : "transparent", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: "var(--text)", transition: "all 150ms ease" }}
+                  className="flex items-center gap-2 text-[13px] font-semibold text-(--text) cursor-pointer rounded-xl transition-all duration-150"
+                  style={{ padding: "10px 14px", border: `2px solid ${form.tech.includes(t.label) ? t.color : "var(--border)"}`, background: form.tech.includes(t.label) ? `color-mix(in srgb, ${t.color} 12%, transparent)` : "transparent" }}
                   type="button"
                 >
-                  {form.tech.includes(t.label) ? <Check size={14} color={t.color} /> : <div style={{ width: 14, height: 14, borderRadius: 4, border: "1px solid var(--border)" }} />}
+                  {form.tech.includes(t.label) ? <Check size={14} color={t.color} /> : <div className="w-3.5 h-3.5 rounded border border-(--border)" />}
                   {t.label}
                 </button>
               ))}
@@ -175,23 +176,24 @@ export default function CreateProjectPage() {
                 <button
                   key={val}
                   onClick={() => update("repo", val)}
-                  style={{ padding: "16px 20px", border: `2px solid ${form.repo === val ? "var(--primary)" : "var(--border)"}`, borderRadius: 14, background: form.repo === val ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent", cursor: "pointer", textAlign: "left", transition: "all 150ms ease" }}
+                  className="text-left cursor-pointer rounded-[14px] transition-all duration-150"
+                  style={{ padding: "16px 20px", border: `2px solid ${form.repo === val ? "var(--primary)" : "var(--border)"}`, background: form.repo === val ? "color-mix(in srgb, var(--primary) 8%, transparent)" : "transparent" }}
                   type="button"
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 20, height: 20, borderRadius: "50%", border: `2px solid ${form.repo === val ? "var(--primary)" : "var(--border)"}`, display: "grid", placeItems: "center" }}>
-                      {form.repo === val ? <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary)" }} /> : null}
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full grid place-items-center" style={{ border: `2px solid ${form.repo === val ? "var(--primary)" : "var(--border)"}` }}>
+                      {form.repo === val ? <div className="w-2.5 h-2.5 rounded-full bg-(--primary)" /> : null}
                     </div>
                     <div>
-                      <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>{label}</p>
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>{desc}</p>
+                      <p className="m-0 mb-0.5 font-bold text-sm">{label}</p>
+                      <p className="muted m-0 text-xs">{desc}</p>
                     </div>
                   </div>
                 </button>
               ))}
             </div>
             <label className="form-field">
-              <span style={{ fontSize: 13, fontWeight: 600 }}>Default Branch</span>
+              <span className="text-[13px] font-semibold">Default Branch</span>
               <input className="input" value={form.branch} onChange={(e) => update("branch", e.target.value)} />
             </label>
           </div>
@@ -207,7 +209,7 @@ export default function CreateProjectPage() {
                   {roleOptions.map((r) => <option key={r}>{r}</option>)}
                 </select>
                 {form.invites.length > 1 ? (
-                  <button className="icon-btn w-9 h-9 border-0 bg-transparent text-[var(--danger)] shrink-0" onClick={() => removeInvite(i)} type="button"><X size={16} /></button>
+                  <button className="icon-btn w-9 h-9 border-0 bg-transparent text-(--danger) shrink-0" onClick={() => removeInvite(i)} type="button"><X size={16} /></button>
                 ) : null}
               </div>
             ))}
@@ -227,7 +229,7 @@ export default function CreateProjectPage() {
                 ["Tech Stack", form.tech.join(", ") || "None selected"],
                 ["Team Invites", form.invites.filter((i) => i.email).length + " members"]
               ].map(([label, value]) => (
-                <div key={label} className="p-3.5 border border-[var(--border)] rounded-xl">
+                <div key={label} className="p-3.5 border border-(--border)/40 rounded-xl">
                   <p className="muted m-0 mb-1 text-xs">{label}</p>
                   <p className="m-0 font-semibold text-sm">{value}</p>
                 </div>

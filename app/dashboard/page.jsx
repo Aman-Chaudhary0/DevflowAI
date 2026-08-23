@@ -71,10 +71,10 @@ export default function DashboardPage() {
       <div className="welcome-banner">
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="logo-mark" style={{ width: 40, height: 40 }}><Sparkles size={18} /></div>
+            <div className="logo-mark w-10 h-10"><Sparkles size={18} /></div>
             <span className="eyebrow">Workspace Overview</span>
           </div>
-          <h2 className="m-0 text-[26px] font-extrabold" style={{ fontFamily: "Space Grotesk, Inter, sans-serif" }}>
+          <h2 className="m-0 text-[26px] font-extrabold font-display">
             {getGreeting()}, {mockUser.name.split(" ")[0]} 👋
           </h2>
           <p className="muted m-0 text-sm">
@@ -84,10 +84,10 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2.5 flex-wrap">
-          <Link className="btn btn-primary" href="/dashboard/projects/create" style={{ minHeight: 38, fontSize: 13 }}>
+          <Link className="btn btn-primary min-h-[38px] text-xs" href="/dashboard/projects/create">
             <Plus size={16} /> New Project
           </Link>
-          <Link className="btn btn-outline" href="/dashboard/ai" style={{ minHeight: 38, fontSize: 13 }}>
+          <Link className="btn btn-outline min-h-[38px] text-xs" href="/dashboard/ai">
             <Sparkles size={16} /> Ask AI
           </Link>
         </div>
@@ -99,20 +99,20 @@ export default function DashboardPage() {
           [1,2,3,4,5,6].map((i) => <SkeletonCard key={i} />)
         ) : (
           <>
-            <Link href="/dashboard/projects" style={{ textDecoration: "none" }}>
+            <Link href="/dashboard/projects" className="no-underline text-inherit">
               <StatCard label="Projects" value={mockProjects.length} delta="+3 this week" trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
                 <MiniBarChart data={[3,5,4,6,5,7,6]} color="var(--primary)" height={36} />
               </StatCard>
             </Link>
-            <Link href="/dashboard/tasks" style={{ textDecoration: "none" }}>
+            <Link href="/dashboard/tasks" className="no-underline text-inherit">
               <StatCard label="Tasks" value={42} delta={`${todayTasks} due today`} trend="neutral" icon={CheckCircle2} iconBg="color-mix(in srgb, var(--warning) 15%, transparent)">
                 <ProgressBar value={34} max={42} />
               </StatCard>
             </Link>
             <StatCard label="AI Requests" value={138} delta="20 remaining" trend="neutral" icon={Bot} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)">
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div className="flex items-center gap-2.5">
                 <ProgressRing value={118} max={138} size={40} color="var(--purple)" />
-                <span className="muted" style={{ fontSize: 12 }}>118 / 138 used</span>
+                <span className="muted text-xs">118 / 138 used</span>
               </div>
             </StatCard>
             <StatCard label="Storage" value="4.3" suffix="GB" delta="of 10 GB" trend="neutral" icon={Server} iconBg="color-mix(in srgb, var(--info) 15%, transparent)">
@@ -131,7 +131,7 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="dash-grid-2">
         {/* Productivity Chart */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="m-0 font-bold text-[15px]">Productivity</p>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-1">
               {["day", "week", "month"].map((p) => (
-                <button key={p} className={`filter-chip ${chartPeriod === p ? "active" : ""}`} onClick={() => setChartPeriod(p)} style={{ padding: "4px 10px", fontSize: 12 }} type="button">
+                    <button key={p} className={`filter-chip ${chartPeriod === p ? "active" : ""} px-2.5 py-1 text-xs`} onClick={() => setChartPeriod(p)} type="button">
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </button>
               ))}
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               const max = Math.max(...mockAnalytics.weeklyTasks);
               return (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div style={{ width: "100%", height: `${(v / max) * 90}px`, background: i === 6 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)", borderRadius: "4px 4px 0 0", minHeight: 4, transition: "height 400ms ease" }} />
+                  <div className="w-full rounded-sm" style={{ height: `${(v / max) * 90}px`, background: i === 6 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)", minHeight: 4, transition: "height 400ms ease" }} />
                   <span className="text-[10px] text-(--soft)">{days[i]}</span>
                 </div>
               );
@@ -160,20 +160,20 @@ export default function DashboardPage() {
           <div className="flex gap-5">
             {[["Tasks", "var(--primary)"], ["AI Usage", "var(--purple)"], ["Deploys", "var(--success)"]].map(([label, color]) => (
               <span key={label} className="flex items-center gap-1.5 text-xs text-(--muted)">
-                <span className="w-2 h-2 rounded-xs inline-block" style={{ background: color }} />{label}
+                <span className="w-2 h-2 rounded-sm inline-block" style={{ background: color }} />{label}
               </span>
             ))}
           </div>
         </div>
 
         {/* AI Usage Widget */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="m-0 font-bold text-[15px]">AI Usage</p>
               <p className="muted mt-0.5 mb-0 text-xs">Current billing period</p>
             </div>
-            <div className="logo-mark" style={{ width: 36, height: 36, background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
+            <div className="logo-mark w-9 h-9" style={{ background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
           </div>
           {[
             { label: "Current Model", value: mockAnalytics.aiStats.model },
@@ -186,7 +186,7 @@ export default function DashboardPage() {
               <strong className="text-[13px]">{value}</strong>
             </div>
           ))}
-          <Link className="btn btn-outline" href="/dashboard/analytics" style={{ minHeight: 36, fontSize: 13 }}>
+          <Link className="btn btn-outline min-h-[36px] text-xs" href="/dashboard/analytics">
             <BarChart3 size={15} /> View Analytics
           </Link>
         </div>
@@ -195,7 +195,7 @@ export default function DashboardPage() {
       {/* Projects + Tasks Row */}
       <div className="dash-grid-2">
         {/* Recent Projects */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <p className="m-0 font-bold text-[15px]">Recent Projects</p>
             <Link href="/dashboard/projects" className="muted text-[13px] font-semibold">View all</Link>
@@ -208,7 +208,7 @@ export default function DashboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="m-0 mb-0.5 font-semibold text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">{p.name}</p>
                 <div className="flex gap-1.5">
-                  {p.stack.slice(0, 2).map((s) => <span key={s} className="badge" style={{ padding: "2px 7px", fontSize: 11 }}>{s}</span>)}
+                  {p.stack.slice(0, 2).map((s) => <span key={s} className="badge px-1.5 py-0.5 text-[11px]">{s}</span>)}
                 </div>
               </div>
               <div className="text-right shrink-0">
@@ -220,7 +220,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Upcoming Tasks */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <p className="m-0 font-bold text-[15px]">Upcoming Tasks</p>
             <Link href="/dashboard/tasks" className="muted text-[13px] font-semibold">View all</Link>
@@ -244,7 +244,7 @@ export default function DashboardPage() {
       {/* Activity + Notifications Row */}
       <div className="dash-grid-2">
         {/* Activity Timeline */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <p className="m-0 font-bold text-[15px]">Recent Activity</p>
             <Clock size={16} color="var(--muted)" />
@@ -266,7 +266,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Notifications */}
-        <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <p className="m-0 font-bold text-[15px]">Notifications</p>
             <span className="sidebar-badge">{unread}</span>
@@ -285,7 +285,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="stat-card" style={{ gap: 16 }}>
+        <div className="stat-card gap-4">
         <p className="m-0 font-bold text-[15px]">Quick Actions</p>
         <div className="flex gap-3 flex-wrap">
           {quickActions.map(({ label, icon: Icon, href, color }) => (
@@ -293,7 +293,7 @@ export default function DashboardPage() {
               key={label}
               href={href}
               className="flex items-center gap-2.5 border border-(--border) rounded-[14px] no-underline text-inherit font-semibold text-sm transition-all duration-150"
-              style={{ padding: "12px 20px", background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
+              className="p-5" style={{ background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; }}
             >

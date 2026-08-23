@@ -253,7 +253,7 @@ Health check: `GET http://localhost:5000/health`
 
 ## Completed Dashboard Pages
 
-All 20 dashboard pages have been implemented with full UI, mock data, and responsive design:
+All 38 dashboard pages have been implemented with full UI, mock data, and responsive design:
 
 ### Original Dashboard Pages (1-10)
 
@@ -270,15 +270,65 @@ All 20 dashboard pages have been implemented with full UI, mock data, and respon
 | Project Settings | `/dashboard/projects/[id]/settings` | ✅ Complete | Tabbed navigation (General, Git, Integrations, Members, Notifications, Security, Danger Zone), API key management, delete/archive/transfer |
 | Analytics | `/dashboard/analytics` | ✅ Complete | Top stats cards, area chart, pie chart (languages), heatmap, deployment stats, team leaderboard, AI usage analytics |
 
-### AI Pages (11-15)
+### AI Pages (11-16)
 
-| Page | Route | Status | Features |
-|------|-------|--------|----------|
-| AI Chat | `/dashboard/ai/chat` | ✅ Complete | ChatGPT-like interface, model selector (Gemini/GPT/Claude), chat history with folders, context panel, markdown support, code highlighting, streaming responses |
-| AI Code Generator | `/dashboard/ai/code-generator` | ✅ Complete | Two-column layout, language/framework/styling selectors, advanced options (TypeScript, tests, accessibility), live preview, code/explanation/structure tabs |
-| AI Code Review | `/dashboard/ai/code-review` | ✅ Complete | Paste/upload/GitHub input, overall score with category breakdowns, issue cards with severity, security checks, performance suggestions, best practices |
-| AI Documentation Generator | `/dashboard/ai/docs-generator` | ✅ Complete | Folder/GitHub/ZIP upload, outline navigation, markdown editor with toolbar, live preview, export all sections |
-| AI Bug Fixer | `/dashboard/ai/bug-fixer` | ✅ Complete | Error input with quick select, stack trace analysis, root cause explanation, diff viewer, confidence score, suggestions and resources |
+This project includes a comprehensive set of six AI pages. Each page has a full UI scaffold implemented; below are deep descriptions, frontend wiring, backend API expectations, data contracts, UX notes, and verification guidance.
+
+| Page | Route | Status | Purpose |
+|------|-------|--------|---------|
+| AI Hub | `/dashboard/ai` | ✅ Complete | Centralized AI workspace — unified entry for chat, generation, review, docs, and bug-fixing. Provides quick templates, model selection, usage quotas, and recent history. |
+| AI Chat | `/dashboard/ai/chat` | ✅ Complete | Conversational assistant with context management, streaming responses, and code/markdown rendering. |
+| AI Code Generator | `/dashboard/ai/code-generator` | ✅ Complete | Generate scaffolded code from prompts or templates, with options (language, framework, test harness, linting). |
+| AI Code Review | `/dashboard/ai/code-review` | ✅ Complete | Analyze pasted or repo-sourced code, produce categorized findings (style/security/perf), and produce suggested fixes/diffs. |
+| AI Documentation Generator | `/dashboard/ai/docs-generator` | ✅ Complete | Convert code/repo structure into organized docs, generate TOC, and export markdown. |
+| AI Bug Fixer | `/dashboard/ai/bug-fixer` | ✅ Complete | Accept error messages, stack traces, or failing tests and surface probable fixes with diffs and confidence scores. |
+
+Design & Frontend wiring (common)
+- **Primary UI files**: `app/dashboard/ai/page.jsx` (hub), `app/dashboard/ai/chat/page.jsx`, `app/dashboard/ai/code-generator/page.jsx`, `app/dashboard/ai/code-review/page.jsx`, `app/dashboard/ai/docs-generator/page.jsx`, `app/dashboard/ai/bug-fixer/page.jsx`.
+- **Shared components**: `components/ai-ui.jsx` (controls, model selector, templates), `components/dashboard-ui.jsx` (cards, diff viewer, toast), `components/ui-blocks.jsx` (modals, editors).
+- **API helper**: `lib/api.js` exposes `api.ai.*` functions; extend it with AI endpoints (examples below).
+- **State & storage**: Local IndexedDB or server-side `ai/sessions` to persist conversations, templates, and usage. Use `localStorage` for temporary draft state and `POST` to backend for permanent history.
+- **Auth & permissions**: All AI endpoints require `Authorization` (access cookie) or same-site httpOnly cookie; frontend uses `credentials: 'include'` (already configured in `lib/api.js`).
+
+Backend API expectations (examples)
+- `POST /api/ai/chat` — body: { sessionId?, messages: [{ role, content }], model, temperature } → returns streaming response chunked or final { id, choices, usage }.
+- `POST /api/ai/generate-code` — body: { prompt, language, framework, options } → returns { files: [{ path, content }], artifactsUrl? }.
+- `POST /api/ai/code-review` — body: { source, repoUrl?, path?, options } → returns { score, issues: [{ file, lineStart, lineEnd, severity, message, suggestion }] }.
+- `POST /api/ai/docs` — body: { repoUrl?, files?:[], options } → returns { outline:[], files:[{path, markdown}] }.
+- `POST /api/ai/bugfix` — body: { errorText, stackTrace?, repoSnippet? } → returns { fixes:[{ diff, explanation, confidence }] }.
+
+Data contracts (examples)
+- Chat message: { id, role: 'user'|'assistant'|'system', content, createdAt }
+- AI session: { id, userId, model, createdAt, updatedAt, messagesCount, metadata }
+- Issue (code-review): { id, file, start, end, severity: 'critical'|'major'|'minor', category: 'security'|'style'|'perf', message, suggestion }
+
+UX & performance notes
+- Stream responses for `ai/chat` to show tokens incrementally (use SSE or fetch ReadableStream). Provide cancel/stop generation action.
+- Include a model selector with token/quota hints and a usage meter in the `AI Hub` header.
+- Run heavy operations (code review, repo analysis) as async jobs with an endpoint to poll `/api/ai/jobs/:id` and a websocket/Socket.io progress channel.
+- Always surface fallback text when external LLM API fails and provide a retry button. Show reasons (rate-limit, timeout, auth).
+
+Security, privacy & costs
+- Rate-limit the endpoints and require server-side billing/usage tracking. Persist only metadata and hashed prompts unless user opts into storing full content.
+- Add sanitization for uploaded code/repos to avoid executing untrusted scripts on the server. Use a sandboxed analysis pipeline.
+
+Testing & verification
+- Unit: tests for `lib/api` calls (mock fetch), formatters, and validators for AI payloads.
+- Integration: run a dev small-model backend or mock responses to validate streaming and diff rendering.
+- Manual: verify `AI Hub` can open each tool, create a session, run a small prompt, and display returned artifacts.
+
+Frontend-to-backend quick mappings (files → endpoints)
+- `app/dashboard/ai/chat/page.jsx` → `POST /api/ai/chat`
+- `app/dashboard/ai/code-generator/page.jsx` → `POST /api/ai/generate-code`
+- `app/dashboard/ai/code-review/page.jsx` → `POST /api/ai/code-review` and `/api/ai/jobs`
+- `app/dashboard/ai/docs-generator/page.jsx` → `POST /api/ai/docs` and `GET /api/ai/docs/:id` for exported bundles
+- `app/dashboard/ai/bug-fixer/page.jsx` → `POST /api/ai/bugfix`
+
+Notes for implementers
+- Add `AI_*` env vars for third-party LLM keys and fallback models in `.env.example`.
+- Make sure CORS and `FRONTEND_URL` allow the frontend host for cookies to be included (backend `app.js` already uses `credentials: true` and `FRONTEND_URL`).
+- Track usage: add `src/services/ai/usage.service.js` and DB schema for `AiUsage` to compute quotas and billing.
+
 
 ### GitHub Pages (16-20)
 
@@ -335,6 +385,64 @@ These 8 pages were built after the original 20 and extend the dashboard with glo
 | Team Dashboard | `/dashboard/team` | ✅ Complete | Team stats, member list with roles/status, activity feed, performance leaderboard, shared resources |
 | Code Editor | `/dashboard/editor` | ✅ Complete | VS Code-style layout, file tree sidebar, tab bar, syntax-highlighted editor area, terminal panel, run button |
 | Workflows | `/dashboard/workflows` | ✅ Complete | Workflow list with status, trigger types, run history, enable/disable toggle, create workflow modal |
+
+## New Dashboard Pages (29-38)
+
+These 10 pages extend the product with AI administration, GitHub branch/release/issue management, project-level planning, and deployment operations. They are implemented as frontend-only routes using centralized mock data and simulated async interactions.
+
+### AI Operations
+
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| AI Backend Generator | `/dashboard/ai/backend-generator` | ✅ Complete | Multi-panel generator with prompt editor, templates, configuration selectors, staged generation progress, architecture/database/API/code tabs, and simulated save/download actions. |
+| AI History | `/dashboard/ai/history` | ✅ Complete | Central history dashboard with tool filters, project filters, status filters, search, action menu, and detail-friendly list layout. |
+
+### GitHub Management
+
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| Branches | `/dashboard/github/branches` | ✅ Complete | Repository selector, branch summary stats, searchable table, protected branch behavior, comparison actions, and create-branch flow. |
+| Releases | `/dashboard/github/releases` | ✅ Complete | Release summary cards, release cards with markdown notes, draft/publish actions, and create-release modal behavior. |
+| Issues | `/dashboard/github/issues` | ✅ Complete | Issue summary cards, search/filter controls, issue list, issue detail drawer concept, and AI analysis entry point. |
+
+### Project Planning
+
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| Project Tasks | `/dashboard/projects/[id]/tasks` | ✅ Complete | Project-scoped task board/list view with realistic task cards, local add-task actions, and route-aware project context. |
+| Project Analytics | `/dashboard/projects/[id]/analytics` | ✅ Complete | Project-scoped analytics dashboard with top stats and activity summaries derived from the project route. |
+
+### Deployments & Domains
+
+| Page | Route | Status | Notes |
+|------|-------|--------|-------|
+| Deployments | `/dashboard/deployments` | ✅ Complete | Workspace-wide deployment table with environment filter, status badges, deploy actions, and responsive table handling. |
+| Deployment Details | `/dashboard/deployments/[id]` | ✅ Complete | Detailed deployment monitoring with pipeline stages, terminal-style build logs, URL actions, and rollback confirmation. |
+| Domains | `/dashboard/deployments/domains` | ✅ Complete | Domain list, SSL/DNS state, add-domain flow, DNS verification simulation, and responsive table layout. |
+
+### Mock Data and Interaction Layer
+
+- `lib/mock/ai.js`: backend generator examples and AI history records.
+- `lib/mock/github.js`: branch, release, and issue mock datasets.
+- `lib/mock/tasks.js`: per-project task data keyed by route-friendly project IDs.
+- `lib/mock/analytics.js`: project analytics snapshots.
+- `lib/mock/deployments.js`: deployment rows and detailed deployment logs/pipeline data.
+- `lib/mock/domains.js`: domain inventory and DNS/SSL state.
+- `lib/api.js`: now exports `mockApi.*` helpers with simulated delays so the new pages can behave like product surfaces without backend integration.
+
+### Navigation Updates
+
+- The dashboard sidebar now reveals contextual groups for AI, GitHub, and deployments when browsing those route families.
+- Existing global navigation was preserved; no duplicate root navigation was introduced.
+- The new routes are wired to the current product structure rather than replacing any existing pages.
+
+### Interaction Requirements Covered
+
+- Search/filter controls update mock results locally.
+- Buttons trigger toasts and staged loading states.
+- Delete, rollback, and domain actions use confirmation flows.
+- Deployment and AI generation paths simulate async work with visible progress.
+- Responsive tables use horizontal scrolling rather than breaking layout.
 
 ## Remaining Future Work
 

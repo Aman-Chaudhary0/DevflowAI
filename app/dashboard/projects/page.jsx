@@ -59,23 +59,23 @@ export default function ProjectsPage() {
   return (
     <>
       <PageHeader title="My Projects" subtitle={`${filtered.length} projects`}>
-        <Link className="btn btn-primary" href="/dashboard/projects/create" style={{ minHeight: 38, fontSize: 13 }}>
+        <Link className="btn btn-primary min-h-[38px] text-xs" href="/dashboard/projects/create">
           <Plus size={16} /> New Project
         </Link>
       </PageHeader>
 
       {/* Toolbar */}
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="dash-search" style={{ minWidth: 220, flex: 1, maxWidth: 360 }}>
+        <div className="dash-search min-w-[220px] flex-1 max-w-[360px]">
           <Search size={15} color="var(--muted)" />
           <input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="input" value={sort} onChange={(e) => setSort(e.target.value)} style={{ width: "auto", minWidth: 180, height: 40, padding: "0 12px" }}>
+        <select className="input w-auto min-w-[180px] h-[40px] px-3" value={sort} onChange={(e) => setSort(e.target.value)}>
           {sortOptions.map((o) => <option key={o}>{o}</option>)}
         </select>
         <div className="flex gap-1 border border-(--border) rounded-[10px] p-0.75">
-          <button className={`icon-btn ${view === "grid" ? "active" : ""}`} onClick={() => setView("grid")} style={{ width: 32, height: 32, border: "none", background: view === "grid" ? "var(--primary)" : "transparent", color: view === "grid" ? "white" : "var(--muted)", borderRadius: 8 }} type="button"><Grid3X3 size={15} /></button>
-          <button className={`icon-btn ${view === "list" ? "active" : ""}`} onClick={() => setView("list")} style={{ width: 32, height: 32, border: "none", background: view === "list" ? "var(--primary)" : "transparent", color: view === "list" ? "white" : "var(--muted)", borderRadius: 8 }} type="button"><List size={15} /></button>
+          <button className={`icon-btn ${view === "grid" ? "active" : ""} w-8 h-8 border-none`} onClick={() => setView("grid")} style={{ background: view === "grid" ? "var(--primary)" : "transparent", color: view === "grid" ? "white" : "var(--muted)" }} type="button"><Grid3X3 size={15} /></button>
+          <button className={`icon-btn ${view === "list" ? "active" : ""} w-8 h-8 border-none`} onClick={() => setView("list")} style={{ background: view === "list" ? "var(--primary)" : "transparent", color: view === "list" ? "white" : "var(--muted)" }} type="button"><List size={15} /></button>
         </div>
       </div>
 
@@ -85,9 +85,9 @@ export default function ProjectsPage() {
       {selected.length > 0 ? (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
           <span className="text-[13px] font-semibold">{selected.length} selected</span>
-          <button className="btn btn-outline" onClick={() => { toast("Projects archived", "success"); setSelected([]); }} style={{ minHeight: 32, padding: "0 12px", fontSize: 12 }} type="button"><Archive size={14} /> Archive</button>
-          <button className="btn btn-outline" onClick={() => setDeleteDialog("bulk")} style={{ minHeight: 32, padding: "0 12px", fontSize: 12, color: "var(--danger)", borderColor: "var(--danger)" }} type="button"><Trash2 size={14} /> Delete</button>
-          <button className="btn btn-ghost" onClick={() => setSelected([])} style={{ minHeight: 32, padding: "0 12px", fontSize: 12 }} type="button">Clear</button>
+        <button className="btn btn-outline min-h-[32px] px-3 text-xs" onClick={() => { toast("Projects archived", "success"); setSelected([]); }}><Archive size={14} /> Archive</button>
+          <button className="btn btn-outline min-h-[32px] px-3 text-xs" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={() => setDeleteDialog("bulk")}><Trash2 size={14} /> Delete</button>
+          <button className="btn btn-ghost min-h-[32px] px-3 text-xs" onClick={() => setSelected([])}>Clear</button>
         </div>
       ) : null}
 
