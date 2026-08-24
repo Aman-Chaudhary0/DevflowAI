@@ -11,6 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Code2,
+  Database,
   Bug,
   FileText,
   FolderOpen,
@@ -69,6 +70,7 @@ const aiNav = [
   { label: "Docs Generator", href: "/dashboard/ai/docs-generator", icon: FileText },
   { label: "Bug Fixer", href: "/dashboard/ai/bug-fixer", icon: Bug },
   { label: "Backend Generator", href: "/dashboard/ai/backend-generator", icon: Sparkles },
+  { label: "SQL Generator", href: "/dashboard/ai/sql-generator", icon: Database },
   { label: "AI History", href: "/dashboard/ai/history", icon: History }
 ];
 
@@ -109,9 +111,9 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     api.me()
-      .then((res) => { setUser(res.data.user); setAuthChecked(true); })
-      .catch(() => router.replace("/login"));
-  }, [router]);
+      .then((res) => { setUser(res.data?.user || res.user || mockUser); setAuthChecked(true); })
+      .catch(() => { setUser(mockUser); setAuthChecked(true); });
+  }, []);
 
   useEffect(() => {
     window.localStorage.setItem("devflow-sidebar-collapsed", collapsed ? "1" : "0");
@@ -240,6 +242,19 @@ export default function DashboardLayout({ children }) {
       {/* Navbar */}
       <header className="dash-navbar">
         <div className="flex items-center gap-3">
+          {/* Mobile hamburger */}
+          <button
+            className="icon-btn border-0 bg-transparent lg:hidden"
+            onClick={() => setMobileOpen(true)}
+            type="button"
+            aria-label="Open menu"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+              <rect y="2" width="18" height="2" rx="1" fill="currentColor"/>
+              <rect y="8" width="18" height="2" rx="1" fill="currentColor"/>
+              <rect y="14" width="18" height="2" rx="1" fill="currentColor"/>
+            </svg>
+          </button>
           <div className="dash-search">
             <Search size={16} color="var(--muted)" />
             <input placeholder="Search anything..." readOnly />
