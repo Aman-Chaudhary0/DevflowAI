@@ -5,7 +5,7 @@ import { Footer } from "@/components/footer";
 import { Navbar } from "@/components/navbar";
 
 const authRoutes = ["/login", "/register", "/verify-email", "/forgot-password", "/reset-password", "/2fa"];
-const noShellRoutes = ["/dashboard"];
+const noShellRoutes = ["/dashboard", "/admin"];
 
 export function SiteShell({ children }) {
   const pathname = usePathname();

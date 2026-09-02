@@ -1,15 +1,14 @@
 import Link from "next/link";
 import { Check, ChevronRight, Copy, Play, Search, Star } from "lucide-react";
 import { features, pricingPlans } from "@/lib/data";
+import { HeaderCopy } from "@/components/header-copy";
 
 // PageHero is a component that renders a hero section for a page, displaying an optional eyebrow, title, description, and any child components passed to it.
 export function PageHero({ eyebrow, title, description, children }) {
   return (
     <section className="section-tight">
       <div className="container stack-lg center" style={{ textAlign: "center" }}>
-        {eyebrow ? <span className="eyebrow">{eyebrow}</span> : null}
-        <h1 className="h1" style={{ marginInline: "auto" }}>{title}</h1>
-        <p className="lead" style={{ marginInline: "auto" }}>{description}</p>
+        <HeaderCopy eyebrow={eyebrow} title={title} description={description} centered />
         {children}
       </div>
     </section>

@@ -101,7 +101,7 @@ export default function DashboardLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
+  const [authStatus, setAuthStatus] = useState("checking");
 
   const projectId = params?.projectId;
   const unread = mockNotifications.filter((n) => !n.read).length;
@@ -111,9 +111,15 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     api.me()
-      .then((res) => { setUser(res.data?.user || res.user || mockUser); setAuthChecked(true); })
-      .catch(() => { setUser(mockUser); setAuthChecked(true); });
-  }, []);
+      .then((res) => {
+        setUser(res.data?.user || res.user || mockUser);
+        setAuthStatus("authenticated");
+      })
+      .catch(() => {
+        setAuthStatus("unauthenticated");
+        router.replace("/login");
+      });
+  }, [router]);
 
   useEffect(() => {
     window.localStorage.setItem("devflow-sidebar-collapsed", collapsed ? "1" : "0");
@@ -121,7 +127,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  if (!authChecked) {
+  if (authStatus !== "authenticated") {
     return (
       <div className="grid place-items-center min-h-screen">
         <div className="flex flex-col items-center gap-4">

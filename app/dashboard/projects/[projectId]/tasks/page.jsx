@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { PageHeader, EmptyState, SkeletonCard, StatCard, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
+import { mockProjects } from "@/lib/dashboard-data";
 import { mockApi } from "@/lib/api";
 
 export default function ProjectTasksPage() {
@@ -9,11 +11,13 @@ export default function ProjectTasksPage() {
   const projectId = params?.projectId;
   const [tasks, setTasks] = useState(null);
   const [view, setView] = useState('board');
+  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
 
   useEffect(() => { mockApi.projects.tasks(projectId).then(setTasks); }, [projectId]);
 
   return (
     <div>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: projectName, href: `/dashboard/projects/${projectId}` }, { label: "Tasks" }]} />
       <PageHeader title="Project Tasks" subtitle={`${projectId} — project specific tasks`}>
         <button className="btn btn-primary" onClick={() => toast('Add task (mock)')} type="button">Add Task</button>
       </PageHeader>

@@ -2,30 +2,61 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { PageHeader, SkeletonCard, StatCard, StatusBadge, toast } from "@/components/dashboard-ui";
+import { useParams, useRouter } from "next/navigation";
+import { AlertTriangle } from "lucide-react";
+import { EmptyState, PageHeader, SkeletonCard, StatCard, StatusBadge, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 import { mockApi } from "@/lib/api";
 
 export default function DeploymentDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params?.id;
   const [deployment, setDeployment] = useState(null);
+  const [state, setState] = useState("loading");
 
   useEffect(() => {
-    mockApi.deployments.get(id).then(setDeployment);
+    let alive = true;
+    setState("loading");
+    mockApi.deployments.get(id)
+      .then((result) => {
+        if (!alive) return;
+        setDeployment(result);
+        setState(result ? "ready" : "empty");
+      })
+      .catch(() => {
+        if (!alive) return;
+        setDeployment(null);
+        setState("error");
+      });
+    return () => { alive = false; };
   }, [id]);
 
-  if (!deployment) {
+  if (state === "loading") {
     return (
       <div>
+        <Crumb items={["Dashboard", "Deployments", "Details"]} />
         <PageHeader title="Deployment Details" subtitle="Live build pipeline and rollout state." />
         <div className="mt-6"><SkeletonCard /></div>
       </div>
     );
   }
 
+  if (state !== "ready" || !deployment) {
+    return (
+      <EmptyState
+        icon={AlertTriangle}
+        title="Deployment not found"
+        description="This deployment link is unavailable. Return to the deployments list and open another item."
+        action="Back to deployments"
+        onAction={() => router.push("/dashboard/deployments")}
+      />
+    );
+  }
+
   return (
     <div>
+      <Crumb items={["Dashboard", "Deployments", deployment.id]} />
       <PageHeader title="Deployment Details" subtitle={`${deployment.project} • ${deployment.environment} • ${deployment.id}`}>
         <div className="flex gap-2 flex-wrap">
           <StatusBadge status="success" />
@@ -75,13 +106,13 @@ export default function DeploymentDetailsPage() {
               <div className="flex justify-between"><span className="muted">Environment</span><strong>{deployment.environment}</strong></div>
               <div className="flex justify-between"><span className="muted">Author</span><strong>{deployment.author}</strong></div>
               <div className="flex justify-between"><span className="muted">Created</span><strong>{deployment.created}</strong></div>
-              <div className="flex justify-between"><span className="muted">URL</span><strong className="truncate max-w-[180px]">{deployment.url}</strong></div>
+              <div className="flex justify-between"><span className="muted">URL</span><strong className="truncate max-w-45">{deployment.url}</strong></div>
             </div>
           </div>
 
           <div className="card p-4 border border-(--border)">
             <h3 className="font-semibold mb-3">Terminal logs</h3>
-            <div className="rounded-2xl border border-(--border) p-3 bg-[#050814] text-[#a7f3d0] font-mono text-xs leading-6 max-h-[360px] overflow-auto">
+            <div className="rounded-2xl border border-(--border) p-3 bg-[#050814] text-[#a7f3d0] font-mono text-xs leading-6 max-h-90 overflow-auto">
               {deployment.logs.map((line, index) => <div key={index}>{line}</div>)}
             </div>
           </div>

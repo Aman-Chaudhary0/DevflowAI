@@ -3,8 +3,9 @@
 import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Activity, Bot, CheckCircle2, Download, GitCommit, Rocket, Search, Upload, UserPlus } from "lucide-react";
-import { FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
-import { mockActivity } from "@/lib/dashboard-data";
+import { EmptyState, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
+import { mockActivity, mockProjects } from "@/lib/dashboard-data";
 
 const typeFilters = [
   { label: "All", value: "all" },
@@ -36,13 +37,18 @@ export default function ProjectActivityPage() {
   const { projectId } = useParams();
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
 
   const filterItems = (items) => items
     .filter((a) => typeFilter === "all" || a.type === typeFilter)
     .filter((a) => a.title.toLowerCase().includes(search.toLowerCase()));
 
+  const visibleGroups = groups.map(({ label, items }) => ({ label, items: filterItems(items) }));
+  const hasResults = visibleGroups.some(({ items }) => items.length > 0);
+
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: projectName, href: `/dashboard/projects/${projectId}` }, { label: "Activity" }]} />
       <PageHeader title="Activity" subtitle="Full project history">
         <button className="btn btn-outline" onClick={() => toast("Exported as CSV", "success")} style={{ minHeight: 38, fontSize: 13 }} type="button"><Download size={16} /> Export CSV</button>
         <button className="btn btn-outline" onClick={() => toast("Exported as PDF", "success")} style={{ minHeight: 38, fontSize: 13 }} type="button"><Download size={16} /> Export PDF</button>
@@ -72,18 +78,25 @@ export default function ProjectActivityPage() {
 
       <FilterBar filters={typeFilters} active={typeFilter} onChange={setTypeFilter} />
 
-      {groups.map(({ label, items }) => {
-        const filtered = filterItems(items);
-        if (filtered.length === 0) return null;
+      {!hasResults ? (
+        <EmptyState
+          icon={Activity}
+          title="No activity found"
+          description="Clear filters or search a different keyword to reveal project history."
+          action="Reset filters"
+          onAction={() => { setTypeFilter("all"); setSearch(""); }}
+        />
+      ) : visibleGroups.map(({ label, items }) => {
+        if (items.length === 0) return null;
         return (
           <div key={label}>
             <p style={{ margin: "0 0 12px", fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--soft)" }}>{label}</p>
             <div className="stat-card" style={{ gap: 0, padding: 0, overflow: "hidden" }}>
-              {filtered.map((a, i) => {
+              {items.map((a, i) => {
                 const Icon = iconMap[a.icon] || Activity;
                 const color = colorMap[a.type] || "var(--primary)";
                 return (
-                  <div key={a._id} style={{ display: "flex", alignItems: "flex-start", gap: 16, padding: "16px 20px", borderBottom: i < filtered.length - 1 ? "1px solid color-mix(in srgb, var(--border) 50%, transparent)" : "none" }}>
+                  <div key={a._id} style={{ display: "flex", alignItems: "flex-start", gap: 16, padding: "16px 20px", borderBottom: i < items.length - 1 ? "1px solid color-mix(in srgb, var(--border) 50%, transparent)" : "none" }}>
                     <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in srgb, ${color} 15%, transparent)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
                       <Icon size={18} color={color} />
                     </div>

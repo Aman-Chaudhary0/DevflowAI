@@ -21,6 +21,7 @@ import {
   Wand2
 } from "lucide-react";
 import { ConfirmDialog, EmptyState, PageHeader, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 import { mockDocs, mockProjects } from "@/lib/dashboard-data";
 
 const docNav = [
@@ -50,7 +51,7 @@ const aiActions = [
 
 export default function ProjectDocsPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId) || mockProjects[0];
+  const project = mockProjects.find((p) => p._id === projectId);
   const [activeDoc, setActiveDoc] = useState("readme");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(null);
@@ -59,6 +60,10 @@ export default function ProjectDocsPage() {
 
   const currentDoc = mockDocs.find((d) => d.id === activeDoc) || mockDocs[0];
 
+  if (!project) {
+    return <EmptyState icon={FileText} title="Project not found" description="This project cannot be opened right now." action="Back to projects" onAction={() => window.location.assign("/dashboard/projects")} />;
+  }
+
   function handleAIAction(action) {
     setMenuOpen(null);
     toast(`${action} started...`, "info");
@@ -66,6 +71,7 @@ export default function ProjectDocsPage() {
 
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: project.name, href: `/dashboard/projects/${projectId}` }, { label: "Documentation" }]} />
       <PageHeader title="Documentation" subtitle="Project docs and guides">
         <button className="btn btn-primary" onClick={() => toast("New doc created", "success")} style={{ minHeight: 36, fontSize: 13 }} type="button">
           <Plus size={15} /> New Doc

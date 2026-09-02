@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/dashboard-ui";
 import { Avatar, StatCard, StatusBadge } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 
 const mockRepo = {
   id: "r1",
@@ -94,6 +95,7 @@ export default function RepositoryDetailsPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <Crumb items={["Dashboard", "GitHub", "Repositories", mockRepo.name]} />
       {/* Hero Section */}
       <div className="card card-pad" style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${mockRepo.languageColor} 12%, transparent), var(--card))` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>

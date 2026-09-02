@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { Archive, Download, Eye, File, FileText, FolderOpen, Grid3X3, Image, List, MoreHorizontal, Plus, Search, Star, Trash2, Upload, X } from "lucide-react";
 import { ConfirmDialog, EmptyState, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
-import { mockFiles } from "@/lib/dashboard-data";
+import { Crumb } from "@/components/workspace-primitives";
+import { mockFiles, mockProjects } from "@/lib/dashboard-data";
 
 const folders = ["All Files", "Design", "Docs", "Database", "Assets"];
 
@@ -26,6 +27,7 @@ export default function ProjectFilesPage() {
   const [deleteDialog, setDeleteDialog] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
 
   const filtered = mockFiles.filter((f) => {
     if (folder !== "All Files" && f.folder !== folder) return false;
@@ -34,6 +36,7 @@ export default function ProjectFilesPage() {
 
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: projectName, href: `/dashboard/projects/${projectId}` }, { label: "Files" }]} />
       <PageHeader title="Files" subtitle={`${filtered.length} files`}>
         <button className="btn btn-primary" onClick={() => setUploadOpen(true)} style={{ minHeight: 38, fontSize: 13 }} type="button">
           <Upload size={16} /> Upload

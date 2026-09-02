@@ -1,5 +1,6 @@
 import { Mail, MapPin, Phone, Send } from "lucide-react";
 import { PageHero } from "@/components/ui-blocks";
+import { toast } from "@/components/dashboard-ui";
 
 const channels = [
   { label: "Office", value: "San Francisco and remote", Icon: MapPin },
@@ -36,7 +37,13 @@ export default function ContactPage() {
             <div className="terminal" style={{ minHeight: 220 }}>Map preview / global team coverage</div>
           </div>
 
-          <form className="card card-pad stack-lg">
+          <form
+            className="card card-pad stack-lg"
+            onSubmit={(e) => {
+              e.preventDefault();
+              toast("Message sent to the team", "success");
+            }}
+          >
             {formFields.map((field) => (
               <label className="form-field" key={field}>
                 <span>{field}</span>
@@ -47,7 +54,7 @@ export default function ContactPage() {
               <span>Message</span>
               <textarea className="textarea" placeholder="Tell us what you are building" />
             </label>
-            <button className="btn btn-primary" type="button"><Send size={18} /> Send Message</button>
+            <button className="btn btn-primary" type="submit"><Send size={18} /> Send Message</button>
           </form>
         </div>
       </section>

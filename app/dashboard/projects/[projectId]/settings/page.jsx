@@ -3,7 +3,8 @@
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import { AlertTriangle, Eye, EyeOff, Key, Plus, RefreshCw, Trash2 } from "lucide-react";
-import { ConfirmDialog, PageHeader, toast } from "@/components/dashboard-ui";
+import { ConfirmDialog, EmptyState, PageHeader, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 import { mockProjects } from "@/lib/dashboard-data";
 
 const tabs = ["General", "Git", "Integrations", "Members", "Notifications", "Security", "Danger Zone"];
@@ -19,16 +20,21 @@ const integrations = [
 export default function ProjectSettingsPage() {
   const { projectId } = useParams();
   const router = useRouter();
-  const project = mockProjects.find((p) => p._id === projectId) || mockProjects[0];
+  const project = mockProjects.find((p) => p._id === projectId);
   const [tab, setTab] = useState("General");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [archiveDialog, setArchiveDialog] = useState(false);
   const [showKey, setShowKey] = useState(false);
-  const [name, setName] = useState(project.name);
-  const [description, setDescription] = useState(project.description);
+  const [name, setName] = useState(project?.name || "");
+  const [description, setDescription] = useState(project?.description || "");
+
+  if (!project) {
+    return <EmptyState icon={AlertTriangle} title="Project not found" description="Open another project to manage settings." action="Back to projects" onAction={() => router.push("/dashboard/projects")} />;
+  }
 
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: project.name, href: `/dashboard/projects/${projectId}` }, { label: "Settings" }]} />
       <PageHeader title="Settings" subtitle={project.name} />
 
       <div className="tab-bar" style={{ overflowX: "auto" }}>

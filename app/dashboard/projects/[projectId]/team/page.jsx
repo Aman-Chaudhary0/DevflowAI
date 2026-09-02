@@ -14,9 +14,11 @@ import {
   Shield,
   Trash2,
   UserPlus,
+  Eye,
   X
 } from "lucide-react";
 import { Avatar, ConfirmDialog, EmptyState, FilterBar, PageHeader, StatusBadge, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 import { mockProjects, mockTeamMembers } from "@/lib/dashboard-data";
 
 const roleFilters = [
@@ -48,7 +50,7 @@ const rolePermissions = {
 
 export default function ProjectTeamPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId) || mockProjects[0];
+  const project = mockProjects.find((p) => p._id === projectId);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -77,8 +79,13 @@ export default function ProjectTeamPage() {
     toast(`${member.name} role updated to ${newRole}`, "success");
   }
 
+  if (!project) {
+    return <EmptyState icon={UserPlus} title="Project not found" description="This team workspace is unavailable." action="Back to projects" onAction={() => window.location.assign("/dashboard/projects")} />;
+  }
+
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: project.name, href: `/dashboard/projects/${projectId}` }, { label: "Team" }]} />
       <PageHeader title="Team" subtitle={`${filtered.length} members`}>
         <button className="btn btn-primary" onClick={() => setInviteOpen(true)} style={{ minHeight: 36, fontSize: 13 }} type="button">
           <UserPlus size={15} /> Invite

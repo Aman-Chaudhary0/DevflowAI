@@ -10,6 +10,7 @@ import {
   X,
   XCircle
 } from "lucide-react";
+import { HeaderCopy } from "@/components/header-copy";
 
 // ─── Skeleton ──────────────────────────────────────────────────
 export function Skeleton({ width = "100%", height = 16, style = {} }) {
@@ -259,10 +260,7 @@ export function StatusBadge({ status }) {
 export function PageHeader({ title, subtitle, children }) {
   return (
     <div className="page-header">
-      <div>
-        <h1 className="page-title">{title}</h1>
-        {subtitle ? <p className="page-subtitle">{subtitle}</p> : null}
-      </div>
+      <HeaderCopy title={title} description={subtitle} />
       {children ? <div className="flex gap-2.5 items-center flex-wrap">{children}</div> : null}
     </div>
   );

@@ -6,7 +6,7 @@ import {
   Bell, CheckCheck, Trash2, Github, Bot, ShieldAlert, UserPlus, MessageSquare,
   Sparkles, CheckCircle2, AlertTriangle, ExternalLink, Filter, Settings, RefreshCw
 } from "lucide-react";
-import { PageHeader, Avatar, toast } from "@/components/dashboard-ui";
+import { EmptyState, PageHeader, Avatar, toast } from "@/components/dashboard-ui";
 
 const initialNotifications = [
   { id: "notif-1", type: "github", icon: Github, title: "Pull Request Review Requested", body: "Sarah Chen requested your review on PR #142: Fix memory leak in WebSocket connection.", time: "10 minutes ago", read: false, link: "/dashboard/github/pull-requests", category: "github" },
@@ -124,11 +124,7 @@ export default function NotificationsPage() {
       {/* Notifications Stack */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {filteredNotifications.length === 0 ? (
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: "48px 20px", textAlign: "center", color: "var(--muted)" }}>
-            <Bell size={36} style={{ marginBottom: 12, opacity: 0.5 }} />
-            <h4 style={{ margin: "0 0 6px 0", fontSize: 16, fontWeight: 700, color: "var(--fg)" }}>No notifications found</h4>
-            <p style={{ margin: 0, fontSize: 13 }}>There are no alerts matching the selected category.</p>
-          </div>
+          <EmptyState icon={Bell} title="No notifications found" description="There are no alerts matching the selected category." />
         ) : (
           filteredNotifications.map(notif => (
             <div

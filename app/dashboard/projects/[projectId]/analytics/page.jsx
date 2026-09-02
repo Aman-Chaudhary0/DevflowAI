@@ -2,12 +2,15 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { PageHeader, StatCard, SkeletonCard, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
+import { mockProjects } from "@/lib/dashboard-data";
 import { mockApi } from "@/lib/api";
 
 export default function ProjectAnalyticsPage() {
   const params = useParams();
   const projectId = params?.projectId;
   const [data, setData] = useState(null);
+  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
 
   useEffect(() => {
     mockApi.projects.analytics(projectId).then(setData);
@@ -15,6 +18,7 @@ export default function ProjectAnalyticsPage() {
 
   return (
     <div>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: projectName, href: `/dashboard/projects/${projectId}` }, { label: "Analytics" }]} />
       <PageHeader title="Project Analytics" subtitle={`${projectId} — deep analytics for this project`}>
         <button className="btn btn-ghost" type="button" onClick={() => toast('Report exported', 'success')}>Export report</button>
       </PageHeader>

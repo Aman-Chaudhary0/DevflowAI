@@ -84,10 +84,10 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex gap-2.5 flex-wrap">
-          <Link className="btn btn-primary min-h-[38px] text-xs" href="/dashboard/projects/create">
+          <Link className="btn btn-primary min-h-9.5 text-xs" href="/dashboard/projects/create">
             <Plus size={16} /> New Project
           </Link>
-          <Link className="btn btn-outline min-h-[38px] text-xs" href="/dashboard/ai">
+          <Link className="btn btn-outline min-h-9.5 text-xs" href="/dashboard/ai">
             <Sparkles size={16} /> Ask AI
           </Link>
         </div>
@@ -186,7 +186,7 @@ export default function DashboardPage() {
               <strong className="text-[13px]">{value}</strong>
             </div>
           ))}
-          <Link className="btn btn-outline min-h-[36px] text-xs" href="/dashboard/analytics">
+          <Link className="btn btn-outline min-h-9 text-xs" href="/dashboard/analytics">
             <BarChart3 size={15} /> View Analytics
           </Link>
         </div>

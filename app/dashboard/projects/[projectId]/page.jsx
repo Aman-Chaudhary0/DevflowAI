@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Activity, Bot, CheckCircle2, Clock, Download, Eye, FileText, FolderOpen, GitCommit, MoreHorizontal, Rocket, Share2, Star, Users } from "lucide-react";
 import { AvatarGroup, EmptyState, PageHeader, ProgressBar, ProgressRing, StatusBadge, toast } from "@/components/dashboard-ui";
+import { Crumb } from "@/components/workspace-primitives";
 import { mockActivity, mockFiles, mockProjects, mockTasks } from "@/lib/dashboard-data";
 
 const recentCommits = [
@@ -15,12 +16,25 @@ const recentCommits = [
 
 export default function ProjectOverviewPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId) || mockProjects[0];
+  const project = mockProjects.find((p) => p._id === projectId);
   const projectTasks = mockTasks.slice(0, 4);
   const projectFiles = mockFiles.slice(0, 4);
 
+  if (!project) {
+    return (
+      <EmptyState
+        icon={FolderOpen}
+        title="Project not found"
+        description="This project link is unavailable. Go back to the project list and choose another workspace."
+        action="Back to projects"
+        onAction={() => window.location.assign("/dashboard/projects")}
+      />
+    );
+  }
+
   return (
     <>
+      <Crumb items={[{ label: "Dashboard", href: "/dashboard" }, { label: "Projects", href: "/dashboard/projects" }, { label: project.name }]} />
       {/* Hero */}
       <div className="welcome-banner">
         <div className="flex items-center gap-4">
