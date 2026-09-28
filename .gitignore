@@ -21,3 +21,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+.kilo
+.agents
+.qodo
+.vscode
