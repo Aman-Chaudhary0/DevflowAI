@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { Activity, Bot, CheckCircle2, Clock, Download, Eye, FileText, FolderOpen, GitCommit, MoreHorizontal, Rocket, Share2, Star, Users } from "lucide-react";
 import { AvatarGroup, EmptyState, PageHeader, ProgressBar, ProgressRing, StatusBadge, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockActivity, mockFiles, mockProjects, mockTasks } from "@/lib/dashboard-data";
+import { getProjectByKey, mockActivity, mockFiles, mockTasks } from "@/lib/dashboard-data";
 
 const recentCommits = [
   { hash: "abc123f", message: "Add authentication middleware", author: "Aman", time: "Today, 10:30" },
@@ -16,7 +16,7 @@ const recentCommits = [
 
 export default function ProjectOverviewPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId);
+  const project = getProjectByKey(projectId);
   const projectTasks = mockTasks.slice(0, 4);
   const projectFiles = mockFiles.slice(0, 4);
 

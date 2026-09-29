@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Archive, Download, Eye, File, FileText, FolderOpen, Grid3X3, Image, List, MoreHorizontal, Plus, Search, Star, Trash2, Upload, X } from "lucide-react";
 import { ConfirmDialog, EmptyState, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockFiles, mockProjects } from "@/lib/dashboard-data";
+import { getProjectByKey, mockFiles } from "@/lib/dashboard-data";
 
 const folders = ["All Files", "Design", "Docs", "Database", "Assets"];
 
@@ -27,7 +27,7 @@ export default function ProjectFilesPage() {
   const [deleteDialog, setDeleteDialog] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
+  const projectName = getProjectByKey(projectId)?.name || projectId;
 
   const filtered = mockFiles.filter((f) => {
     if (folder !== "All Files" && f.folder !== folder) return false;

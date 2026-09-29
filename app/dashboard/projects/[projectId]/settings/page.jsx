@@ -5,7 +5,7 @@ import { useState } from "react";
 import { AlertTriangle, Eye, EyeOff, Key, Plus, RefreshCw, Trash2 } from "lucide-react";
 import { ConfirmDialog, EmptyState, PageHeader, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockProjects } from "@/lib/dashboard-data";
+import { getProjectByKey } from "@/lib/dashboard-data";
 
 const tabs = ["General", "Git", "Integrations", "Members", "Notifications", "Security", "Danger Zone"];
 
@@ -20,7 +20,7 @@ const integrations = [
 export default function ProjectSettingsPage() {
   const { projectId } = useParams();
   const router = useRouter();
-  const project = mockProjects.find((p) => p._id === projectId);
+  const project = getProjectByKey(projectId);
   const [tab, setTab] = useState("General");
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [archiveDialog, setArchiveDialog] = useState(false);

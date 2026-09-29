@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Activity, Bot, CheckCircle2, Download, GitCommit, Rocket, Search, Upload, UserPlus } from "lucide-react";
 import { EmptyState, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockActivity, mockProjects } from "@/lib/dashboard-data";
+import { getProjectByKey, mockActivity } from "@/lib/dashboard-data";
 
 const typeFilters = [
   { label: "All", value: "all" },
@@ -37,7 +37,7 @@ export default function ProjectActivityPage() {
   const { projectId } = useParams();
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
-  const projectName = mockProjects.find((p) => p._id === projectId)?.name || projectId;
+  const projectName = getProjectByKey(projectId)?.name || projectId;
 
   const filterItems = (items) => items
     .filter((a) => typeFilter === "all" || a.type === typeFilter)

@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { Avatar, ConfirmDialog, EmptyState, FilterBar, PageHeader, StatusBadge, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockProjects, mockTeamMembers } from "@/lib/dashboard-data";
+import { getProjectByKey, mockTeamMembers } from "@/lib/dashboard-data";
 
 const roleFilters = [
   { label: "All", value: "all" },
@@ -50,7 +50,7 @@ const rolePermissions = {
 
 export default function ProjectTeamPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId);
+  const project = getProjectByKey(projectId);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");

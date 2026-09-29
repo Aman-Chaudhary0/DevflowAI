@@ -158,11 +158,12 @@ export default function AIHubPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
           {promptTemplates.map((p, idx) => (
-            <div
+            <button
               key={idx}
               onClick={() => {
                 toast("Prompt template copied!", "info");
               }}
+              type="button"
               style={{
                 border: "1px solid var(--border)",
                 borderRadius: 12,
@@ -178,7 +179,7 @@ export default function AIHubPage() {
             >
               <span style={{ fontSize: 13, color: "var(--fg)", lineHeight: 1.4 }}>{p.text}</span>
               <Play size={14} style={{ color: "var(--primary)", flexShrink: 0 }} />
-            </div>
+            </button>
           ))}
         </div>
       </div>

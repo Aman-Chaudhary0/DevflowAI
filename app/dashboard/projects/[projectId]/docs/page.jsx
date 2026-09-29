@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { ConfirmDialog, EmptyState, PageHeader, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { mockDocs, mockProjects } from "@/lib/dashboard-data";
+import { getProjectByKey, mockDocs } from "@/lib/dashboard-data";
 
 const docNav = [
   { id: "readme", label: "README", icon: FileText },
@@ -51,7 +51,7 @@ const aiActions = [
 
 export default function ProjectDocsPage() {
   const { projectId } = useParams();
-  const project = mockProjects.find((p) => p._id === projectId);
+  const project = getProjectByKey(projectId);
   const [activeDoc, setActiveDoc] = useState("readme");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(null);
