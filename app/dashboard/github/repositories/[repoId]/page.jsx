@@ -1,5 +1,6 @@
 "use client";
 
+import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Archive,
@@ -26,29 +27,56 @@ import {
   Users,
   Wand2
 } from "lucide-react";
-import { toast } from "@/components/dashboard-ui";
+import { EmptyState, toast } from "@/components/dashboard-ui";
 import { Avatar, StatCard, StatusBadge } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
+import { getRepositoryById } from "@/lib/mock/github";
 
-const mockRepo = {
-  id: "r1",
-  name: "devflow-ai",
-  owner: "Aman-Chaudhary0",
-  description: "AI-powered developer workspace with projects, tasks, and analytics.",
-  language: "JavaScript",
-  languageColor: "#f59e0b",
-  visibility: "private",
-  defaultBranch: "main",
-  size: "245 MB",
-  stars: 128,
-  forks: 34,
-  openIssues: 12,
-  watchers: 45,
-  updatedAt: "2026-07-26T10:00:00Z",
-  createdAt: "2026-01-10T08:00:00Z",
-  ciStatus: "passing",
-  deploymentStatus: "running",
-  lastDeploy: "2 hours ago"
+const repoDetails = {
+  r1: {
+    owner: "Aman-Chaudhary0",
+    size: "245 MB",
+    openIssues: 12,
+    watchers: 45,
+    updatedAt: "2026-07-26T10:00:00Z",
+    createdAt: "2026-01-10T08:00:00Z",
+    ciStatus: "passing",
+    deploymentStatus: "running",
+    lastDeploy: "2 hours ago"
+  },
+  r2: {
+    owner: "Aman-Chaudhary0",
+    size: "189 MB",
+    openIssues: 8,
+    watchers: 31,
+    updatedAt: "2026-07-25T14:00:00Z",
+    createdAt: "2026-03-12T09:00:00Z",
+    ciStatus: "passing",
+    deploymentStatus: "running",
+    lastDeploy: "1 day ago"
+  },
+  r3: {
+    owner: "team-devflow",
+    size: "312 MB",
+    openIssues: 19,
+    watchers: 18,
+    updatedAt: "2026-07-24T11:00:00Z",
+    createdAt: "2026-04-08T10:00:00Z",
+    ciStatus: "warning",
+    deploymentStatus: "running",
+    lastDeploy: "3 days ago"
+  },
+  r4: {
+    owner: "Aman-Chaudhary0",
+    size: "156 MB",
+    openIssues: 4,
+    watchers: 52,
+    updatedAt: "2026-07-26T09:30:00Z",
+    createdAt: "2026-02-18T07:00:00Z",
+    ciStatus: "passing",
+    deploymentStatus: "running",
+    lastDeploy: "30 min ago"
+  }
 };
 
 const branches = [
@@ -82,7 +110,11 @@ const languages = [
 const tabs = ["Overview", "Branches", "Contributors", "Releases", "Settings"];
 
 export default function RepositoryDetailsPage() {
+  const params = useParams();
+  const router = useRouter();
+  const repoId = params?.repoId;
   const [activeTab, setActiveTab] = useState("Overview");
+  const repo = getRepositoryById(repoId);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -93,44 +125,58 @@ export default function RepositoryDetailsPage() {
     }
   };
 
+  if (!repo) {
+    return (
+      <EmptyState
+        icon={AlertTriangle}
+        title="Repository not found"
+        description="The repository link is unavailable. Return to the repository list and open another item."
+        action="Back to repositories"
+        onAction={() => router.push("/dashboard/github/repositories")}
+      />
+    );
+  }
+
+  const detail = repoDetails[repo.id] || repoDetails.r1;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <Crumb items={["Dashboard", "GitHub", "Repositories", mockRepo.name]} />
+      <Crumb items={["Dashboard", "GitHub", "Repositories", repo.name]} />
       {/* Hero Section */}
-      <div className="card card-pad" style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${mockRepo.languageColor} 12%, transparent), var(--card))` }}>
+      <div className="card card-pad" style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${repo.languageColor} 12%, transparent), var(--card))` }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
           <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
             <div style={{
-              width: 56, height: 56, borderRadius: 16, background: mockRepo.languageColor,
+              width: 56, height: 56, borderRadius: 16, background: repo.languageColor,
               display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 24
             }}>
-              {mockRepo.name.charAt(0).toUpperCase()}
+              {repo.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, fontFamily: "Space Grotesk" }}>{mockRepo.name}</h1>
-                <span className={`status ${mockRepo.visibility === "public" ? "status-success" : "status-muted"}`}>
-                  {mockRepo.visibility === "public" ? <Globe size={12} /> : <Lock size={12} />}
-                  {mockRepo.visibility}
+                <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, fontFamily: "Space Grotesk" }}>{repo.name}</h1>
+                <span className={`status ${repo.visibility === "public" ? "status-success" : "status-muted"}`}>
+                  {repo.visibility === "public" ? <Globe size={12} /> : <Lock size={12} />}
+                  {repo.visibility}
                 </span>
               </div>
-              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 14, maxWidth: 600 }}>{mockRepo.description}</p>
+              <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 14, maxWidth: 600 }}>{repo.description}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginTop: 10, flexWrap: "wrap" }}>
                 <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--muted)" }}>
-                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: mockRepo.languageColor }} />
-                  {mockRepo.language}
+                  <div style={{ width: 10, height: 10, borderRadius: "50%", background: repo.languageColor }} />
+                  {repo.language}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--muted)" }}>
-                  <Star size={13} color="var(--warning)" /> {mockRepo.stars}
+                  <Star size={13} color="var(--warning)" /> {repo.stars}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--muted)" }}>
-                  <GitBranch size={13} /> {mockRepo.forks}
+                  <GitBranch size={13} /> {repo.forks}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--muted)" }}>
-                  <Users size={13} /> {mockRepo.watchers}
+                  <Users size={13} /> {detail.watchers}
                 </span>
                 <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, color: "var(--muted)" }}>
-                  <Clock size={13} /> Updated {mockRepo.updatedAt.split("T")[0]}
+                  <Clock size={13} /> Updated {detail.updatedAt.split("T")[0]}
                 </span>
               </div>
             </div>
@@ -151,9 +197,9 @@ export default function RepositoryDetailsPage() {
 
       {/* Statistics Row */}
       <div className="dash-grid-4">
-        <StatCard label="Commits" value={mockRepo.stars + 214} icon={GitCommit} iconBg="color-mix(in srgb, var(--info) 15%, transparent)" delta="+12 this week" trend="up" />
+        <StatCard label="Commits" value={repo.stars + 214} icon={GitCommit} iconBg="color-mix(in srgb, var(--info) 15%, transparent)" delta="+12 this week" trend="up" />
         <StatCard label="Contributors" value={contributors.length} icon={Users} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)" delta="4 active" trend="up" />
-        <StatCard label="Open Issues" value={mockRepo.openIssues} icon={Code2} iconBg="color-mix(in srgb, var(--warning) 15%, transparent)" delta="-3 from last week" trend="up" />
+        <StatCard label="Open Issues" value={detail.openIssues} icon={Code2} iconBg="color-mix(in srgb, var(--warning) 15%, transparent)" delta="-3 from last week" trend="up" />
         <StatCard label="Pull Requests" value={8} icon={GitBranch} iconBg="color-mix(in srgb, var(--success) 15%, transparent)" delta="3 pending review" trend="neutral" />
       </div>
 
@@ -198,7 +244,7 @@ export default function RepositoryDetailsPage() {
                 </div>
                 <div>
                   <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>Production</p>
-                  <p className="muted" style={{ margin: 0, fontSize: 12 }}>{mockRepo.lastDeploy}</p>
+                  <p className="muted" style={{ margin: 0, fontSize: 12 }}>{detail.lastDeploy}</p>
                 </div>
               </div>
               <StatusBadge status="running" />
@@ -243,7 +289,7 @@ export default function RepositoryDetailsPage() {
                   <Archive size={18} color="var(--info)" />
                 </div>
                 <div>
-                  <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>{mockRepo.size}</p>
+                  <p style={{ margin: "0 0 2px", fontWeight: 700, fontSize: 14 }}>{detail.size}</p>
                   <p className="muted" style={{ margin: 0, fontSize: 12 }}>Includes LFS objects</p>
                 </div>
               </div>

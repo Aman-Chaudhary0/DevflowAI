@@ -59,7 +59,7 @@ export function EmptyState({ icon: Icon, title, description, action, onAction })
         <p className="muted text-sm m-0">{description}</p>
       </div>
       {action ? (
-        <button className="btn btn-primary min-h-[38px] px-5 text-sm" onClick={onAction} type="button">
+        <button className="btn btn-primary min-h-9.5 px-5 text-sm" onClick={onAction} type="button">
           {action}
         </button>
       ) : null}
@@ -125,9 +125,9 @@ export function ConfirmDialog({ open, title, description, confirmLabel = "Confir
           <p className="muted m-0 text-sm">{description}</p>
         </div>
         <div className="flex gap-3 justify-end">
-          <button className="btn btn-outline min-h-[40px]" onClick={onCancel} type="button">Cancel</button>
+          <button className="btn btn-outline min-h-10" onClick={onCancel} type="button">Cancel</button>
           <button
-            className="btn btn-primary min-h-[40px]"
+            className="btn btn-primary min-h-10"
             onClick={onConfirm}
             type="button"
             style={{ background: danger ? "var(--danger)" : undefined }}
