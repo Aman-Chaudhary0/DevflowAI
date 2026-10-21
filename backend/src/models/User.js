@@ -69,6 +69,44 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: {
       type: Date,
       select: false
+    },
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+      select: false
+    },
+    twoFactorSecret: {
+      type: String,
+      select: false
+    },
+    twoFactorSetupSecret: {
+      type: String,
+      select: false
+    },
+    twoFactorSetupExpires: {
+      type: Date,
+      select: false
+    },
+    twoFactorRecoveryCodes: {
+      type: [String],
+      select: false
+    },
+    twoFactorPendingTokenHash: {
+      type: String,
+      select: false
+    },
+    twoFactorChallengeExpires: {
+      type: Date,
+      select: false
+    },
+    twoFactorFailedAttempts: {
+      type: Number,
+      default: 0,
+      select: false
+    },
+    twoFactorLockUntil: {
+      type: Date,
+      select: false
     }
   },
   {
@@ -111,6 +149,11 @@ userSchema.methods.toSafeObject = function toSafeObject() {
   delete user.emailVerificationExpires;
   delete user.passwordResetToken;
   delete user.passwordResetExpires;
+  delete user.twoFactorSecret;
+  delete user.twoFactorSetupSecret;
+  delete user.twoFactorRecoveryCodes;
+  delete user.twoFactorPendingTokenHash;
+  delete user.twoFactorChallengeExpires;
   return user;
 };
 

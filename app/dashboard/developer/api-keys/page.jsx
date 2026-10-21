@@ -121,7 +121,7 @@ export default function ApiKeys() {
           <>
             <div className="terminal-panel">{selected.key}</div>
             <p className="muted">
-              Copy this key now. You won't be able to see it again. This is a
+              Copy this key now. You won&apos;t be able to see it again. This is a
               fictional frontend-only key.
             </p>
             <p>

@@ -9,7 +9,7 @@ const passwordSchema = z
   .regex(/\d/, "Password must contain a number")
   .regex(/[^A-Za-z0-9]/, "Password must contain a special character");
 
-  // registerSchema defines the validation rules for user registration. It checks that the name is between 2 and 80 characters, the email is valid and lowercase, and that the password and confirmPassword fields match.
+// registerSchema defines the validation rules for user registration. It checks that the name is between 2 and 80 characters, the email is valid and lowercase, and that the password and confirmPassword fields match.
 export const registerSchema = z.object({
   body: z
     .object({
@@ -64,5 +64,25 @@ export const verifyEmailSchema = z.object({
 export const resendVerificationSchema = z.object({
   body: z.object({
     email: z.string().trim().email().toLowerCase()
+  })
+});
+
+export const twoFactorSetupSchema = z.object({
+  body: z.object({
+    code: z.string().trim().min(6).max(8)
+  })
+});
+
+export const twoFactorVerifySchema = z.object({
+  body: z.object({
+    code: z.string().trim().min(6).max(8),
+    recoveryCode: z.string().trim().optional()
+  })
+});
+
+export const twoFactorDisableSchema = z.object({
+  body: z.object({
+    code: z.string().trim().min(6).max(8).optional(),
+    recoveryCode: z.string().trim().optional()
   })
 });

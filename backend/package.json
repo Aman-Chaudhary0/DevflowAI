@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js"
   },
   "dependencies": {
+    "@imagekit/nodejs": "^7.10.0",
     "bcryptjs": "^2.4.3",
     "bullmq": "^5.12.10",
     "compression": "^1.7.4",
@@ -17,20 +19,23 @@
     "express": "^4.19.2",
     "express-rate-limit": "^7.4.0",
     "helmet": "^7.1.0",
-    "@imagekit/nodejs": "^7.10.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
     "morgan": "^1.10.0",
     "multer": "^2.0.0",
     "nodemailer": "^9.0.3",
+    "otpauth": "^9.5.2",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "passport-google-oauth20": "^2.0.0",
+    "qrcode": "^1.5.4",
     "redis": "^5.0.0",
     "socket.io": "^4.7.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "jest": "^30.5.2",
+    "mongodb-memory-server": "^11.3.0",
     "nodemon": "^3.1.4"
   }
 }

@@ -35,7 +35,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, ToastContainer } from "@/components/dashboard-ui";
 import { api } from "@/lib/api";
-import { mockNotifications, mockUser } from "@/lib/dashboard-data";
+import { mockNotifications } from "@/lib/dashboard-data";
 
 const globalNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -93,7 +93,7 @@ export default function DashboardLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useParams();
-  const [user, setUser] = useState(mockUser);
+  const [user, setUser] = useState(null);
   const [collapsed, setCollapsed] = useState(() => {
     if (typeof window === "undefined") return false;
     return window.localStorage.getItem("devflow-sidebar-collapsed") === "1";
@@ -110,15 +110,27 @@ export default function DashboardLayout({ children }) {
   const showDeploymentNav = pathname.startsWith("/dashboard/deployments") || pathname.startsWith("/dashboard/workflows");
 
   useEffect(() => {
-    api.me()
-      .then((res) => {
-        setUser(res.data?.user || res.user || mockUser);
-        setAuthStatus("authenticated");
-      })
-      .catch(() => {
+    let ignore = false;
+
+    async function checkSession() {
+      try {
+        const res = await api.me();
+        if (ignore) return;
+        const nextUser = res?.data?.user || res?.user || null;
+        setUser(nextUser);
+        setAuthStatus(nextUser ? "authenticated" : "unauthenticated");
+      } catch (error) {
+        if (ignore) return;
+        setUser(null);
         setAuthStatus("unauthenticated");
         router.replace("/login");
-      });
+      }
+    }
+
+    checkSession();
+    return () => {
+      ignore = true;
+    };
   }, [router]);
 
   useEffect(() => {
@@ -140,6 +152,7 @@ export default function DashboardLayout({ children }) {
 
   async function handleLogout() {
     try { await api.logout(); } catch {}
+    setUser(null);
     router.replace("/login");
   }
 
@@ -192,44 +205,44 @@ export default function DashboardLayout({ children }) {
         </>
       ) : null}
 
-        {showAiNav ? (
-          <>
-            <div className="sidebar-divider" />
-            {!collapsed ? <span className="sidebar-section">AI</span> : null}
-            {aiNav.map(({ label, href, icon: Icon }) => (
-              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-                <Icon size={18} className="shrink-0" />
-                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-              </Link>
-            ))}
-          </>
-        ) : null}
+      {showAiNav ? (
+        <>
+          <div className="sidebar-divider" />
+          {!collapsed ? <span className="sidebar-section">AI</span> : null}
+          {aiNav.map(({ label, href, icon: Icon }) => (
+            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+              <Icon size={18} className="shrink-0" />
+              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+            </Link>
+          ))}
+        </>
+      ) : null}
 
-        {showGithubNav ? (
-          <>
-            <div className="sidebar-divider" />
-            {!collapsed ? <span className="sidebar-section">GitHub</span> : null}
-            {githubNav.map(({ label, href, icon: Icon }) => (
-              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-                <Icon size={18} className="shrink-0" />
-                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-              </Link>
-            ))}
-          </>
-        ) : null}
+      {showGithubNav ? (
+        <>
+          <div className="sidebar-divider" />
+          {!collapsed ? <span className="sidebar-section">GitHub</span> : null}
+          {githubNav.map(({ label, href, icon: Icon }) => (
+            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+              <Icon size={18} className="shrink-0" />
+              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+            </Link>
+          ))}
+        </>
+      ) : null}
 
-        {showDeploymentNav ? (
-          <>
-            <div className="sidebar-divider" />
-            {!collapsed ? <span className="sidebar-section">Developer</span> : null}
-            {deploymentNav.map(({ label, href, icon: Icon }) => (
-              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-                <Icon size={18} className="shrink-0" />
-                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-              </Link>
-            ))}
-          </>
-        ) : null}
+      {showDeploymentNav ? (
+        <>
+          <div className="sidebar-divider" />
+          {!collapsed ? <span className="sidebar-section">Developer</span> : null}
+          {deploymentNav.map(({ label, href, icon: Icon }) => (
+            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
+              <Icon size={18} className="shrink-0" />
+              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+            </Link>
+          ))}
+        </>
+      ) : null}
 
       <div className="flex-1" />
       <div className="sidebar-divider" />

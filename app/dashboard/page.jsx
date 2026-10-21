@@ -292,8 +292,8 @@ export default function DashboardPage() {
             <Link
               key={label}
               href={href}
-              className="flex items-center gap-2.5 border border-(--border) rounded-[14px] no-underline text-inherit font-semibold text-sm transition-all duration-150"
-              className="p-5" style={{ background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
+              className="flex items-center gap-2.5 border border-(--border) rounded-[14px] no-underline text-inherit font-semibold text-sm transition-all duration-150 p-5"
+              style={{ background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = "translateY(-2px)"; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; }}
             >
