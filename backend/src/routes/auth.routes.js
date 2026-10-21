@@ -10,7 +10,11 @@ import {
   me,
   oauthCallback,
   refreshToken,
-  register
+  register,
+  twoFactorChallenge,
+  twoFactorDisable,
+  twoFactorSetup,
+  twoFactorStatus
 } from "../controllers/auth/auth.controller.js";
 import { requireAuth } from "../middlewares/auth.js";
 import { validate } from "../middlewares/validate.js";
@@ -28,13 +32,17 @@ const router = Router();
 // The auth.routes.js file defines the authentication-related API routes for the application. It includes endpoints for user registration, login, logout, token refresh, fetching the current user, password reset, email verification, and OAuth callbacks. Each route is associated with a specific controller function and may include validation and authentication middleware as needed.
 router.post("/register", validate(registerSchema), register);
 router.post("/login", validate(loginSchema), login);
-router.post("/logout", requireAuth, logout);
+router.post("/logout", logout);
 router.post("/refresh-token", refreshToken);
 router.get("/me", requireAuth, me);
 router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
 router.post("/reset-password", validate(resetPasswordSchema), handleResetPassword);
 router.post("/verify-email", validate(verifyEmailSchema), handleVerifyEmail);
 router.post("/resend-verification", validate(resendVerificationSchema), handleResendVerification);
+router.post("/2fa/setup", requireAuth, twoFactorSetup);
+router.post("/2fa/disable", requireAuth, twoFactorDisable);
+router.post("/2fa/status", requireAuth, twoFactorStatus);
+router.post("/2fa/challenge", requireAuth, twoFactorChallenge);
 
 router.get("/google", passport.authenticate("google", { scope: ["profile", "email"], session: false }));
 router.get("/google/callback", passport.authenticate("google", { failureRedirect: "/api/auth/oauth/failure", session: false }), oauthCallback);

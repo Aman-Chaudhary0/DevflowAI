@@ -7,6 +7,7 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Copy,
   Dislike,
@@ -39,6 +40,7 @@ import {
   Wand2,
   X
 } from "lucide-react";
+import Image from "next/image";
 
 // ─── Code Block Component ──────────────────────────────────────
 function CodeBlock({ language, code, onCopy }) {
@@ -656,8 +658,13 @@ export function ModelSelector({ value, onChange, options = [] }) {
         className="flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
         type="button"
       >
-        <img src={selected.icon} alt={selected.name} className="w-5 h-5 rounded" />
-        {selected.name}
+<Image
+  src={selected.icon}
+  alt={selected.name}
+  width={20}
+  height={20}
+  className="w-5 h-5 rounded"
+/>        {selected.name}
         <ChevronDown size={14} color="var(--muted)" />
       </button>
 
@@ -673,8 +680,13 @@ export function ModelSelector({ value, onChange, options = [] }) {
                 style={{ background: option.id === value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }}
                 type="button"
               >
-                <img src={option.icon} alt={option.name} className="w-5 h-5 rounded" />
-                <div>
+<Image
+  src={option.icon}
+  alt={option.name}
+  width={20}
+  height={20}
+  className="w-5 h-5 rounded"
+/>                <div>
                   <div className="text-sm font-semibold">{option.name}</div>
                   <div className="text-xs text-(--muted)">{option.description}</div>
                 </div>

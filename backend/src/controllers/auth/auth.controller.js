@@ -2,6 +2,8 @@ import { ApiResponse } from "../../utils/ApiResponse.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import {
   completeOAuthLogin,
+  disableTwoFactorForUser,
+  enableTwoFactorForUser,
   getCurrentUser,
   loginUser,
   logoutUser,
@@ -10,7 +12,9 @@ import {
   requestPasswordReset,
   resendVerification,
   resetPassword,
-  verifyEmail
+  revokeSessionFromRefreshToken,
+  verifyEmail,
+  verifyTwoFactorChallenge
 } from "../../services/auth/auth.service.js";
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -34,13 +38,14 @@ function durationToMs(value, fallbackMs) {
   return amount * multipliers[unit];
 }
 
-//  CookieOptions function defines HTTP cookie settings based on environment and max age.
+// CookieOptions function defines HTTP cookie settings based on environment and max age.
 function cookieOptions(maxAge) {
   return {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? "none" : "lax",
-    maxAge
+    maxAge,
+    path: "/"
   };
 }
 
@@ -60,25 +65,35 @@ function setAuthCookies(res, { accessToken, refreshToken }) {
 
 // clearAuthCookies clears the access and refresh token cookies from the response, effectively logging the user out by removing their authentication tokens.
 function clearAuthCookies(res) {
-  res.clearCookie("accessToken", cookieOptions(0));
-  res.clearCookie("refreshToken", cookieOptions(0));
+  res.clearCookie("accessToken", { httpOnly: true, secure: isProduction, sameSite: isProduction ? "none" : "lax", path: "/" });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: isProduction, sameSite: isProduction ? "none" : "lax", path: "/" });
 }
 
 // The following controller functions handle various authentication-related operations, including user registration, login, logout, token refresh, fetching the current user, password reset, email verification, and OAuth callbacks. Each function uses asyncHandler to manage asynchronous operations and sends structured API responses using the ApiResponse utility.
 export const register = asyncHandler(async (req, res) => {
   const result = await registerUser(req.body);
-  setAuthCookies(res, result);
-  res.status(201).json(new ApiResponse(201, { user: result.user, accessToken: result.accessToken }, "Registered successfully"));
+  res.status(201).json(new ApiResponse(201, { user: result.user }, "Registered successfully"));
 });
 
 export const login = asyncHandler(async (req, res) => {
   const result = await loginUser(req.body);
   setAuthCookies(res, result);
-  res.status(200).json(new ApiResponse(200, { user: result.user, accessToken: result.accessToken }, "Logged in successfully"));
+  res.status(200).json(new ApiResponse(200, { user: result.user }, "Logged in successfully"));
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  await logoutUser(req.user._id);
+  const refreshTokenFromCookie = req.cookies?.refreshToken;
+  const refreshTokenFromBody = req.body?.refreshToken;
+  const userId = req.user?._id || req.body?.userId;
+
+  if (refreshTokenFromCookie) {
+    await revokeSessionFromRefreshToken(refreshTokenFromCookie);
+  } else if (refreshTokenFromBody) {
+    await revokeSessionFromRefreshToken(refreshTokenFromBody);
+  } else if (userId) {
+    await logoutUser(userId);
+  }
+
   clearAuthCookies(res);
   res.status(200).json(new ApiResponse(200, null, "Logged out successfully"));
 });
@@ -87,7 +102,7 @@ export const refreshToken = asyncHandler(async (req, res) => {
   const token = req.cookies?.refreshToken || req.body?.refreshToken;
   const result = await refreshUserToken(token);
   setAuthCookies(res, result);
-  res.status(200).json(new ApiResponse(200, { user: result.user, accessToken: result.accessToken }, "Token refreshed"));
+  res.status(200).json(new ApiResponse(200, { user: result.user }, "Token refreshed"));
 });
 
 export const me = asyncHandler(async (req, res) => {
@@ -119,5 +134,26 @@ export const handleResendVerification = asyncHandler(async (req, res) => {
 export const oauthCallback = asyncHandler(async (req, res) => {
   const result = await completeOAuthLogin(req.user);
   setAuthCookies(res, result);
-  res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}/login?auth=success`);
+  res.redirect(`${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard`);
+});
+
+export const twoFactorSetup = asyncHandler(async (req, res) => {
+  const result = await enableTwoFactorForUser(req.user._id, req.body.code);
+  res.status(200).json(new ApiResponse(200, { user: result.user }, "2FA enabled successfully"));
+});
+
+export const twoFactorStatus = asyncHandler(async (req, res) => {
+  const user = await getCurrentUser(req.user._id);
+  res.status(200).json(new ApiResponse(200, { twoFactorEnabled: !!user.twoFactorEnabled }, "2FA status fetched"));
+});
+
+export const twoFactorDisable = asyncHandler(async (req, res) => {
+  const result = await disableTwoFactorForUser(req.user._id, req.body);
+  res.status(200).json(new ApiResponse(200, { user: result.user }, "2FA disabled successfully"));
+});
+
+export const twoFactorChallenge = asyncHandler(async (req, res) => {
+  const result = await verifyTwoFactorChallenge(req.user._id, req.body);
+  setAuthCookies(res, result);
+  res.status(200).json(new ApiResponse(200, { user: result.user }, "2FA verified successfully"));
 });

@@ -14,13 +14,18 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
     throw new ApiError(401, "Authentication required");
   }
 
-  const decoded = verifyAccessToken(token);
-  const user = await User.findById(decoded.sub);
+  try {
+    const decoded = verifyAccessToken(token);
+    const user = await User.findById(decoded.sub);
 
-  if (!user) {
+    if (!user) {
+      throw new ApiError(401, "Invalid authentication token");
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
     throw new ApiError(401, "Invalid authentication token");
   }
-
-  req.user = user;
-  next();
 });

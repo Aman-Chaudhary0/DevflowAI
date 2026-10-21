@@ -655,7 +655,7 @@ export default function AIDocsGeneratorPage() {
               <>
                 <h3 style={{ margin: "0 0 8px", fontSize: 18, fontWeight: 600 }}>Select Project Folder</h3>
                 <p style={{ fontSize: 14, color: "var(--muted)", marginBottom: 24, maxWidth: 400 }}>
-                  Choose a folder containing your project files. We'll analyze the structure and generate documentation.
+                  Choose a folder containing your project files. We&apos;ll analyze the structure and generate documentation.
                 </p>
                 <button
                   onClick={() => toast("Folder selection coming soon", "info")}

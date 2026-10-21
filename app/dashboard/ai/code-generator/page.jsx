@@ -768,7 +768,7 @@ export default function AICodeGeneratorPage() {
                 Ready to Generate
               </h3>
               <p style={{ fontSize: 14, color: "var(--muted)", margin: 0, maxWidth: 400 }}>
-                Configure your options on the left panel and click "Generate Code" to create production-ready code.
+                Configure your options on the left panel and click &quot;Generate Code&quot; to create production-ready code.
               </p>
             </div>
           )}
