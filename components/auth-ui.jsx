@@ -69,9 +69,9 @@ export function BrandPanel() {
           </div>
           <div className="terminal">
             <div>$ devflow auth verify</div>
-            <div className="text-[var(--success)]">session encrypted / device trusted</div>
+            <div className="text-(--success)">session encrypted / device trusted</div>
             <div>$ ai.workspace.open</div>
-            <div className="text-[var(--info)]">context synced in 320ms</div>
+            <div className="text-(--info)">context synced in 320ms</div>
           </div>
           <div className="grid grid-2">
             <div className="card card-pad floating delay-1">

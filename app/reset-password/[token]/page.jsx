@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { AuthCard, AuthInput, AuthShell, PasswordStrength, SubmitButton, authIcons } from "@/components/auth-ui";
@@ -9,7 +9,11 @@ import { api } from "@/lib/api";
 
 // ResetPasswordPage is a page component that renders the "Reset Password" form, allowing users to create a new password after receiving a secure reset token. It includes input fields for the new password and confirmation, along with a password strength indicator. Upon successful password reset, it displays a success message and provides a link to continue to the login page.
 export default function ResetPasswordPage() {
-  const { token } = useParams();
+  const params = useParams();
+  const searchParams = useSearchParams();
+  const routeToken = params?.token || "";
+  const queryToken = searchParams?.get("token") || "";
+  const token = routeToken || queryToken;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +24,7 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError("");
 
+    if (!token) return setError("Password reset token is missing.");
     if (password !== confirmPassword) return setError("Passwords do not match.");
 
     setLoading(true);
@@ -45,6 +50,9 @@ export default function ResetPasswordPage() {
           </div>
         ) : (
           <form className="stack-lg" onSubmit={handleSubmit}>
+            {!token ? (
+              <p style={{ color: "var(--danger)", fontSize: 14 }}>Missing password reset token. Please use the reset link from your email.</p>
+            ) : null}
             <AuthInput
               icon={authIcons.Lock}
               label="New Password"

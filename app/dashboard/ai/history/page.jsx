@@ -37,7 +37,7 @@ export default function AiHistoryPage() {
 
       <div className="card p-4 mt-6 border border-(--border)" style={{ background: "linear-gradient(180deg, rgba(139,92,246,0.08), transparent 22%), var(--card)" }}>
         <div className="flex gap-3 flex-wrap items-center mb-4">
-          <div className="flex-1 min-w-[260px]">
+          <div className="flex-1 min-w-65">
             <input className="input" placeholder="Search sessions, projects, or tools..." value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <button className="btn btn-ghost" type="button" onClick={() => toast("Filters saved", "success")}>Save view</button>

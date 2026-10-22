@@ -34,10 +34,10 @@ async function issueTokenPair(user) {
   return { accessToken, refreshToken };
 }
 
-// buildUrl constructs a URL for the frontend application by appending a specified path and token as query parameters.
-function buildUrl(path, token) {
+// buildUrl constructs a URL for the frontend application by appending a token to a route or query string.
+function buildUrl(path, token, useQueryParam = true) {
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-  return `${frontendUrl}${path}?token=${token}`;
+  return useQueryParam ? `${frontendUrl}${path}?token=${token}` : `${frontendUrl}${path}/${token}`;
 }
 
 // sendVerificationEmail sends an email to the user with a verification link containing a unique token for email verification.
@@ -185,7 +185,7 @@ export async function requestPasswordReset(email) {
   const token = user.createPasswordResetToken();
   await user.save({ validateBeforeSave: false });
 
-  const resetUrl = buildUrl("/reset-password", token);
+  const resetUrl = buildUrl("/reset-password", token, false);
   await sendEmail({
     to: user.email,
     subject: "Reset your Devflow AI password",
