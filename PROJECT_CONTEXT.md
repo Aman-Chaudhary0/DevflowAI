@@ -741,3 +741,18 @@ Backend dev server:
 - Replace remaining simulated actions with persisted CRUD behavior.
 - Add stronger auth enforcement, session handling, and token refresh logic.
 - Add real dashboards, charts, and analytics pipelines once backend data is ready.
+
+---
+
+## Phase 2 status (database foundation)
+
+The backend now includes the initial data model foundation for workspace- and project-scoped product features:
+
+- `Workspace`, `WorkspaceMember`, `Project`, `ProjectMember`, `ProjectFile`, `Document`, `Task`, `TaskComment`, `Notification`, and `Activity` schemas were added.
+- The existing `User` model remains the canonical authentication model and was kept compatible with the Phase 1 auth and 2FA implementations.
+- MongoDB connection logic now guards against duplicate startup connections and supports clean shutdown handling.
+- Model tests validate required fields, enums, object references, timestamps, and uniqueness constraints.
+
+This phase does not add full CRUD APIs, front-end integration, or feature-specific controllers. It establishes the database foundation required for later workspace and project API work.
+
+---

@@ -2,7 +2,7 @@ import "dotenv/config";
 import http from "http";
 import { Server } from "socket.io";
 import { app } from "./app.js";
-import { connectDB } from "./config/db.js";
+import { connectDB, disconnectDB } from "./config/db.js";
 
 const requiredEnvVars = ["MONGO_URI", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET"];
 
@@ -32,6 +32,15 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 5000;
+
+  const shutdown = async () => {
+    await disconnectDB();
+    process.exit(0);
+  };
+
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
+
   server.listen(port, () => {
     console.log(`Devflow AI backend running on port ${port}`);
   });

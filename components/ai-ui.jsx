@@ -171,7 +171,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
 
   return (
     <div className="flex gap-3 p-4 animate-fadeIn">
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-(--primary) to-(--purple) grid place-items-center flex-shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-linear-to-br from-(--primary) to-(--purple) grid place-items-center shrink-0">
         <Sparkles size={16} color="white" />
       </div>
       <div className="flex-1 min-w-0">
@@ -274,7 +274,7 @@ export function AIMessage({ message, onRegenerate, onLike, onDislike, onCopy, on
 export function UserMessage({ message }) {
   return (
     <div className="flex gap-3 p-4 flex-row-reverse animate-fadeIn">
-      <div className="w-8 h-8 rounded-lg bg-(--primary) grid place-items-center flex-shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-(--primary) grid place-items-center shrink-0">
         <span className="text-white font-bold text-sm">U</span>
       </div>
       <div className="max-w-[70%] p-3 bg-(--primary) text-white rounded-[18px_18px_4px_18px] text-sm leading-relaxed">
@@ -288,7 +288,7 @@ export function UserMessage({ message }) {
 export function TypingIndicator() {
   return (
     <div className="flex gap-3 p-4">
-      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-(--primary) to-(--purple) grid place-items-center flex-shrink-0">
+      <div className="w-8 h-8 rounded-lg bg-linear-to-br from-(--primary) to-(--purple) grid place-items-center shrink-0">
         <Sparkles size={16} color="white" />
       </div>
       <div className="flex items-center gap-1 p-2">
@@ -354,7 +354,7 @@ export function ChatInput({
       <div className="flex gap-2 items-end">
         <button
           onClick={onAttach}
-          className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) flex-shrink-0"
+          className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) shrink-0"
           title="Attach file"
           type="button"
         >
@@ -367,10 +367,10 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={rows}
-          className="flex-1 border-none outline-none bg-transparent resize-none text-sm leading-relaxed py-2 min-h-6 max-h-[150px] font-inherit"
+          className="flex-1 border-none outline-none bg-transparent resize-none text-sm leading-relaxed py-2 min-h-6 max-h-37.5 font-inherit"
         />
 
-        <div className="flex gap-1 flex-shrink-0">
+        <div className="flex gap-1 shrink-0">
           <button
             onClick={onVoice}
             className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) transition-all duration-150"
@@ -508,7 +508,7 @@ export function ChatHistory({
     : conversations;
 
   return (
-    <div className="flex flex-col h-full border-r border-(--border) bg-(--surface) min-w-[260px] w-[260px]" style={{ minWidth: collapsed ? 0 : 260, width: collapsed ? 0 : 260 }}>
+    <div className="flex flex-col h-full border-r border-(--border) bg-(--surface) min-w-65 w-65" style={{ minWidth: collapsed ? 0 : 260, width: collapsed ? 0 : 260 }}>
       {/* New Chat Button */}
       <div className="p-3">
         <button
@@ -671,7 +671,7 @@ export function ModelSelector({ value, onChange, options = [] }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-[calc(100%+8px)] left-0 min-w-[200px] bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+          <div className="absolute top-[calc(100%+8px)] left-0 min-w-50 bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
             {options.map(option => (
               <button
                 key={option.id}
@@ -718,7 +718,7 @@ export function ExportMenu({ onExport }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-[calc(100%+8px)] right-0 min-w-[160px] bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+          <div className="absolute top-[calc(100%+8px)] right-0 min-w-40 bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
             <button
               onClick={() => { onExport("md"); setOpen(false); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left text-sm"
