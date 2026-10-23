@@ -732,6 +732,113 @@ Backend dev server:
 
 ---
 
+## 14) Verified Phase 3 Implementation Status
+
+This project has moved beyond the purely UI-first prototype in the workspace/project domain. The implementation details below are based on the current repository source and should be treated as verified facts for the actual codebase.
+
+### 14.1 Backend project API
+
+The backend Express app now wires project and dashboard routes in `backend/src/app.js`:
+
+- `GET /api/projects` — list authorized projects for the authenticated user
+- `POST /api/projects` — create a project in the user's default workspace
+- `GET /api/projects/:projectId` — fetch a single authorized project
+- `PATCH /api/projects/:projectId` — update project metadata and settings
+- `POST /api/projects/:projectId/archive` — archive a project
+- `POST /api/projects/:projectId/restore` — restore a project
+- `DELETE /api/projects/:projectId` — delete a project (owner-only)
+- `GET /api/dashboard/summary` — return dashboard summary counts for the current user
+
+The route layer in `backend/src/routes/project.routes.js` applies `requireAuth` and Zod validation before each controller executes, and the controller files in `backend/src/controllers/project.controller.js` keep the HTTP response surface thin.
+
+### 14.2 Service responsibilities
+
+`backend/src/services/project.service.js` contains the core project-business logic:
+
+- `ensureDefaultWorkspaceForUser()` creates and reuses the authenticated user's default workspace
+- `getAuthorizedProjectIdsForUser()` resolves the project IDs the current user may access
+- `getProjectForUser()` enforces authorization and fetches the project record with populated owner/workspace metadata
+- `listProjectsForUser()` returns filtered, sorted, paginated projects for the current user
+- `createProjectForUser()` enforces naming, slug normalization, duplicate slug checks, and default workspace selection
+- `updateProjectForUser()` validates project updates and enforces owner/admin permission rules
+- `deleteProjectForUser()` prevents non-owners from deleting a project
+- `getDashboardSummaryForUser()` returns total, active, archived, and recent-project counts
+
+### 14.3 Database and validation behavior
+
+The current Mongo schema and validation logic enforce the expected workspace/project constraints:
+
+- `Project` is linked to `Workspace` and `User` via `workspace` and `owner` references
+- `workspace + slug` is unique for project identity within a workspace
+- `ProjectMember` has a unique index on `project + user`
+- `WorkspaceMember` has a unique index on `workspace + user`
+- Supported project statuses are `active`, `planning`, `archived`, and `completed`
+- Supported visibility values are `private`, `internal`, and `public`
+- The validator in `backend/src/validators/project.validator.js` enforces slug formatting, ID validation, allowed enums, and required fields for create/update requests
+
+Duplicate slug conflicts are handled as `409 Conflict` errors in the project service, with a message that includes the workspace-scoped uniqueness rule.
+
+### 14.4 Frontend API integration
+
+The real frontend API client in `lib/api.js` includes:
+
+- `api.projects.list()`
+- `api.projects.get()`
+- `api.projects.create()`
+- `api.projects.update()`
+- `api.projects.archive()`
+- `api.projects.restore()`
+- `api.projects.delete()`
+- `api.dashboard.summary()`
+
+This is wired into the dashboard and project screens:
+
+- `app/dashboard/page.jsx` loads `api.me()` and `api.dashboard.summary()`
+- `app/dashboard/projects/page.jsx` loads the project list from the backend and triggers archive/delete/restore actions through the API
+- `app/dashboard/projects/create/page.jsx` submits the project payload to the backend and redirects to the newly created project detail route
+- `app/dashboard/projects/[projectId]/page.jsx` reads the project via the backend and renders a loading/not-found state when data is unavailable
+
+The front-end behavior is therefore no longer purely mock for the primary dashboard/workspace flow, even though selected supporting widgets still use local mock data for visual completeness.
+
+### 14.5 Supporting UI still using mock data
+
+The following project-subview content should be treated as visual or simulated support content unless a later phase adds real API wiring:
+
+- task widgets and analytics widgets in project-level pages
+- recent files, commit history, docs status, and AI assistant actions on overview/detail screens
+- project activity, docs, team, and settings panels where the component still relies on local mock arrays or static UI-state helpers
+
+This is a known limitation and should not be mistaken for full product completion.
+
+### 14.6 Tests and validated results
+
+The repository currently contains model and project lifecycle tests under `backend/src/__tests__/`:
+
+- `phase2.models.test.js`
+- `project.lifecycle.test.js`
+
+The workspace validation that was actually run during the implementation pass included:
+
+- `npm run lint` → passed
+- `npm run build` → passed
+
+The documented project lifecycle tests are present in the repository and are intended to cover create/list/update/archive/restore/delete and authorization/duplicate-slug scenarios, but this document intentionally distinguishes between repository state and fresh runtime verification in the current pass.
+
+### 14.7 Phase 3 limits and the next approved phase
+
+The verified Phase 3 work is focused on authenticated dashboard and project lifecycle integration. It does not replace the full product surface or unrelated domain backends.
+
+The next approved phase should remain scoped to the same product domain and should continue to improve either:
+
+- project subview API integration,
+- richer permission handling for team members,
+- workspace-level collaboration features, or
+- final cleanup for any mock-only supporting views.
+
+This scope guardrail preserves the project architecture and avoids creating new routes or product areas without explicit approval.
+
+---
+
 ## 14) Future Work
 
 - Replace mock data with backend APIs gradually.

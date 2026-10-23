@@ -34,10 +34,10 @@ import {
   mockActivity,
   mockAnalytics,
   mockNotifications,
-  mockProjects,
   mockTasks,
   mockUser
 } from "@/lib/dashboard-data";
+import { api } from "@/lib/api";
 
 const quickActions = [
   { label: "New Project", icon: FolderOpen, href: "/dashboard/projects/create", color: "var(--primary)" },
@@ -55,15 +55,45 @@ const activityIcons = {
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [chartPeriod, setChartPeriod] = useState("week");
+  const [summary, setSummary] = useState(null);
+  const [user, setUser] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(t);
+    let ignore = false;
+
+    async function loadDashboard() {
+      try {
+        const [meRes, summaryRes] = await Promise.all([
+          api.me(),
+          api.dashboard.summary()
+        ]);
+
+        if (ignore) return;
+
+        setUser(meRes?.data?.user || meRes?.user || mockUser);
+        setSummary(summaryRes?.data || summaryRes || null);
+        setError(false);
+      } catch (err) {
+        if (ignore) return;
+        setError(true);
+        toast(err.message || "Unable to load dashboard data", "error");
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboard();
+    return () => { ignore = true; };
   }, []);
 
   const unread = mockNotifications.filter((n) => !n.read).length;
   const todayTasks = mockTasks.filter((t) => t.dueDate === "Today").length;
-  const activeProjCount = mockProjects.filter((p) => p.status === "active").length;
+  const activeProjCount = summary?.activeProjects ?? 0;
+  const totalProjects = summary?.totalProjects ?? 0;
+  const recentProjects = summary?.recentProjects || [];
 
   return (
     <>
@@ -75,7 +105,7 @@ export default function DashboardPage() {
             <span className="eyebrow">Workspace Overview</span>
           </div>
           <h2 className="m-0 text-[26px] font-extrabold font-display">
-            {getGreeting()}, {mockUser.name.split(" ")[0]} 👋
+            {getGreeting()}, {user?.name?.split(" ")[0] || "Developer"} 👋
           </h2>
           <p className="muted m-0 text-sm">
             You have <strong className="text-(--text)">{activeProjCount} active projects</strong>,{" "}
@@ -97,11 +127,16 @@ export default function DashboardPage() {
       <div className="dash-grid-6">
         {loading ? (
           [1,2,3,4,5,6].map((i) => <SkeletonCard key={i} />)
+        ) : error ? (
+          <div className="stat-card col-span-full">
+            <p className="m-0 font-bold text-[15px]">Dashboard is unavailable</p>
+            <p className="muted m-0 text-sm">The project summary could not be loaded right now.</p>
+          </div>
         ) : (
           <>
             <Link href="/dashboard/projects" className="no-underline text-inherit">
-              <StatCard label="Projects" value={mockProjects.length} delta="+3 this week" trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
-                <MiniBarChart data={[3,5,4,6,5,7,6]} color="var(--primary)" height={36} />
+              <StatCard label="Projects" value={totalProjects} delta={summary?.archivedProjects ? `${summary.archivedProjects} archived` : "No archived projects"} trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
+                <MiniBarChart data={recentProjects.length ? recentProjects.slice(0,7).map((_, idx) => (idx % 2 === 0 ? 4 : 6)) : [0,0,0,0,0,0,0]} color="var(--primary)" height={36} />
               </StatCard>
             </Link>
             <Link href="/dashboard/tasks" className="no-underline text-inherit">
@@ -122,7 +157,7 @@ export default function DashboardPage() {
               <MiniBarChart data={[2,4,3,6,4,8,5]} color="var(--success)" height={36} />
             </StatCard>
             <StatCard label="Team Online" value={18} delta="3 active now" trend="up" icon={Users} iconBg="color-mix(in srgb, var(--pink) 15%, transparent)">
-              <AvatarGroup members={mockProjects[0].members} max={4} size={28} />
+              <AvatarGroup members={recentProjects[0]?.owner ? [{ _id: recentProjects[0].owner?._id || "u1", name: recentProjects[0].owner?.name || user?.name || "You", color: "#3b82f6" }] : [{ _id: "u1", name: user?.name || "You", color: "#3b82f6" }]} max={4} size={28} />
             </StatCard>
           </>
         )}
@@ -139,7 +174,7 @@ export default function DashboardPage() {
             </div>
             <div className="flex gap-1">
               {["day", "week", "month"].map((p) => (
-                    <button key={p} className={`filter-chip ${chartPeriod === p ? "active" : ""} px-2.5 py-1 text-xs`} onClick={() => setChartPeriod(p)} type="button">
+                <button key={p} className={`filter-chip ${chartPeriod === p ? "active" : ""} px-2.5 py-1 text-xs`} onClick={() => setChartPeriod(p)} type="button">
                   {p.charAt(0).toUpperCase() + p.slice(1)}
                 </button>
               ))}
@@ -158,7 +193,7 @@ export default function DashboardPage() {
             })}
           </div>
           <div className="flex gap-5">
-            {[["Tasks", "var(--primary)"], ["AI Usage", "var(--purple)"], ["Deploys", "var(--success)"]].map(([label, color]) => (
+            {[ ["Tasks", "var(--primary)"], ["AI Usage", "var(--purple)"], ["Deploys", "var(--success)"] ].map(([label, color]) => (
               <span key={label} className="flex items-center gap-1.5 text-xs text-(--muted)">
                 <span className="w-2 h-2 rounded-sm inline-block" style={{ background: color }} />{label}
               </span>
@@ -175,7 +210,7 @@ export default function DashboardPage() {
             </div>
             <div className="logo-mark w-9 h-9" style={{ background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
           </div>
-          {[
+          { [
             { label: "Current Model", value: mockAnalytics.aiStats.model },
             { label: "Tokens Used", value: mockAnalytics.aiStats.tokensUsed.toLocaleString() },
             { label: "Avg Response", value: mockAnalytics.aiStats.avgResponse },
@@ -200,23 +235,26 @@ export default function DashboardPage() {
             <p className="m-0 font-bold text-[15px]">Recent Projects</p>
             <Link href="/dashboard/projects" className="muted text-[13px] font-semibold">View all</Link>
           </div>
-          {mockProjects.slice(0, 4).map((p) => (
+          {(recentProjects.length ? recentProjects : []).slice(0, 4).map((p) => (
             <Link href={`/dashboard/projects/${p._id}`} key={p._id} className="flex items-center gap-3 py-2.5 border-b border-(--border)/40 no-underline text-inherit" style={{ borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)" }}>
-              <div className="w-9 h-9 rounded-[10px] grid place-items-center text-white font-extrabold text-sm shrink-0" style={{ background: p.color }}>
-                {p.name.charAt(0)}
+              <div className="w-9 h-9 rounded-[10px] grid place-items-center text-white font-extrabold text-sm shrink-0" style={{ background: p.settings?.color || "#3b82f6" }}>
+                {(p.name || "P").charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="m-0 mb-0.5 font-semibold text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">{p.name}</p>
                 <div className="flex gap-1.5">
-                  {p.stack.slice(0, 2).map((s) => <span key={s} className="badge px-1.5 py-0.5 text-[11px]">{s}</span>)}
+                  {(p.settings?.techStack || []).slice(0,2).map((s) => <span key={s} className="badge px-1.5 py-0.5 text-[11px]">{s}</span>)}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <p className="m-0 mb-1 text-[13px] font-bold">{p.progress}%</p>
-                <ProgressBar value={p.progress} />
+                <p className="m-0 mb-1 text-[13px] font-bold">{p.status === "archived" ? "Archived" : "Live"}</p>
+                <ProgressBar value={p.status === "archived" ? 100 : 64} />
               </div>
             </Link>
           ))}
+          {!recentProjects.length && !loading && (
+            <p className="muted m-0 text-sm">No projects yet. Create your first project to get started.</p>
+          )}
         </div>
 
         {/* Upcoming Tasks */}
@@ -285,7 +323,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-        <div className="stat-card gap-4">
+      <div className="stat-card gap-4">
         <p className="m-0 font-bold text-[15px]">Quick Actions</p>
         <div className="flex gap-3 flex-wrap">
           {quickActions.map(({ label, icon: Icon, href, color }) => (

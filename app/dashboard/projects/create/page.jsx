@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Check, CheckCircle2, ChevronLeft, ChevronRight, FolderOpen, Plus, Rocket, Upload, X } from "lucide-react";
 import { PageHeader, toast } from "@/components/dashboard-ui";
+import { api } from "@/lib/api";
 
 const steps = ["Basic Info", "Technology", "Repository", "Team", "Review"];
 
@@ -64,10 +65,41 @@ export default function CreateProjectPage() {
 
   async function handleCreate() {
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setLoading(false);
-    setSuccess(true);
-    setTimeout(() => router.push("/dashboard/projects/p1"), 1800);
+
+    try {
+      const payload = {
+        name: form.name.trim(),
+        slug: form.slug.trim() || form.name.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, ""),
+        description: form.description.trim(),
+        visibility: "private",
+        status: "active",
+        repository: {
+          provider: form.repo === "github" ? "github" : "none",
+          name: form.repo === "github" ? "github-import" : "",
+          url: "",
+          defaultBranch: form.branch || "main"
+        },
+        settings: {
+          color: form.color,
+          techStack: form.tech
+        }
+      };
+
+      const response = await api.projects.create(payload);
+      const createdProject = response?.data?.project || response?.project;
+
+      if (!createdProject?._id) {
+        throw new Error("Project was created but the server did not return a project id.");
+      }
+
+      setSuccess(true);
+      toast("Project created successfully", "success");
+      setTimeout(() => router.push(`/dashboard/projects/${createdProject._id}`), 800);
+    } catch (error) {
+      toast(error.message || "Unable to create project", "error");
+    } finally {
+      setLoading(false);
+    }
   }
 
   if (success) {
