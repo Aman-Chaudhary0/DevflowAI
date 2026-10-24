@@ -1,4 +1,4 @@
-import ImageKit from "imagekit";
+import ImageKit from "@imagekit/nodejs";
 
 //  The imagekit instance is configured with public and private keys, and a URL endpoint for image management.
 export const imagekit = new ImageKit({
