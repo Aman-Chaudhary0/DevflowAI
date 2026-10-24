@@ -1453,3 +1453,21 @@ When updating this file:
 - A mock fallback must not disguise API failure.
 - Existing pages are the product surface; integrate them instead of growing the route count.
 - Update this context after every phase so the next implementation begins from an accurate baseline.
+
+### 3.4 Verified local status for Files + Documentation integration
+
+The local repository now includes a verified implementation of the Phase 4 files/documents flow, with backend and frontend integration completed in the current branch while preserving the existing UI and routing structure.
+
+Verified facts from the actual repository state:
+- `backend/src/app.js` mounts the files API router at `/api/files`.
+- `lib/api.js` includes authenticated request helpers for workspace files, project files, and project document CRUD.
+- `app/dashboard/files/page.jsx` loads workspace files from the backend and supports upload/delete/download flows against the real API.
+- `app/dashboard/projects/[projectId]/files/page.jsx` loads project-scoped files from the backend and uses actual upload/delete actions.
+- `app/dashboard/projects/[projectId]/docs/page.jsx` loads project documents from the backend and supports create/save/delete operations against the real API layer.
+- `backend/src/services/projectFiles.service.js` enforces project/workspace authorization and document uniqueness for project-scoped file/doc operations.
+
+Validation performed in this repository:
+- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
+- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
+
+Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
