@@ -133,17 +133,17 @@ export default function ProjectsPage() {
   return (
     <>
       <PageHeader title="My Projects" subtitle={`${filtered.length} projects`}>
-        <Link className="btn btn-primary min-h-[38px] text-xs" href="/dashboard/projects/create">
+        <Link className="btn btn-primary min-h-9.5 text-xs" href="/dashboard/projects/create">
           <Plus size={16} /> New Project
         </Link>
       </PageHeader>
 
       <div className="flex items-center gap-3 flex-wrap">
-        <div className="dash-search min-w-[220px] flex-1 max-w-[360px]">
+        <div className="dash-search min-w-55 flex-1 max-w-90">
           <Search size={15} color="var(--muted)" />
           <input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="input w-auto min-w-[180px] h-[40px] px-3" value={sort} onChange={(e) => setSort(e.target.value)}>
+        <select className="input w-auto min-w-45 h-10 px-3" value={sort} onChange={(e) => setSort(e.target.value)}>
           {sortOptions.map((o) => <option key={o}>{o}</option>)}
         </select>
         <div className="flex gap-1 border border-(--border) rounded-[10px] p-0.75">
@@ -157,9 +157,9 @@ export default function ProjectsPage() {
       {selected.length > 0 ? (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
           <span className="text-[13px] font-semibold">{selected.length} selected</span>
-          <button className="btn btn-outline min-h-[32px] px-3 text-xs" onClick={() => Promise.all(selected.map((id) => mutateProject(id, "archive", "Projects archived")))}><Archive size={14} /> Archive</button>
-          <button className="btn btn-outline min-h-[32px] px-3 text-xs" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={() => setDeleteDialog("bulk")}><Trash2 size={14} /> Delete</button>
-          <button className="btn btn-ghost min-h-[32px] px-3 text-xs" onClick={() => setSelected([])}>Clear</button>
+          <button className="btn btn-outline min-h-8 px-3 text-xs" onClick={() => Promise.all(selected.map((id) => mutateProject(id, "archive", "Projects archived")))}><Archive size={14} /> Archive</button>
+          <button className="btn btn-outline min-h-8 px-3 text-xs" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={() => setDeleteDialog("bulk")}><Trash2 size={14} /> Delete</button>
+          <button className="btn btn-ghost min-h-8 px-3 text-xs" onClick={() => setSelected([])}>Clear</button>
         </div>
       ) : null}
 
