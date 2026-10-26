@@ -1,11 +1,13 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Activity, Bot, CheckCircle2, Download, GitCommit, Rocket, Search, Upload, UserPlus } from "lucide-react";
 import { EmptyState, FilterBar, PageHeader, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
-import { getProjectByKey, mockActivity } from "@/lib/dashboard-data";
+import { getProjectByKey } from "@/lib/dashboard-data";
+import { api } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
 const typeFilters = [
   { label: "All", value: "all" },
@@ -27,23 +29,65 @@ const colorMap = {
   task: "var(--warning)", file: "var(--info)", team: "var(--pink)"
 };
 
-const groups = [
-  { label: "Today", items: mockActivity.slice(0, 4) },
-  { label: "Yesterday", items: mockActivity.slice(4, 6) },
-  { label: "Earlier", items: mockActivity.slice(6) }
-];
-
 export default function ProjectActivityPage() {
   const { projectId } = useParams();
   const [typeFilter, setTypeFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [activity, setActivity] = useState([]);
   const projectName = getProjectByKey(projectId)?.name || projectId;
+
+  const loadActivity = useCallback(async () => {
+    try {
+      const response = await api.projects.activity(projectId);
+      const rows = response?.data?.activity || response?.activity || [];
+      setActivity(rows.map((row) => ({
+        _id: String(row._id),
+        type: row.entityType === "task" ? "task" : row.entityType,
+        icon: row.entityType === "task" ? "check-circle" : "upload",
+        title: `${String(row.action || "updated").replaceAll("_", " ")}${row.metadata?.title ? `: ${row.metadata.title}` : ""}`,
+        user: row.actor?.name || "Team member",
+        occurredAt: row.createdAt,
+        time: new Date(row.createdAt).toLocaleString()
+      })));
+    } catch (error) {
+      setActivity([]);
+      toast(error.message || "Unable to load project activity", "error");
+    }
+  }, [projectId]);
+
+  useEffect(() => { loadActivity(); }, [loadActivity]);
+  useEffect(() => {
+    const socket = connectRealtime();
+    const refresh = (event) => {
+      if (String(event?.projectId || "") === String(projectId)) loadActivity();
+    };
+    socket.on("activity.created", refresh);
+    socket.on("connect", loadActivity);
+    return () => {
+      socket.off("activity.created", refresh);
+      socket.off("connect", loadActivity);
+    };
+  }, [projectId, loadActivity]);
 
   const filterItems = (items) => items
     .filter((a) => typeFilter === "all" || a.type === typeFilter)
     .filter((a) => a.title.toLowerCase().includes(search.toLowerCase()));
 
-  const visibleGroups = groups.map(({ label, items }) => ({ label, items: filterItems(items) }));
+  const dateGroup = (value) => {
+    const date = new Date(value);
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) return "Today";
+    const yesterday = new Date(now);
+    yesterday.setDate(now.getDate() - 1);
+    return date.toDateString() === yesterday.toDateString() ? "Yesterday" : "Earlier";
+  };
+  const grouped = activity.reduce((result, item) => {
+    const label = dateGroup(item.occurredAt);
+    result[label] ||= [];
+    result[label].push(item);
+    return result;
+  }, {});
+  const visibleGroups = ["Today", "Yesterday", "Earlier"].map((label) => ({ label, items: filterItems(grouped[label] || []) }));
   const hasResults = visibleGroups.some(({ items }) => items.length > 0);
 
   return (
@@ -56,7 +100,7 @@ export default function ProjectActivityPage() {
 
       {/* Stats */}
       <div className="dash-grid-3">
-        {[["Total Events", mockActivity.length, "var(--primary)"], ["AI Actions", mockActivity.filter((a) => a.type === "ai").length, "var(--purple)"], ["Deployments", mockActivity.filter((a) => a.type === "deploy").length, "var(--success)"]].map(([label, val, color]) => (
+        {[["Total Events", activity.length, "var(--primary)"], ["AI Actions", activity.filter((a) => a.type === "ai").length, "var(--purple)"], ["Deployments", activity.filter((a) => a.type === "deploy").length, "var(--success)"]].map(([label, val, color]) => (
           <div key={label} className="stat-card" style={{ flexDirection: "row", alignItems: "center", gap: 16 }}>
             <div style={{ width: 44, height: 44, borderRadius: 12, background: `color-mix(in srgb, ${color} 15%, transparent)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
               <Activity size={20} color={color} />

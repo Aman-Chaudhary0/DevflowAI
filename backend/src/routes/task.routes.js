@@ -5,6 +5,7 @@ import {
   deleteTask,
   getTask,
   getTaskActivity,
+  getWorkspaceActivity,
   listProjectMembers,
   listTaskComments,
   listTasks,
@@ -26,6 +27,7 @@ import {
 const router = Router();
 
 router.get("/workspace/:workspaceId/members", requireAuth, validate(workspaceMembersSchema), listWorkspaceMembers);
+router.get("/workspace/:workspaceId/activity", requireAuth, validate(workspaceMembersSchema), getWorkspaceActivity);
 router.get("/project/:projectId/members", requireAuth, validate(projectMembersSchema), listProjectMembers);
 router.get("/", requireAuth, validate(taskQuerySchema), listTasks);
 router.post("/", requireAuth, validate(createTaskSchema), createTask);

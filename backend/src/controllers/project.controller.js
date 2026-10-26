@@ -1,5 +1,6 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import Activity from "../models/Activity.js";
 import {
   createProjectForUser,
   deleteProjectForUser,
@@ -24,6 +25,16 @@ export const createProject = asyncHandler(async (req, res) => {
 export const getProject = asyncHandler(async (req, res) => {
   const project = await getProjectForUser(req.user._id, req.params.projectId);
   res.status(200).json(new ApiResponse(200, { project }, "Project fetched successfully"));
+});
+
+export const getProjectActivity = asyncHandler(async (req, res) => {
+  const project = await getProjectForUser(req.user._id, req.params.projectId);
+  const activity = await Activity.find({ project: project._id })
+    .populate("actor", "_id name avatar")
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .lean();
+  res.status(200).json(new ApiResponse(200, { activity }, "Project activity fetched successfully"));
 });
 
 export const updateProject = asyncHandler(async (req, res) => {

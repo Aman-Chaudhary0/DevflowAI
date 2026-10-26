@@ -12,6 +12,7 @@ import authRoutes from "./routes/auth.routes.js";
 import projectRoutes, { dashboardRouter } from "./routes/project.routes.js";
 import fileRoutes from "./routes/files.routes.js";
 import taskRoutes from "./routes/task.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -54,6 +55,7 @@ app.get("/health", (_req, res) => {
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/tasks", taskRoutes);
+app.use("/api/notifications", notificationRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);

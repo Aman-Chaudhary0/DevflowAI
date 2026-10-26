@@ -5,6 +5,7 @@ import {
   dashboardSummary,
   deleteProject,
   getProject,
+  getProjectActivity,
   listProjects,
   restoreProject,
   updateProject
@@ -22,6 +23,7 @@ const router = Router();
 
 router.get("/", requireAuth, validate(listProjectsSchema), listProjects);
 router.post("/", requireAuth, validate(createProjectSchema), createProject);
+router.get("/:projectId/activity", requireAuth, validate(projectParamsSchema), getProjectActivity);
 router.get("/:projectId", requireAuth, validate(projectParamsSchema), getProject);
 router.patch("/:projectId", requireAuth, validate(projectParamsSchema), validate(updateProjectSchema), updateProject);
 router.post("/:projectId/archive", requireAuth, validate(projectParamsSchema), archiveProject);

@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { PageHeader, EmptyState, SkeletonCard, StatCard, toast } from "@/components/dashboard-ui";
 import { Crumb } from "@/components/workspace-primitives";
 import { getProjectByKey } from "@/lib/dashboard-data";
-import { mockApi } from "@/lib/api";
+import { api } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
 export default function ProjectTasksPage() {
   const params = useParams();
@@ -13,7 +14,37 @@ export default function ProjectTasksPage() {
   const [view, setView] = useState('board');
   const projectName = getProjectByKey(projectId)?.name || projectId;
 
-  useEffect(() => { mockApi.projects.tasks(projectId).then(setTasks); }, [projectId]);
+  const loadTasks = useCallback(async () => {
+    try {
+      const response = await api.tasks.list({ projectId, page: 1, limit: 100 });
+      const rows = response?.data?.tasks || response?.tasks || [];
+      const labels = { todo: "Todo", blocked: "Backlog", in_progress: "In Progress", review: "Review", done: "Done" };
+      setTasks(rows.map((task) => ({
+        id: String(task._id), title: task.title, status: labels[task.status] || "Todo",
+        priority: task.priority ? task.priority[0].toUpperCase() + task.priority.slice(1) : "Medium",
+        assignee: task.assignee?.name || "Unassigned",
+        due: task.dueDate ? new Date(task.dueDate).toLocaleDateString() : "No due date"
+      })));
+    } catch (error) {
+      setTasks([]);
+      toast(error.message || "Unable to load project tasks", "error");
+    }
+  }, [projectId]);
+
+  useEffect(() => { loadTasks(); }, [loadTasks]);
+  useEffect(() => {
+    const socket = connectRealtime();
+    const refresh = (event) => {
+      if (String(event?.projectId || "") === String(projectId)) loadTasks();
+    };
+    const events = ["task.created", "task.updated", "task.deleted", "task.comment.created"];
+    events.forEach((event) => socket.on(event, refresh));
+    socket.on("connect", loadTasks);
+    return () => {
+      events.forEach((event) => socket.off(event, refresh));
+      socket.off("connect", loadTasks);
+    };
+  }, [projectId, loadTasks]);
 
   return (
     <div>
