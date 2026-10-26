@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   Calendar,
@@ -31,11 +31,13 @@ import {
   toast
 } from "@/components/dashboard-ui";
 import { api } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
 const columns = [
   { id: "todo", title: "To Do", color: "#f59e0b", icon: Circle },
   { id: "in_progress", title: "In Progress", color: "#3b82f6", icon: Clock },
   { id: "review", title: "In Review", color: "#8b5cf6", icon: AlertCircle },
+  { id: "blocked", title: "Blocked", color: "#ef4444", icon: AlertCircle },
   { id: "done", title: "Done", color: "#10b981", icon: CheckCircle2 }
 ];
 
@@ -43,6 +45,7 @@ const statusMap = {
   todo: "To Do",
   in_progress: "In Progress",
   review: "In Review",
+  blocked: "Blocked",
   done: "Done"
 };
 
@@ -67,17 +70,17 @@ export default function TasksPage() {
   const [formError, setFormError] = useState(null);
   const [formSuccess, setFormSuccess] = useState(false);
 
-  const loadProjects = async () => {
+  const loadProjects = useCallback(async () => {
     const response = await api.projects.list({ page: 1, limit: 50 });
     const items = response?.data?.projects || response?.projects || [];
     setProjects(items);
-    if (items.length > 0 && !newTask.projectId) {
-      setNewTask((prev) => ({ ...prev, projectId: items[0]._id }));
+    if (items.length > 0) {
+      setNewTask((prev) => prev.projectId ? prev : ({ ...prev, projectId: items[0]._id }));
     }
     return items;
-  };
+  }, []);
 
-  const loadTasks = async () => {
+  const loadTasks = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -90,18 +93,31 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [search]);
 
   useEffect(() => {
     loadProjects().catch(() => undefined);
-    loadTasks();
-  }, []);
+  }, [loadProjects]);
 
   useEffect(() => {
-    if (!loading) {
-      loadTasks();
-    }
-  }, [search]);
+    loadTasks();
+  }, [loadTasks]);
+
+  useEffect(() => {
+    const socket = connectRealtime();
+    let refreshTimer;
+    const refresh = () => {
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => loadTasks(), 120);
+    };
+    ["task.created", "task.updated", "task.deleted", "task.comment.created"].forEach((event) => socket.on(event, refresh));
+    socket.on("connect", refresh);
+    return () => {
+      clearTimeout(refreshTimer);
+      ["task.created", "task.updated", "task.deleted", "task.comment.created"].forEach((event) => socket.off(event, refresh));
+      socket.off("connect", refresh);
+    };
+  }, [loadTasks]);
 
   const filteredTasks = useMemo(() => {
     const term = search.trim().toLowerCase();

@@ -17,7 +17,10 @@ Fill these required values before starting:
 MONGO_URI=
 JWT_ACCESS_SECRET=
 JWT_REFRESH_SECRET=
+FRONTEND_URL=http://localhost:3000
 ```
+
+Socket.IO is attached to the same HTTP server as Express. Browser connections authenticate with the HTTP-only `accessToken` cookie; configure `FRONTEND_URL` to the exact frontend origin. Sockets are disconnected when that access token expires and reconnect through the existing refresh-cookie flow.
 
 ## Auth API
 

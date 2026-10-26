@@ -35,7 +35,7 @@ import {
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, ToastContainer } from "@/components/dashboard-ui";
 import { api } from "@/lib/api";
-import { mockNotifications } from "@/lib/dashboard-data";
+import { connectRealtime, disconnectRealtime } from "@/lib/realtime";
 
 const globalNav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -102,9 +102,10 @@ export default function DashboardLayout({ children }) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [authStatus, setAuthStatus] = useState("checking");
+  const [notifications, setNotifications] = useState([]);
 
   const projectId = params?.projectId;
-  const unread = mockNotifications.filter((n) => !n.read).length;
+  const unread = notifications.filter((n) => !n.readAt).length;
   const showAiNav = pathname.startsWith("/dashboard/ai");
   const showGithubNav = pathname.startsWith("/dashboard/github");
   const showDeploymentNav = pathname.startsWith("/dashboard/deployments") || pathname.startsWith("/dashboard/workflows");
@@ -139,6 +140,50 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
+  useEffect(() => {
+    if (authStatus !== "authenticated") return undefined;
+    const socket = connectRealtime();
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const response = await api.notifications.list();
+        const rows = response?.data?.notifications || response?.notifications || [];
+        if (active) setNotifications(rows);
+      } catch {
+        if (active) setNotifications([]);
+      }
+    };
+    const addNotification = (payload) => {
+      const notification = payload?.notification;
+      if (typeof notification?._id !== "string" || typeof notification.title !== "string" || typeof notification.message !== "string") return;
+      setNotifications((rows) => rows.some((item) => String(item._id) === String(notification._id)) ? rows : [notification, ...rows]);
+    };
+    const markRead = (payload) => {
+      if (typeof payload?.notificationId !== "string") return;
+      setNotifications((rows) => rows.map((item) => String(item._id) === payload.notificationId ? { ...item, readAt: payload.readAt || null } : item));
+    };
+    const markAllRead = () => setNotifications((rows) => rows.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() })));
+    const removeNotification = (payload) => {
+      if (typeof payload?.notificationId !== "string") return;
+      setNotifications((rows) => rows.filter((item) => String(item._id) !== payload.notificationId));
+    };
+    socket.on("notification.created", addNotification);
+    socket.on("notification.read", markRead);
+    socket.on("notification.read-all", markAllRead);
+    socket.on("notification.deleted", removeNotification);
+    socket.on("connect", loadNotifications);
+    loadNotifications();
+    return () => {
+      active = false;
+      socket.off("notification.created", addNotification);
+      socket.off("notification.read", markRead);
+      socket.off("notification.read-all", markAllRead);
+      socket.off("notification.deleted", removeNotification);
+      socket.off("connect", loadNotifications);
+      disconnectRealtime();
+    };
+  }, [authStatus]);
+
   if (authStatus !== "authenticated") {
     return (
       <div className="grid place-items-center min-h-screen">
@@ -151,6 +196,7 @@ export default function DashboardLayout({ children }) {
   }
 
   async function handleLogout() {
+    disconnectRealtime();
     try { await api.logout(); } catch {}
     setUser(null);
     router.replace("/login");
@@ -302,13 +348,13 @@ export default function DashboardLayout({ children }) {
                   <strong className="text-[15px]">Notifications</strong>
                   <button onClick={() => setNotifOpen(false)} className="bg-transparent border-0 cursor-pointer text-(--muted)" type="button"><X size={16} /></button>
                 </div>
-                {mockNotifications.slice(0, 5).map((n) => (
-                  <div key={n._id} className="flex gap-2.5 items-start px-5 py-3 border-b border-(--border)/50" style={{ background: n.read ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                    {!n.read ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
+                {notifications.slice(0, 5).map((n) => (
+                  <div key={n._id} className="flex gap-2.5 items-start px-5 py-3 border-b border-(--border)/50" style={{ background: n.readAt ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                    {!n.readAt ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
                     <div className="flex-1 min-w-0">
                       <p className="m-0 mb-0.5 text-[13px] font-semibold">{n.title}</p>
-                      <p className="muted m-0 mb-0.5 text-xs">{n.desc}</p>
-                      <span className="text-[11px] text-(--soft)">{n.time}</span>
+                      <p className="muted m-0 mb-0.5 text-xs">{n.message}</p>
+                      <span className="text-[11px] text-(--soft)">{new Date(n.createdAt).toLocaleString()}</span>
                     </div>
                   </div>
                 ))}

@@ -1454,6 +1454,62 @@ When updating this file:
 - Existing pages are the product surface; integrate them instead of growing the route count.
 - Update this context after every phase so the next implementation begins from an accurate baseline.
 
+### 3.4.5 Phase 6 — Real-Time Collaboration (local branch audit, 2026-10-26)
+
+**Status: Partial — core task, project activity, and notification flows are implemented; team membership and workspace activity integration remain incomplete.** This audit describes the local branch `feature/phase-6-realtime-system`. It does not revise the historical remote-main audit above.
+
+#### Verified implementation
+
+- Socket.IO is attached to the existing Express HTTP server in `backend/src/server.js`; the `/health` endpoint and existing MongoDB lifecycle remain on the same server.
+- `FRONTEND_URL` is now required at backend startup and is used for CORS and Socket.IO origin checks. The browser client uses existing `NEXT_PUBLIC_API_URL` and the HTTP-only access-token cookie; no token is placed in a URL or socket payload.
+- Handshakes verify the access JWT with the existing verifier and load the user from MongoDB. The server joins the user room and only those workspace/project rooms found from that user's ownership or membership records. Room access is reconciled every 30 seconds; revocation can therefore take up to that interval to remove an already-connected socket.
+- Access-token expiry disconnects the socket. The shared client reconnects and invokes the existing authenticated `/me` API path, which can refresh through the existing HTTP-only refresh cookie.
+- Task create, update, delete, and comment controller flows publish after the service has completed persistence. Task activity uses the existing `Activity` model and is emitted to authorized workspace/project rooms. Notifications reuse the existing `Notification` model and are persisted before delivery to the recipient's user room for task assignment changes and comments to task participants.
+- `GET /api/projects/:projectId/activity` reads persisted activity after project authorization. The notification API supports listing, marking read/unread, marking all read, and deletion, with ownership scoped to the authenticated recipient.
+- Existing workspace and project task boards listen to task events and refetch from REST after events/reconnects. The project activity page loads persisted activity and reconciles on `activity.created`. The notification center and dashboard notification indicator load persisted records and listen for notification events. No route or navigation item was added.
+
+#### Event contract
+
+Domain event names are centralized in `backend/src/realtime/events.js`. Events use an event ID, type, ISO timestamp, workspace/project scope, actor summary, resource summary, and minimum event data where applicable.
+
+| Event | Delivery | Purpose/data |
+|---|---|---|
+| `connection.ready` | Connecting socket | Authenticated user ID and connection timestamp. |
+| `task.created`, `task.updated`, `task.deleted` | Authorized workspace and project rooms | Task ID and summary (title, status, priority, assignee summary, update timestamp); deletion is emitted only after deletion succeeds. |
+| `task.comment.created` | Authorized workspace and project rooms | Task resource and comment ID, text, author summary, and creation timestamp. |
+| `activity.created` | Authorized workspace and project rooms | Persisted activity record, actor, task resource, action, and timestamp. |
+| `notification.created` | Recipient's `user:<id>` room | Persisted notification record for the task participant. |
+| `notification.read`, `notification.read-all` | Authenticated recipient's user room | Persisted read-state change. |
+| `notification.deleted` | Authenticated recipient's user room | Persisted notification deletion. |
+
+Clients do not submit room IDs or authoritative domain events. REST remains authoritative; reconnecting clients refetch data because the implementation does not persist or replay missed socket events.
+
+#### Page coverage and limitations
+
+- Live-backed: `/dashboard/tasks`, `/dashboard/projects/[projectId]/tasks`, `/dashboard/projects/[projectId]/activity`, `/dashboard/notifications`, and the dashboard notification preview/count.
+- Partial or mock-only: `/dashboard/team` and `/dashboard/team/activity` still contain mock/hybrid surfaces. No current backend member add/remove workflow exists to publish member events. Project activity currently includes persisted activity records available from the existing task flows; AI, Git, deployment, and file activity remains outside this integration.
+- Notification triggers are limited to task assignment changes and task comments. Notification writes are best-effort after the task/activity mutation; without a transaction or outbox, a database failure in that follow-up can leave the mutation saved without a notification. There is no durable socket replay, and room membership revocation can take up to 30 seconds to reconcile.
+- No Mongoose model or schema changed. Existing `Activity`, `Notification`, membership, task, and comment models are reused.
+- Added the frontend dependency `socket.io-client`. No Redis adapter or new infrastructure was added.
+- The new Socket.IO tests cover missing, query-only, invalid, expired, and valid cookie credentials plus workspace/project room isolation. End-to-end event delivery, task notification persistence, and multi-browser UI behavior still need integration verification.
+
+#### Files changed
+
+- Backend: `backend/src/realtime/events.js`, `backend/src/realtime/socketAuth.js`, `backend/src/server.js`, `backend/src/app.js`, `backend/src/controllers/task.controller.js`, `backend/src/controllers/project.controller.js`, `backend/src/controllers/notification.controller.js`, `backend/src/routes/project.routes.js`, `backend/src/routes/notification.routes.js`, `backend/src/services/notification.service.js`, and `backend/src/__tests__/realtime.auth.test.js`.
+- Frontend: `lib/realtime.js`, `lib/api.js`, `package.json`, `package-lock.json`, `app/dashboard/layout.jsx`, `app/dashboard/tasks/page.jsx`, `app/dashboard/projects/[projectId]/tasks/page.jsx`, `app/dashboard/projects/[projectId]/activity/page.jsx`, and `app/dashboard/notifications/page.jsx`.
+- Configuration/docs: `backend/README.md` documents `FRONTEND_URL` and cookie-based sockets. No `.env` file was added or modified.
+
+#### Validation record
+
+- `cd backend && npm test -- --runInBand` — the final run passed 4 suites and 15 tests. An earlier run failed before executing the new suite because its ESM test file omitted the explicit Jest import; that import was added before the passing run.
+- `npm run lint` — passed with two existing `<img>` optimization warnings in file pages. The lint script also reports that `next lint` is deprecated by the installed Next.js version.
+- `npm run build` — passed and generated the existing route inventory without adding routes. The build reported the same lint warnings.
+- `npm install socket.io-client` — completed; npm reported 5 dependency audit findings (4 high, 1 critical). No audit fix was run as part of this phase.
+
+#### Next phase
+
+Phase 7 — GitHub Integration remains the next planned phase after the outstanding Phase 6 coverage and integration verification are addressed.
+
 ### 3.4 Verified local status for Files + Documentation integration
 
 The local repository now includes a verified implementation of the Phase 4 files/documents flow, with backend and frontend integration completed in the current branch while preserving the existing UI and routing structure.
@@ -1508,5 +1564,48 @@ The working repository currently reflects the local branch `feat/phase-5-tasks-t
 - The repository still contains additional mock-only dashboards outside the verified task/team flow.
 - This document reflects implementation verified in the local working branch, not a claim that every future product phase is complete.
 - The scope here is the actual code and validation evidence in the local branch, not broad product-wide completion.
+
+### 3.4.6 Phase 6 follow-up verification (2026-10-26)
+
+**Current Phase 6 status: PARTIAL.** This later audit supersedes the earlier Phase 6 follow-up notes above where their details differ. The branch remains `feature/phase-6-realtime-system`; no branch switch or Git history operation was performed.
+
+#### Team pages and existing data integration
+
+- `/dashboard/team` now loads workspace members from the existing workspace member API, project counts from existing `ProjectMember` records, assigned task counts from the existing workspace task API, and persisted activity from `Activity`. It refetches on task/activity events and after socket reconnect.
+- `/dashboard/team/members` now uses the same persisted member/task data and derives member totals from API results. The existing workspace member service adds a backward-compatible `projectCount` field based on existing project membership records.
+- `/dashboard/team/activity` now loads persisted workspace activity and refetches after `activity.created` and socket reconnect. Existing task activity is filterable; unsupported Git, pull request, AI, and deployment counts are shown as unavailable.
+- The workspace feed uses `GET /api/tasks/workspace/:workspaceId/activity`, reusing the `Activity` model and the existing workspace authorization check. Membership lists remain scoped to the authenticated user's active workspace access.
+- The current frontend has no selected/current-workspace API. These team pages derive a workspace from the first accessible project. If a user has no accessible project, they cannot resolve a workspace from current APIs, so the pages show an empty state. No new workspace-selection or membership-mutation feature was added.
+- Invitations, role changes, direct messages, live-presence counts, team chat, calendar entries, AI usage, and shared-resource summaries have no supported backend workflow/data source. The UI no longer fabricates member/invitation/resource/calendar success or synthetic performance metrics; it reports those capabilities as unavailable.
+
+#### Real-time and failure verification
+
+- Added `backend/src/__tests__/realtime.integration.test.js`, which starts the real Express app and Socket.IO server against MongoDB Memory Server and connects independent cookie-authenticated Socket.IO clients: a workspace/project owner, a project collaborator, and an outsider.
+- The integration test verified that the owner and authorized collaborator received task creation/update/deletion, comment, and activity events; a user without workspace/project access received no task-created event; and an unauthorized workspace activity request returned 403.
+- The test verified persisted assignment/comment notifications, offline notification recovery from the REST notification list, task-list reconciliation after reconnect, and exactly one task-created delivery to the collaborator. It also checked that task event summaries omit task description and actor email.
+- A simulated notification write failure was injected. The task mutation remained successful and persisted, no notification row/event was produced, and the controller logged a safe error name. Assignment retries with the same assignee do not create another notification.
+- `backend/src/__tests__/realtime.auth.test.js` also checks unconfigured origins, invalid/expired/missing/query-only credentials, verified identity, and workspace/project room isolation.
+- These were real HTTP and Socket.IO integration tests with separate authenticated client sessions, not browser sessions. Browser automation is unavailable in this environment, and no running browser/test accounts were available; therefore UI behavior across two actual browser profiles, browser reconnection, and visual duplicate-listener behavior remain unverified.
+
+#### Reproducible manual browser check still required
+
+1. Configure backend `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and exact `FRONTEND_URL`; configure the frontend `NEXT_PUBLIC_API_URL` to the backend origin. Start the backend and Next.js app using the documented dev commands.
+2. Sign in as the workspace owner in browser profile A and as an active workspace/project member in profile B. Since the app has no member-invitation API, seed the second user's active `WorkspaceMember` and `ProjectMember` records in the development database before testing.
+3. In profile A, create a task assigned to the collaborator. Confirm profile B's workspace/project task board updates and the notification center receives the persisted notification. Update the task, add a comment, and delete it; confirm both authorized profiles update without a page refresh.
+4. Sign in as a user who is not a member in a third profile and confirm task/project APIs and socket events reveal no private project updates.
+5. Disconnect profile B using browser network controls, create a new assigned task in profile A, restore the network, and confirm the task list and notification center reconcile from REST and show the notification created while offline.
+
+#### Regression validation record
+
+- `cd backend && npm test -- --runInBand` — passed: 5 suites, 19 tests. The integration suite intentionally logs the simulated notification persistence failure while asserting the mutation remains successful.
+- `npm run lint` — passed with two existing `<img>` optimization warnings in file pages; `next lint` reports its installed-version deprecation.
+- `npm run build` — passed; 72 existing frontend routes were generated, with no new page routes.
+- `git diff --check` — passed.
+- `socket.io-client` is a frontend dependency and a backend test-only dependency for independent authenticated integration clients. Backend startup requires `FRONTEND_URL`; no new runtime service or schema was added.
+- Installing the backend test dependency reported 11 dependency audit findings (3 moderate, 7 high, 1 critical). No audit fix was run.
+
+#### Remaining completion criteria and next phase
+
+Phase 6 remains **PARTIAL** until the required two-browser verification is performed. The workspace identifier limitation for projectless users and unsupported team workflows listed above remain documented. Phase 7 — GitHub Integration must wait until Phase 6's remaining verification is complete.
 
 ---

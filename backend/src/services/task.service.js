@@ -451,12 +451,18 @@ export async function createTaskCommentForUser(user, taskId, input = {}) {
 }
 
 export async function listWorkspaceMembersForUser(user, workspaceId) {
-  await assertWorkspaceAccess(user._id, workspaceId);
+  const workspace = await assertWorkspaceAccess(user._id, workspaceId);
 
   const rows = await WorkspaceMember.find({ workspace: workspaceId })
     .populate("user", "_id name email avatar")
     .sort({ role: 1, createdAt: -1 })
     .lean();
+  const projectRows = await Project.find({ workspace: workspace._id }, { _id: 1 }).lean();
+  const projectCounts = await ProjectMember.aggregate([
+    { $match: { project: { $in: projectRows.map((project) => project._id) } } },
+    { $group: { _id: "$user", count: { $sum: 1 } } }
+  ]);
+  const projectCountByUser = new Map(projectCounts.map((entry) => [String(entry._id), entry.count]));
 
   return rows.map((member) => ({
     _id: member._id,
@@ -466,6 +472,7 @@ export async function listWorkspaceMembersForUser(user, workspaceId) {
     status: member.status,
     invitedBy: member.invitedBy || null,
     joinedAt: member.joinedAt,
+    projectCount: projectCountByUser.get(String(member.user?._id || member.user)) || 0,
     createdAt: member.createdAt,
     updatedAt: member.updatedAt
   }));
@@ -499,5 +506,14 @@ export async function getTaskActivitiesForUser(user, taskId) {
   })
     .populate("actor", "_id name email avatar")
     .sort({ createdAt: -1 })
+    .lean();
+}
+
+export async function getWorkspaceActivitiesForUser(user, workspaceId) {
+  await assertWorkspaceAccess(user._id, workspaceId);
+  return Activity.find({ workspace: workspaceId })
+    .populate("actor", "_id name avatar")
+    .sort({ createdAt: -1 })
+    .limit(100)
     .lean();
 }

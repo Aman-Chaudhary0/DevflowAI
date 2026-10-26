@@ -1,26 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
-  Bell, CheckCheck, Trash2, Github, Bot, ShieldAlert, UserPlus, MessageSquare,
-  Sparkles, CheckCircle2, AlertTriangle, ExternalLink, Filter, Settings, RefreshCw
+  Bell, CheckCheck, Trash2, Github, ShieldAlert, MessageSquare,
+  Sparkles, CheckCircle2, ExternalLink, Settings
 } from "lucide-react";
-import { EmptyState, PageHeader, Avatar, toast } from "@/components/dashboard-ui";
+import { EmptyState, PageHeader, toast } from "@/components/dashboard-ui";
+import { api } from "@/lib/api";
+import { connectRealtime } from "@/lib/realtime";
 
-const initialNotifications = [
-  { id: "notif-1", type: "github", icon: Github, title: "Pull Request Review Requested", body: "Sarah Chen requested your review on PR #142: Fix memory leak in WebSocket connection.", time: "10 minutes ago", read: false, link: "/dashboard/github/pull-requests", category: "github" },
-  { id: "notif-2", type: "ai", icon: Sparkles, title: "AI Docs Generation Completed", body: "Documentation generated for Devflow Core module with 98% coverage score.", time: "42 minutes ago", read: false, link: "/dashboard/ai/docs-generator", category: "ai" },
-  { id: "notif-3", type: "system", icon: ShieldAlert, title: "Security Vulnerability Detected", body: "Dependabot alerted moderate severity vulnerability in cross-spawn package.", time: "2 hours ago", read: false, link: "/dashboard/projects/p1/settings", category: "system" },
-  { id: "notif-4", type: "mention", icon: MessageSquare, title: "Alex Rivera mentioned you in Task #14", body: "@Aman Chaudhary can you inspect the Redis cache connection parameters?", time: "5 hours ago", read: true, link: "/dashboard/tasks", category: "mentions" },
-  { id: "notif-5", type: "system", icon: UserPlus, title: "New Team Member Joined", body: "Elena Rostova joined Devflow AI workspace as DevOps Lead.", time: "Yesterday", read: true, link: "/dashboard/team", category: "system" },
-  { id: "notif-6", type: "github", icon: Github, title: "Commit Pushed to Main Branch", body: "Marcus Vance pushed 3 commits to branch main [5e8f12a].", time: "Yesterday", read: true, link: "/dashboard/github/commits", category: "github" },
-  { id: "notif-7", type: "ai", icon: Bot, title: "AI Code Review Summary Ready", body: "Code review report for commit 89f21a is ready. 2 optimizations suggested.", time: "2 days ago", read: true, link: "/dashboard/ai/code-review", category: "ai" }
-];
+function present(notification) {
+  const type = notification.type || "system";
+  const category = type === "comment" ? "mentions" : type;
+  return {
+    id: String(notification._id || notification.id),
+    type,
+    category,
+    title: typeof notification.title === "string" ? notification.title : "Notification",
+    body: typeof notification.message === "string" ? notification.message : "",
+    time: notification.createdAt ? new Date(notification.createdAt).toLocaleString() : "Just now",
+    read: Boolean(notification.readAt || notification.read),
+    link: notification.targetUrl?.startsWith("/dashboard") ? notification.targetUrl : "/dashboard/tasks"
+  };
+}
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState(initialNotifications);
+  const [notifications, setNotifications] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
+
+  useEffect(() => {
+    let mounted = true;
+    const socket = connectRealtime();
+    const load = async () => {
+      try {
+        const response = await api.notifications.list();
+        const rows = response?.data?.notifications || response?.notifications || [];
+        if (mounted) setNotifications(rows.map(present));
+      } catch (error) {
+        if (mounted) toast(error.message || "Unable to load notifications", "error");
+      }
+    };
+    const add = (payload) => {
+      if (!payload?.notification?._id) return;
+      setNotifications((current) => current.some((item) => item.id === String(payload.notification._id)) ? current : [present(payload.notification), ...current]);
+    };
+    const markRead = (payload) => {
+      if (typeof payload?.notificationId !== "string") return;
+      setNotifications((rows) => rows.map((item) => item.id === payload.notificationId ? { ...item, read: Boolean(payload.readAt) } : item));
+    };
+    const markAllRead = () => setNotifications((rows) => rows.map((item) => ({ ...item, read: true })));
+    const removeNotification = (payload) => {
+      if (typeof payload?.notificationId !== "string") return;
+      setNotifications((rows) => rows.filter((item) => item.id !== payload.notificationId));
+    };
+    socket.on("notification.created", add);
+    socket.on("notification.read", markRead);
+    socket.on("notification.read-all", markAllRead);
+    socket.on("notification.deleted", removeNotification);
+    socket.on("connect", load);
+    load();
+    return () => {
+      mounted = false;
+      socket.off("notification.created", add);
+      socket.off("notification.read", markRead);
+      socket.off("notification.read-all", markAllRead);
+      socket.off("notification.deleted", removeNotification);
+      socket.off("connect", load);
+    };
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -33,18 +81,28 @@ export default function NotificationsPage() {
     return true;
   });
 
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-    toast("All notifications marked as read", "success");
+  const markAllAsRead = async () => {
+    try {
+      await api.notifications.markAllRead();
+      setNotifications((rows) => rows.map((n) => ({ ...n, read: true })));
+      toast("All notifications marked as read", "success");
+    } catch (error) { toast(error.message || "Unable to update notifications", "error"); }
   };
 
-  const toggleReadStatus = (id) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, read: !n.read } : n));
+  const toggleReadStatus = async (notification) => {
+    try {
+      if (notification.read) await api.notifications.markUnread(notification.id);
+      else await api.notifications.markRead(notification.id);
+      setNotifications((rows) => rows.map((n) => n.id === notification.id ? { ...n, read: !notification.read } : n));
+    } catch (error) { toast(error.message || "Unable to update notification", "error"); }
   };
 
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-    toast("Notification dismissed", "info");
+  const deleteNotification = async (id) => {
+    try {
+      await api.notifications.delete(id);
+      setNotifications((rows) => rows.filter((n) => n.id !== id));
+      toast("Notification dismissed", "info");
+    } catch (error) { toast(error.message || "Unable to delete notification", "error"); }
   };
 
   const getNotificationIcon = (type) => {
@@ -52,7 +110,7 @@ export default function NotificationsPage() {
       case "github": return <Github size={18} style={{ color: "#3b82f6" }} />;
       case "ai": return <Sparkles size={18} style={{ color: "#a855f7" }} />;
       case "system": return <ShieldAlert size={18} style={{ color: "#f59e0b" }} />;
-      case "mention": return <MessageSquare size={18} style={{ color: "#10b981" }} />;
+      case "comment": return <MessageSquare size={18} style={{ color: "#10b981" }} />;
       default: return <Bell size={18} style={{ color: "var(--primary)" }} />;
     }
   };
@@ -172,7 +230,7 @@ export default function NotificationsPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                 <button
                   className="icon-btn"
-                  onClick={() => toggleReadStatus(notif.id)}
+                  onClick={() => toggleReadStatus(notif)}
                   title={notif.read ? "Mark as unread" : "Mark as read"}
                 >
                   <CheckCircle2 size={16} style={{ color: notif.read ? "var(--muted)" : "var(--success)" }} />
