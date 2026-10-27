@@ -13,12 +13,21 @@ function VerifyEmailContent() {
   const params = useSearchParams();
   const email = params.get("email") || "";
   const token = params.get("token") || "";
+  const [invite, setInvite] = useState("");
 
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg] = useState("");
   const [countdown, setCountdown] = useState(0);
+
+  useEffect(() => {
+    const raw = new URLSearchParams(window.location.hash.slice(1)).get("invite") || "";
+    if (/^[a-fA-F0-9]{64}$/.test(raw)) setInvite(raw);
+    if (raw) {
+      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+    }
+  }, [params]);
 
   useEffect(() => {
     if (!token) return;
@@ -38,7 +47,7 @@ function VerifyEmailContent() {
     setResendLoading(true);
     setResendMsg("");
     try {
-      await api.resendVerification(email);
+      await api.resendVerification(email, invite);
       setResendMsg("Verification email sent.");
       setCountdown(60);
     } catch (err) {
@@ -58,12 +67,12 @@ function VerifyEmailContent() {
           <>
             <h3 className="h3">Email Verified Successfully</h3>
             <p className="muted">You can now sign in to your workspace.</p>
-            <Link className="btn btn-primary auth-submit" href="/login">Continue to Login</Link>
+            <Link className="btn btn-primary auth-submit" href={invite ? `/login#invite=${encodeURIComponent(invite)}` : "/login"}>Continue to Login</Link>
           </>
         ) : error ? (
           <>
             <p style={{ color: "var(--danger)" }}>{error}</p>
-            <Link className="btn btn-outline" href="/login">Back to Login</Link>
+            <Link className="btn btn-outline" href={invite ? `/login#invite=${encodeURIComponent(invite)}` : "/login"}>Back to Login</Link>
           </>
         ) : token ? (
           <p className="muted">Verifying your email...</p>

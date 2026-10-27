@@ -9,3 +9,4 @@ export { default as Task } from "./Task.js";
 export { default as TaskComment } from "./TaskComment.js";
 export { default as Notification } from "./Notification.js";
 export { default as Activity } from "./Activity.js";
+export { default as Invitation } from "./Invitation.js";

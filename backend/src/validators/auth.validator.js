@@ -16,7 +16,8 @@ export const registerSchema = z.object({
       name: z.string().trim().min(2).max(80),
       email: z.string().trim().email().toLowerCase(),
       password: passwordSchema,
-      confirmPassword: z.string()
+      confirmPassword: z.string(),
+      invitationToken: z.string().regex(/^[a-fA-F0-9]{64}$/).optional()
     })
     .refine((data) => data.password === data.confirmPassword, {
       path: ["confirmPassword"],
@@ -63,7 +64,8 @@ export const verifyEmailSchema = z.object({
 // resendVerificationSchema defines the validation rules for resending email verification. It checks that the email is valid and lowercase.
 export const resendVerificationSchema = z.object({
   body: z.object({
-    email: z.string().trim().email().toLowerCase()
+    email: z.string().trim().email().toLowerCase(),
+    invitationToken: z.string().regex(/^[a-fA-F0-9]{64}$/).optional()
   })
 });
 

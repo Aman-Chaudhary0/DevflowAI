@@ -1609,3 +1609,40 @@ The working repository currently reflects the local branch `feat/phase-5-tasks-t
 Phase 6 remains **PARTIAL** until the required two-browser verification is performed. The workspace identifier limitation for projectless users and unsupported team workflows listed above remain documented. Phase 7 — GitHub Integration must wait until Phase 6's remaining verification is complete.
 
 ---
+
+### 3.4.7 Workspace and project invitations (2026-10-27)
+
+**Status: Implemented and backend-tested on `feature/invite-member`; real SMTP delivery and browser-based invitation flows were not manually verified.** This invitation work does not complete Phase 6. Phase 6 remains **PARTIAL**, and Phase 7 remains blocked on the outstanding Phase 6 preflight and two-browser verification. `feature/invite-member` is the intentional working branch for this task; no branch switch or Git history operation was performed.
+
+#### Lifecycle and access behavior
+
+- Added the `Invitation` Mongoose model. Invitations store normalized recipient email, workspace and optional project references, scope, inviter, requested role, a SHA-256 token hash, status, expiry, optional message, and acceptance metadata. A partial unique index prevents duplicate pending invitations for the same workspace/project scope and recipient while allowing new invitations after a prior one is accepted, declined, revoked, or expired.
+- Workspace invitations grant `WorkspaceMember` access on explicit acceptance. Existing pending/invited workspace membership rows are activated; active or blocked membership is not duplicated or bypassed. Project invitations grant `ProjectMember` access only. This matches the existing project authorization model, where project membership independently grants access and does not require workspace membership.
+- Workspace roles are `admin`, `member`, and `viewer`; project roles are `admin`, `editor`, and `viewer`. The existing project form maps Admin → `admin`, Developer → `editor`, and Viewer → `viewer`. Neither invitation API permits assigning `owner`.
+- Workspace owners and active workspace owners/admins can manage workspace invitations. Project owners and project owners/admins can manage project invitations. Project/workspace relationships are resolved from MongoDB; the client cannot choose an alternate workspace for a project invitation.
+- Invitation tokens use 32 random bytes, are single use, expire after seven days by default (`INVITATION_EXPIRY_DAYS` can override the duration), and are only stored as hashes. Acceptance checks authenticated email equality and requires verified local accounts. Details, accept, and decline require authentication; recipient actions use POST bodies. Pending invitations can be revoked by an authorized manager.
+- Invitation email links carry the token in the URL fragment so browsers do not include it in HTTP requests or referrers. Existing login, registration, and email verification pages carry the token in memory, remove the fragment from the address bar, then send it to authenticated details/accept/decline APIs. No acceptance route/page was added. A persisted notification is created for the inviter after acceptance on a best-effort basis; membership and invitation state remain authoritative if notification persistence fails.
+- SMTP absence returns a delivery failure for invitations; failed delivery removes the pending invitation, and the UI reports success only after a successful email send and API response. Existing auth email callers remain compatible with the helper's `{ sent: false }` result when SMTP is unconfigured. SMTP delivery was not tested against a live provider.
+
+#### API surface and files
+
+- `POST` / `GET` `/api/invitations/workspaces/:workspaceId` — create/list workspace invitations.
+- `POST` / `GET` `/api/invitations/projects/:projectId` — create/list project invitations.
+- `DELETE` `/api/invitations/:invitationId` — revoke a pending invitation.
+- `POST` `/api/invitations/details`, `/accept`, and `/decline` — fetch recipient context or complete an explicit recipient decision.
+- Added `backend/src/models/Invitation.js`, invitation controller/service/router/validator, and focused lifecycle tests. Mounted the router in `backend/src/app.js` and exported the model from `backend/src/models/index.js`.
+- Connected `lib/api.js`, `/dashboard/team/members`, `/dashboard/team`, and `/dashboard/projects/[projectId]/team` to real invitation/member APIs. Project member role changes and removals remain explicitly unsupported. Workspace selection still follows the existing page behavior of resolving the first project workspace; users without an accessible project still have no workspace selector. OAuth provider redirects do not currently carry invitation context; password login and the local registration/email-verification flow do.
+- Updated existing auth registration and verification handling to preserve invitation context without adding a page. The verification email link carries the fragment invitation token so registration followed by email verification can continue to login and acceptance.
+- Environment variable names involved: `FRONTEND_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and optional `INVITATION_EXPIRY_DAYS`. No secret values were added to documentation.
+
+#### Validation record
+
+- `cd backend && npm test -- --runInBand` — passed: 6 suites, 27 tests. Invitation service tests cover normalized recipient email, hashed token storage, expiry, role constraints, authorization, SMTP failure cleanup, duplicate pending invitations, verified-email enforcement, workspace/project membership creation, mismatch, revoke, repeated acceptance, and notification persistence.
+- `npm run lint` — passed. Existing warnings remain for plain `<img>` use in the two file preview pages; the installed `next lint` command reports deprecation.
+- `npm run build` — passed; the existing 72-page route inventory was generated without adding a route.
+- `git diff --check` — passed before the documentation entry; it is rerun after this append.
+- Automated email tests use a mocked transport. No live email, manual browser flow, OAuth invitation continuation, or two-browser verification was claimed or performed.
+
+#### History and next phase
+
+This entry appends to the existing audit trail; prior Phase 5 and Phase 6 records and their historical test outcomes remain unchanged. Phase 6 stays **PARTIAL** pending the previously documented two-browser verification. Phase 7 — GitHub Integration remains blocked until the Phase 6 preflight checks genuinely pass. No Phase 7 GitHub integration work was started.

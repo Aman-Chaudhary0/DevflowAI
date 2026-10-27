@@ -41,28 +41,30 @@ function buildUrl(path, token, useQueryParam = true) {
 }
 
 // sendVerificationEmail sends an email to the user with a verification link containing a unique token for email verification.
-async function sendVerificationEmail(user) {
+async function sendVerificationEmail(user, invitationToken = "") {
   const token = user.createEmailVerificationToken();
   await user.save({ validateBeforeSave: false });
 
-  const verificationUrl = buildUrl("/verify-email", token);
+  const verificationUrl = new URL(buildUrl("/verify-email", token));
+  if (invitationToken) verificationUrl.searchParams.set("invite", invitationToken);
+  const verificationLink = verificationUrl.toString();
   await sendEmail({
     to: user.email,
     subject: "Verify your Devflow AI email",
-    text: `Hi ${user.name},\n\nVerify your Devflow AI account by visiting this link:\n${verificationUrl}\n\nThis link expires in 1 hour.\n\nIf you did not create an account, ignore this email.`,
+    text: `Hi ${user.name},\n\nVerify your Devflow AI account by visiting this link:\n${verificationLink}\n\nThis link expires in 1 hour.\n\nIf you did not create an account, ignore this email.`,
     html: `<!DOCTYPE html><html><body style="font-family:Inter,sans-serif;background:#0b0f19;color:#f8fafc;padding:40px 20px;">
 <div style="max-width:480px;margin:0 auto;background:#1a2235;border-radius:18px;padding:40px;border:1px solid #273244;">
 <h2 style="margin:0 0 8px;font-size:24px;">Verify your email</h2>
 <p style="color:#94a3b8;margin:0 0 24px;">Hi ${user.name}, thanks for signing up for Devflow AI. Click the button below to verify your email address.</p>
-<a href="${verificationUrl}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:14px;font-weight:700;">Verify Email</a>
-<p style="color:#64748b;font-size:13px;margin-top:24px;">Or copy this link: ${verificationUrl}</p>
+<a href="${verificationLink}" style="display:inline-block;background:#3b82f6;color:#fff;text-decoration:none;padding:14px 28px;border-radius:14px;font-weight:700;">Verify Email</a>
+<p style="color:#64748b;font-size:13px;margin-top:24px;">Or copy this link: ${verificationLink}</p>
 <p style="color:#64748b;font-size:13px;">This link expires in 1 hour. If you did not create an account, ignore this email.</p>
 </div></body></html>`
   });
 }
 
 // registerUser handles the user registration process. It checks for existing users, creates a new user, sends a verification email, and issues an access and refresh token pair.
-export async function registerUser({ name, email, password }) {
+export async function registerUser({ name, email, password, invitationToken }) {
   const trimmedName = String(name || "").trim();
   const normalizedEmail = String(email || "").trim().toLowerCase();
 
@@ -72,7 +74,7 @@ export async function registerUser({ name, email, password }) {
   }
 
   const user = await User.create({ name: trimmedName, email: normalizedEmail, password });
-  await sendVerificationEmail(user);
+  await sendVerificationEmail(user, invitationToken);
 
   return { user: user.toSafeObject() };
 }
@@ -239,7 +241,7 @@ export async function verifyEmail(token) {
 }
 
 // resendVerification checks if the user with the provided email exists and is not already verified. If valid, it sends a new email verification link to the user.
-export async function resendVerification(email) {
+export async function resendVerification(email, invitationToken = "") {
   const normalizedEmail = String(email || "").trim().toLowerCase();
   const user = await User.findOne({ email: normalizedEmail }).select("+emailVerificationToken +emailVerificationExpires");
   if (!user) {
@@ -250,7 +252,7 @@ export async function resendVerification(email) {
     throw new ApiError(400, "Email is already verified");
   }
 
-  await sendVerificationEmail(user);
+  await sendVerificationEmail(user, invitationToken);
 }
 
 // findOrCreateOAuthUser checks if a user with the provided email exists. If not, it creates a new user with the given OAuth provider information. If the user exists, it updates their provider details and marks them as verified. It returns the user object.

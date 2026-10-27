@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, Shield, Users } from "lucide-react";
+import { Plus, Search, Shield, Users, X } from "lucide-react";
 import {
   Avatar,
   EmptyState,
@@ -18,7 +18,20 @@ export default function MembersPage() {
     [role, setRole] = useState("All"),
     [selected, setSelected] = useState(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState(null);
+    [error, setError] = useState(null),
+    [workspaceId, setWorkspaceId] = useState(""),
+    [invitations, setInvitations] = useState([]),
+    [invitationListError, setInvitationListError] = useState(""),
+    [inviteOpen, setInviteOpen] = useState(false),
+    [inviteEmail, setInviteEmail] = useState(""),
+    [inviteRole, setInviteRole] = useState("member"),
+    [inviteError, setInviteError] = useState(""),
+    [inviteLoading, setInviteLoading] = useState(false),
+    [busyInvitation, setBusyInvitation] = useState(""),
+    [recipientToken, setRecipientToken] = useState(""),
+    [recipientInvite, setRecipientInvite] = useState(null),
+    [recipientError, setRecipientError] = useState(""),
+    [recipientBusy, setRecipientBusy] = useState(false);
 
   const loadMembers = useCallback(async () => {
     try {
@@ -30,12 +43,17 @@ export default function MembersPage() {
       const workspaceId = workspace?._id || workspace;
       if (!workspaceId) {
         setMembers([]);
+        setInvitations([]);
         return;
       }
+      setWorkspaceId(String(workspaceId));
       const [membersResponse, tasksResponse] = await Promise.all([
         api.tasks.members.workspace(workspaceId),
         api.tasks.list({ workspaceId, page: 1, limit: 100 })
       ]);
+      const invitesResponse = await api.invitations.listWorkspace(workspaceId).catch((err) => { setInvitationListError(err.message || "Unable to load invitations"); return null; });
+      if (invitesResponse) setInvitationListError("");
+      setInvitations(invitesResponse?.data?.invitations || []);
       const memberRows = membersResponse?.data?.members || membersResponse?.members || [];
       const tasks = tasksResponse?.data?.tasks || tasksResponse?.tasks || [];
       const roleName = { owner: "Admin", admin: "Admin", member: "Developer", viewer: "Viewer" };
@@ -64,6 +82,75 @@ export default function MembersPage() {
   }, []);
 
   useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("invite") === "1") setInviteOpen(true);
+    const token = new URLSearchParams(window.location.hash.slice(1)).get("invite") || "";
+    if (/^[a-fA-F0-9]{64}$/.test(token)) {
+      setRecipientToken(token);
+      window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!recipientToken) return;
+    api.invitations.details(recipientToken)
+      .then((response) => setRecipientInvite(response?.data?.invitation || null))
+      .catch((err) => setRecipientError(err.message || "Unable to load invitation"));
+  }, [recipientToken]);
+
+  async function respondToInvite(accept) {
+    if (!recipientToken || recipientBusy) return;
+    setRecipientBusy(true);
+    setRecipientError("");
+    try {
+      const response = accept ? await api.invitations.accept(recipientToken) : await api.invitations.decline(recipientToken);
+      const membership = response?.data?.membership;
+      setRecipientInvite(null);
+      setRecipientToken("");
+      toast(accept ? "Invitation accepted" : "Invitation declined", "success");
+      if (accept && membership?.scope === "project" && membership.projectId) {
+        window.location.assign(`/dashboard/projects/${membership.projectId}/team`);
+      } else {
+        await loadMembers();
+      }
+    } catch (err) {
+      setRecipientError(err.message || "Unable to update invitation");
+    } finally {
+      setRecipientBusy(false);
+    }
+  }
+
+  async function submitInvitation(event) {
+    event.preventDefault();
+    if (!workspaceId || inviteLoading) return;
+    setInviteLoading(true);
+    setInviteError("");
+    try {
+      await api.invitations.createWorkspace(workspaceId, { email: inviteEmail, role: inviteRole });
+      toast("Invitation email sent", "success");
+      setInviteOpen(false);
+      setInviteEmail("");
+      await loadMembers();
+    } catch (err) {
+      setInviteError(err.message || "Unable to send invitation");
+    } finally {
+      setInviteLoading(false);
+    }
+  }
+
+  async function revokeInvitation(invitationId) {
+    setBusyInvitation(invitationId);
+    try {
+      await api.invitations.revoke(invitationId);
+      toast("Invitation revoked", "success");
+      await loadMembers();
+    } catch (err) {
+      toast(err.message || "Unable to revoke invitation", "error");
+    } finally {
+      setBusyInvitation("");
+    }
+  }
+
+  useEffect(() => {
     loadMembers();
     const socket = connectRealtime();
     socket.on("task.created", loadMembers);
@@ -79,7 +166,7 @@ export default function MembersPage() {
   }, [loadMembers]);
 
   const activeCount = members.filter((member) => member.status === "active").length;
-  const pendingCount = members.filter((member) => member.status === "pending" || member.status === "invited").length;
+  const pendingCount = members.filter((member) => member.status === "pending" || member.status === "invited").length + invitations.filter((invitation) => invitation.status === "pending").length;
   const adminCount = members.filter((member) => member.role === "Admin").length;
   const visible = useMemo(
     () =>
@@ -106,13 +193,17 @@ export default function MembersPage() {
         </button>
         <button
           className="btn btn-primary"
-          onClick={() => toast("Workspace invitations are not supported by the current backend", "info")}
+          onClick={() => { setInviteError(""); setInviteOpen(true); }}
           type="button"
         >
           <Plus size={16} />
           Invite Member
         </button>
       </PageHeader>
+      {recipientToken ? <section className="card p-5 mt-6" aria-live="polite">
+        <h2 className="m-0 text-lg font-bold">Invitation</h2>
+        {recipientInvite ? <><p className="muted">{recipientInvite.inviter?.name || "A DevFlow AI member"} invited <b>{recipientInvite.email}</b> to {recipientInvite.project?.name || recipientInvite.workspace?.name} as <b>{recipientInvite.role}</b>. Invitation expires {new Date(recipientInvite.expiresAt).toLocaleString()}.</p>{recipientInvite.message ? <p>{recipientInvite.message}</p> : null}<div className="flex gap-2"><button className="btn btn-primary" disabled={recipientBusy} onClick={() => respondToInvite(true)} type="button">{recipientBusy ? "Working..." : "Accept invitation"}</button><button className="btn btn-outline" disabled={recipientBusy} onClick={() => respondToInvite(false)} type="button">Decline</button></div></> : recipientError ? <p role="alert" style={{ color: "var(--danger)" }}>{recipientError}</p> : <p className="muted">Loading invitation...</p>}
+      </section> : null}
       <div className="dash-grid-4 mt-6">
         <StatCard label="Total Members" value={members.length} icon={Users} />
         <StatCard
@@ -198,6 +289,32 @@ export default function MembersPage() {
           </table>
         </div>
       </section>
+      <section className="card p-5 mt-6">
+        <h2 className="m-0 mb-4 text-lg font-bold">Pending invitations</h2>
+        {invitationListError ? <p className="muted m-0">{invitationListError}</p> : null}
+        {!invitationListError && invitations.filter((invitation) => invitation.status === "pending").length === 0 ? <p className="muted m-0">There are no pending workspace invitations.</p> : (
+          <div className="grid gap-3">
+            {invitations.filter((invitation) => invitation.status === "pending").map((invitation) => (
+              <div key={invitation._id} className="flex items-center gap-3 flex-wrap border border-(--border) rounded-xl p-3">
+                <div className="flex-1 min-w-45"><b>{invitation.email}</b><small className="block muted">{invitation.role} · expires {new Date(invitation.expiresAt).toLocaleDateString()}</small></div>
+                <StatusBadge status="pending" />
+                <button className="btn btn-outline" disabled={busyInvitation === invitation._id} onClick={() => revokeInvitation(invitation._id)} type="button">{busyInvitation === invitation._id ? "Revoking..." : "Revoke"}</button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+      {inviteOpen ? (
+        <div className="dialog-overlay" onClick={() => setInviteOpen(false)}>
+          <form className="dialog" onSubmit={submitInvitation} onClick={(event) => event.stopPropagation()} style={{ maxWidth: 440 }}>
+            <div className="flex items-center justify-between mb-4"><strong className="text-lg">Invite workspace member</strong><button className="icon-btn" onClick={() => setInviteOpen(false)} type="button" aria-label="Close"><X size={18} /></button></div>
+            <label className="form-field"><span>Email address</span><input className="input" type="email" required maxLength={254} value={inviteEmail} onChange={(event) => setInviteEmail(event.target.value)} placeholder="teammate@company.com" /></label>
+            <label className="form-field mt-4"><span>Workspace role</span><select className="input" value={inviteRole} onChange={(event) => setInviteRole(event.target.value)}><option value="member">Member</option><option value="viewer">Viewer</option><option value="admin">Admin</option></select></label>
+            {inviteError ? <p role="alert" style={{ color: "var(--danger)" }}>{inviteError}</p> : null}
+            <div className="flex justify-end gap-2 mt-5"><button className="btn btn-outline" onClick={() => setInviteOpen(false)} type="button">Cancel</button><button className="btn btn-primary" disabled={inviteLoading || !workspaceId} type="submit">{inviteLoading ? "Sending..." : "Send invite"}</button></div>
+          </form>
+        </div>
+      ) : null}
       <Drawer
         open={!!selected}
         title="Member details"
