@@ -8,33 +8,16 @@ import {
   FileDiff,
   GitCommit,
   LineChart,
-  Plus,
   Search,
   User,
   X
 } from "lucide-react";
-import { Avatar, PageHeader, toast } from "@/components/dashboard-ui";
+import { Avatar, EmptyState, PageHeader } from "@/components/dashboard-ui";
+import { useGitHubResource } from "@/lib/use-github-resource";
+import GitHubRepositoryPicker from "@/components/github-repository-picker";
+import { api } from "@/lib/api";
 
-const mockCommits = [
-  { hash: "a1b2c3d", shortHash: "a1b2c3d", message: "feat: implement JWT authentication with refresh tokens", author: { name: "Rahul Singh", avatar: "#8b5cf6" }, branch: "main", time: "2 hours ago", date: "2026-07-26", files: 12, additions: 342, deletions: 89 },
-  { hash: "e4f5g6h", shortHash: "e4f5g6h", message: "fix: resolve memory leak in WebSocket handler", author: { name: "Priya Sharma", avatar: "#ec4899" }, branch: "main", time: "5 hours ago", date: "2026-07-26", files: 5, additions: 45, deletions: 128 },
-  { hash: "i7j8k9l", shortHash: "i7j8k9l", message: "docs: update API documentation for v2 endpoints", author: { name: "Aman Chaudhary", avatar: "#3b82f6" }, branch: "develop", time: "8 hours ago", date: "2026-07-26", files: 8, additions: 210, deletions: 34 },
-  { hash: "m0n1o2p", shortHash: "m0n1o2p", message: "refactor: migrate dashboard components to Tailwind v4", author: { name: "Neha Gupta", avatar: "#f59e0b" }, branch: "feature/tailwind", time: "1 day ago", date: "2026-07-25", files: 32, additions: 1205, deletions: 890 },
-  { hash: "q3r4s5t", shortHash: "q3r4s5t", message: "chore: update dependencies and lockfile", author: { name: "Arjun Mehta", avatar: "#06b6d4" }, branch: "develop", time: "1 day ago", date: "2026-07-25", files: 3, additions: 12, deletions: 8 },
-  { hash: "u6v7w8x", shortHash: "u6v7w8x", message: "feat: add real-time notifications with Socket.io", author: { name: "Rahul Singh", avatar: "#8b5cf6" }, branch: "feature/notifications", time: "2 days ago", date: "2026-07-24", files: 8, additions: 567, deletions: 42 },
-  { hash: "y9z0a1b", shortHash: "y9z0a1b", message: "fix: correct email validation regex pattern", author: { name: "Priya Sharma", avatar: "#ec4899" }, branch: "main", time: "3 days ago", date: "2026-07-23", files: 2, additions: 8, deletions: 2 },
-  { hash: "c2d3e4f", shortHash: "c2d3e4f", message: "style: improve responsive layout for mobile devices", author: { name: "Neha Gupta", avatar: "#f59e0b" }, branch: "develop", time: "4 days ago", date: "2026-07-22", files: 6, additions: 156, deletions: 89 }
-];
-
-const mockDiffs = [
-  { type: "added", content: "const token = jwt.sign({ userId }, JWT_SECRET, { expiresIn: '15m' });" },
-  { type: "removed", content: "const session = await Session.create({ userId, data });" },
-  { type: "modified", content: "- const tokens = Math.floor(Math.random() * 1000)\n+ const tokens = generatedTokens" }
-];
-
-const authorOptions = ["All Authors", ...Array.from(new Set(mockCommits.map((c) => c.author.name)))];
-const branchOptions = ["All Branches", ...Array.from(new Set(mockCommits.map((c) => c.branch)))];
-const sortOptions = ["Newest", "Oldest", "Most Changes", "Author"];
+const sortOptions = ["Newest", "Oldest", "Author"];
 
 export default function CommitHistoryPage() {
   const [search, setSearch] = useState("");
@@ -43,24 +26,33 @@ export default function CommitHistoryPage() {
   const [sortBy, setSortBy] = useState("Newest");
   const [selectedCommit, setSelectedCommit] = useState(null);
   const [showDiff, setShowDiff] = useState(false);
+  const { repositories, repository, setRepository, repositoryPage, setRepositoryPage, repositoryPagination, items, pagination, loading, loadingRepositories, error, retry, next, previous, selectedRepository } = useGitHubResource("commits");
+  const commits = (items || []).map((item) => ({ hash: item.sha, shortHash: item.sha.slice(0, 7), message: item.commit.message.split("\n")[0], author: { name: item.author?.login || item.commit.author?.name || "Unknown", avatar: "var(--primary)" }, branch: selectedRepository?.defaultBranch || "default branch", time: item.commit.author?.date ? new Date(item.commit.author.date).toLocaleString() : "", date: item.commit.author?.date?.slice(0, 10) || "", files: "—", additions: "—", deletions: "—", url: item.html_url }));
+  const authorOptions = ["All Authors", ...new Set(commits.map((commit) => commit.author.name))];
+  const branchOptions = ["All Branches", ...new Set(commits.map((commit) => commit.branch))];
 
-  const filtered = mockCommits.filter((commit) => {
+  const matching = commits.filter((commit) => {
     const matchesSearch = commit.message.toLowerCase().includes(search.toLowerCase()) || commit.hash.toLowerCase().includes(search.toLowerCase());
     const matchesAuthor = authorFilter === "All Authors" || commit.author.name === authorFilter;
     const matchesBranch = branchFilter === "All Branches" || commit.branch === branchFilter;
     return matchesSearch && matchesAuthor && matchesBranch;
   });
+  const filtered = [...matching].sort((a, b) => sortBy === "Oldest" ? new Date(a.date) - new Date(b.date) : sortBy === "Author" ? a.author.name.localeCompare(b.author.name) : new Date(b.date) - new Date(a.date));
 
-  const stats = {
-    today: filtered.filter((c) => c.date === "2026-07-26").length,
-    thisWeek: filtered.filter((c) => ["2026-07-26", "2026-07-25", "2026-07-24", "2026-07-23", "2026-07-22"].includes(c.date)).length,
-    avgSize: Math.round(filtered.reduce((sum, c) => sum + c.files, 0) / (filtered.length || 1))
+  const currentDate = new Date();
+  const weekStart = new Date(currentDate.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const stats = { today: filtered.filter((commit) => commit.date === currentDate.toISOString().slice(0, 10)).length, thisWeek: filtered.filter((commit) => commit.date && new Date(commit.date) >= weekStart).length, avgSize: "—" };
+
+  const handleExport = () => {
+    const csv = ["sha,message,author,date", ...filtered.map((commit) => [commit.hash, commit.message, commit.author.name, commit.date].map((value) => `"${String(value).replaceAll('"', '""')}"`).join(","))].join("\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    const link = document.createElement("a"); link.href = url; link.download = "github-commits.csv"; link.click(); URL.revokeObjectURL(url);
   };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <PageHeader title="Commit History">
-        <button className="btn btn-outline" onClick={() => toast("Exporting commits...", "info")} style={{ minHeight: 38, fontSize: 13 }} type="button">
+        <button className="btn btn-outline" onClick={handleExport} disabled={!filtered.length} style={{ minHeight: 38, fontSize: 13 }} type="button">
           <Download size={15} /> Export
         </button>
       </PageHeader>
@@ -80,12 +72,13 @@ export default function CommitHistoryPage() {
             <LineChart size={16} color="var(--primary)" />
             <span className="stat-label">Avg Files / Commit</span>
           </div>
-          <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk" }}>{stats.avgSize}</p>
+          <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk" }}>—</p>
         </div>
       </div>
 
       {/* Filters */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <GitHubRepositoryPicker repositories={repositories} value={repository} onChange={setRepository} pagination={repositoryPagination} onPrevious={() => setRepositoryPage((page) => Math.max(1, page - 1))} onNext={() => setRepositoryPage((page) => page + 1)} loading={loadingRepositories} />
         <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--bg-soft)", border: "1px solid var(--border)", borderRadius: 10 }}>
           <Search size={16} color="var(--muted)" />
           <input
@@ -117,7 +110,7 @@ export default function CommitHistoryPage() {
 
       {/* Commit Timeline */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {filtered.map((commit, i) => (
+        {error ? <div role="alert" className="card p-4">{error}<button className="btn btn-ghost ml-2" onClick={retry} type="button">Retry</button></div> : loading || loadingRepositories ? <div role="status" className="card p-4">Loading commits…</div> : !repository ? <EmptyState title="Connect GitHub" description="Connect GitHub to browse commits." action="Connect GitHub" onAction={() => { window.location.href = api.github.connectUrl(); }} /> : filtered.length === 0 ? <EmptyState title="No commits found" description="No commits match this repository and the current filters." /> : filtered.map((commit, i) => (
           <div
             key={commit.hash}
             style={{
@@ -162,7 +155,7 @@ export default function CommitHistoryPage() {
                 <span style={{ fontSize: 12, color: "var(--danger)", fontWeight: 600 }}>-{commit.deletions}</span>
               </div>
             </div>
-            <button
+              <button
               onClick={(e) => { e.stopPropagation(); setSelectedCommit(commit); setShowDiff(true); }}
               style={{
                 padding: "6px 12px", background: "var(--bg-soft)", border: "1px solid var(--border)", borderRadius: 8,
@@ -170,7 +163,7 @@ export default function CommitHistoryPage() {
               }}
               type="button"
             >
-              <FileDiff size={13} /> Diff
+              <FileDiff size={13} /> Details
             </button>
           </div>
         ))}
@@ -188,34 +181,14 @@ export default function CommitHistoryPage() {
               <X size={18} />
             </button>
           </div>
-          <div style={{ display: "grid", gap: 8, fontFamily: "JetBrains Mono, monospace", fontSize: 13 }}>
-            {mockDiffs.map((line, i) => (
-              <div key={i} style={{
-                display: "flex", gap: 12, padding: "8px 12px", borderRadius: 8,
-                background: line.type === "added" ? "color-mix(in srgb, var(--success) 10%, transparent)" :
-                  line.type === "removed" ? "color-mix(in srgb, var(--danger) 10%, transparent)" :
-                    "color-mix(in srgb, var(--warning) 10%, transparent)",
-              }}>
-                <span style={{
-                  minWidth: 50, color: line.type === "added" ? "var(--success)" : line.type === "removed" ? "var(--danger)" : "var(--warning)",
-                  fontWeight: 700, textTransform: "capitalize"
-                }}>
-                  {line.type === "added" ? "+ Add" : line.type === "removed" ? "- Rem" : "~ Mod"}
-                </span>
-                <span style={{ color: "var(--text)", whiteSpace: "pre-wrap" }}>{line.content}</span>
-              </div>
-            ))}
-          </div>
+          <div style={{ display: "grid", gap: 8, fontFamily: "JetBrains Mono, monospace", fontSize: 13 }}><p>{selectedCommit.author.name} · {selectedCommit.date}</p><a href={selectedCommit.url} target="_blank" rel="noreferrer">View the complete commit and diff on GitHub</a><p className="muted">File and line-change statistics are not included in this commit list response.</p></div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-outline" onClick={() => toast("File opened", "info")} style={{ minHeight: 34, fontSize: 13 }} type="button">
-              <Plus size={14} /> View Full File
-            </button>
-            <button className="btn btn-outline" onClick={() => toast("Copied to clipboard", "success")} style={{ minHeight: 34, fontSize: 13 }} type="button">
-              Copy Diff
-            </button>
+            <a className="btn btn-outline" href={selectedCommit.url} target="_blank" rel="noreferrer" style={{ minHeight: 34, fontSize: 13 }}>View commit</a>
+            <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(selectedCommit.hash); } catch { /* Clipboard access can be unavailable outside secure contexts. */ } }} style={{ minHeight: 34, fontSize: 13 }} type="button">Copy SHA</button>
           </div>
         </div>
       )}
+      {pagination && <div className="flex justify-between items-center"><span className="muted text-sm">Page {pagination.page} · {pagination.perPage} per page</span><div className="flex gap-2"><button className="btn btn-ghost" disabled={!pagination.hasPrevious || loading} onClick={previous}>Previous</button><button className="btn btn-ghost" disabled={!pagination.hasNext || loading} onClick={next}>Next</button></div></div>}
     </div>
   );
 }

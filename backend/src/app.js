@@ -14,6 +14,7 @@ import fileRoutes from "./routes/files.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
 import invitationRoutes from "./routes/invitation.routes.js";
+import githubRoutes from "./routes/github.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -58,6 +59,7 @@ app.use("/api/files", fileRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/invitations", invitationRoutes);
+app.use("/api/github", githubRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
