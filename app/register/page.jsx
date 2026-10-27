@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   AuthCard,
   AuthDivider,
@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 // RegisterPage is a page component that renders the registration form, allowing users to create a new account by providing their full name, username, email address, and password. It includes validation for the username and password strength, as well as options to agree to terms and privacy policy. The component manages the state of the input fields and handles form submission.
 export default function RegisterPage() {
   const router = useRouter();
+  const [invite, setInvite] = useState("");
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -27,6 +28,13 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const token = params.get("invite") || "";
+    if (/^[a-fA-F0-9]{64}$/.test(token)) setInvite(token);
+    if (token) window.history.replaceState({}, "", `${window.location.pathname}${window.location.search}`);
+  }, []);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -39,8 +47,8 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await api.register({ name, email, password, confirmPassword });
-      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
+      await api.register({ name, email, password, confirmPassword, ...(invite ? { invitationToken: invite } : {}) });
+      router.push(`/verify-email?email=${encodeURIComponent(email)}${invite ? `#invite=${encodeURIComponent(invite)}` : ""}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -107,7 +115,7 @@ export default function RegisterPage() {
         <SocialButtons />
         <p className="center muted">
           Already have an account?{" "}
-          <Link href="/login" style={{ color: "var(--primary)", fontWeight: 800, marginLeft: 6 }}>Login</Link>
+          <Link href={invite ? `/login#invite=${encodeURIComponent(invite)}` : "/login"} style={{ color: "var(--primary)", fontWeight: 800, marginLeft: 6 }}>Login</Link>
         </p>
       </AuthCard>
     </AuthShell>

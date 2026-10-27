@@ -127,7 +127,7 @@ export const handleVerifyEmail = asyncHandler(async (req, res) => {
 });
 
 export const handleResendVerification = asyncHandler(async (req, res) => {
-  await resendVerification(req.body.email);
+  await resendVerification(req.body.email, req.body.invitationToken);
   res.status(200).json(new ApiResponse(200, null, "Verification email sent"));
 });
 

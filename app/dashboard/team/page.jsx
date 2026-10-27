@@ -159,7 +159,7 @@ export default function TeamDashboardPage() {
           <button className="btn btn-outline" onClick={() => toast("Team chat is not connected to a backend yet", "info")} style={{ minHeight: 38, fontSize: 13 }} type="button">
             <MessageSquare size={15} /> Team Chat
           </button>
-          <button className="btn btn-outline" onClick={() => toast("Workspace invitations are not supported by the current backend", "info")} style={{ minHeight: 38, fontSize: 13 }} type="button">
+          <button className="btn btn-outline" onClick={() => window.location.assign("/dashboard/team/members?invite=1")} style={{ minHeight: 38, fontSize: 13 }} type="button">
             <Plus size={15} /> Invite Member
           </button>
         </div>
