@@ -1,32 +1,33 @@
 "use client";
-import { useEffect, useState } from "react";
-import { PageHeader, EmptyState, SkeletonCard, StatCard, toast } from "@/components/dashboard-ui";
-import { mockApi } from "@/lib/api";
+import { useState } from "react";
+import { PageHeader, EmptyState, SkeletonCard, StatCard } from "@/components/dashboard-ui";
+import { api } from "@/lib/api";
+import { useGitHubResource } from "@/lib/use-github-resource";
+import GitHubRepositoryPicker from "@/components/github-repository-picker";
 
 export default function IssuesPage() {
-  const [issues, setIssues] = useState(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
-
-  useEffect(() => { mockApi.github.issues().then(setIssues); }, []);
+  const { repositories, repository, setRepository, repositoryPage, setRepositoryPage, repositoryPagination, items: rawIssues, pagination, loading, loadingRepositories, error, retry, next, previous } = useGitHubResource("issues");
+  const issues = Array.isArray(rawIssues) ? rawIssues.filter((issue) => !issue.pull_request) : rawIssues;
 
   const filtered = (issues || []).filter((i) => {
-    const matchesQuery = !query || `${i.title} ${i.repo} ${i.assignee}`.toLowerCase().includes(query.toLowerCase());
-    const matchesStatus = status === "All" || i.status === status;
+    const matchesQuery = !query || `${i.title} ${repository} ${(i.assignees || []).map((assignee) => assignee.login).join(" ")}`.toLowerCase().includes(query.toLowerCase());
+    const matchesStatus = status === "All" || i.state === status.toLowerCase();
     return matchesQuery && matchesStatus;
   });
 
   return (
     <div>
       <PageHeader title="Issues" subtitle="Track bugs, feature requests, technical debt, and development tasks.">
-        <button className="btn btn-primary" onClick={() => toast('New issue (mock)')} type="button">New Issue</button>
+        <button className="btn btn-primary" disabled title="Issue creation is not available in this read-only integration" type="button">New Issue</button>
       </PageHeader>
 
       <div className="grid grid-cols-4 gap-4 mt-6">
-        <StatCard label="Open" value={issues?.filter((i) => i.status === 'Open').length ?? '—'} delta="needs triage" trend="neutral" />
-        <StatCard label="In progress" value={issues?.filter((i) => i.status === 'In Progress').length ?? '—'} delta="active work" trend="up" />
-        <StatCard label="Critical" value={issues?.filter((i) => i.priority === 'High').length ?? '—'} delta="priority items" trend="up" />
-        <StatCard label="Updated" value="3h" delta="latest change" trend="up" />
+        <StatCard label="Open" value={issues?.filter((i) => i.state === 'open').length ?? '—'} delta="current page" trend="neutral" />
+        <StatCard label="Closed" value={issues?.filter((i) => i.state === 'closed').length ?? '—'} delta="current page" trend="neutral" />
+        <StatCard label="Labeled" value={issues?.filter((i) => i.labels?.length).length ?? '—'} delta="current page" trend="neutral" />
+        <StatCard label="Repository" value={repository.split('/').pop() || '—'} delta="selected" trend="neutral" />
       </div>
 
       <div className="card p-4 mt-6 border border-(--border)" style={{ background: "linear-gradient(180deg, rgba(245,158,11,0.06), transparent 22%), var(--card)" }}>
@@ -35,10 +36,7 @@ export default function IssuesPage() {
             <h3 className="m-0 font-semibold">Issue inbox</h3>
             <p className="m-0 mt-1 muted text-sm">Search, filter, and open issues without losing the project context.</p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <span className="badge">Live sync</span>
-            <span className="badge">AI analysis</span>
-          </div>
+          <GitHubRepositoryPicker repositories={repositories} value={repository} onChange={setRepository} pagination={repositoryPagination} onPrevious={() => setRepositoryPage(repositoryPage - 1)} onNext={() => setRepositoryPage(repositoryPage + 1)} loading={loadingRepositories} />
         </div>
 
         <div className="grid grid-cols-[1.4fr_0.9fr] gap-3 mb-4">
@@ -46,16 +44,18 @@ export default function IssuesPage() {
             <input className="input w-full" placeholder="Search issues by title, repo, or assignee..." value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <div className="flex gap-2 flex-wrap justify-start lg:justify-end">
-            {['All', 'Open', 'In Progress'].map((s) => (
+            {['All', 'Open', 'Closed'].map((s) => (
               <button key={s} className={`btn ${status===s ? 'btn-primary' : 'btn-ghost'}`} type="button" onClick={() => setStatus(s)}>{s}</button>
             ))}
           </div>
         </div>
 
-        {issues === null ? (
+        {error ? <div role="alert" className="card p-4">{error}<button className="btn btn-ghost ml-3" onClick={retry} type="button">Retry</button></div> : loading || loadingRepositories ? (
           <SkeletonCard />
+        ) : !repository ? (
+          <EmptyState title="Connect GitHub" description="Connect your GitHub account to browse issues." action="Connect GitHub" onAction={() => { window.location.href = api.github.connectUrl(); }} />
         ) : filtered.length === 0 ? (
-          <EmptyState title="No issues found" description="Try a different search or create a new issue." action="New Issue" onAction={() => toast('New issue')} />
+          <EmptyState title="No issues found" description="No GitHub issues match the current repository and filters." />
         ) : (
           <div className="grid gap-3">
             {filtered.map((it) => (
@@ -67,37 +67,37 @@ export default function IssuesPage() {
                       <div className="font-semibold text-[15px] leading-6">{it.title}</div>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap mb-3">
-                      <span className="badge">{it.status}</span>
-                      <span className="badge">{it.priority}</span>
+                      <span className="badge">{it.state}</span>
                     </div>
                     <div className="flex gap-2 flex-wrap mb-4">
-                      {it.labels.map((label) => <span key={label} className="badge">{label}</span>)}
+                      {it.labels.map((label) => <span key={label.id} className="badge">{label.name}</span>)}
                     </div>
                     <div className="grid grid-cols-3 gap-3 text-sm">
                       <div className="rounded-2xl border border-(--border) p-3 bg-(--bg)">
                         <div className="muted text-xs mb-1">Repository</div>
-                        <div className="font-medium">{it.repo}</div>
+                        <div className="font-medium">{repository}</div>
                       </div>
                       <div className="rounded-2xl border border-(--border) p-3 bg-(--bg)">
                         <div className="muted text-xs mb-1">Assignee</div>
-                        <div className="font-medium">{it.assignee}</div>
+                        <div className="font-medium">{it.assignees?.map((assignee) => assignee.login).join(", ") || "Unassigned"}</div>
                       </div>
                       <div className="rounded-2xl border border-(--border) p-3 bg-(--bg)">
                         <div className="muted text-xs mb-1">Updated</div>
-                        <div className="font-medium">{it.updated}</div>
+                        <div className="font-medium">{new Date(it.updated_at).toLocaleDateString()}</div>
                       </div>
                     </div>
                   </div>
-                  <button className="btn btn-ghost shrink-0" onClick={() => toast('Open issue')} type="button">Open</button>
+                  <a className="btn btn-ghost shrink-0" href={it.html_url} target="_blank" rel="noreferrer">Open</a>
                 </div>
                 <div className="mt-4 rounded-2xl border border-(--border) p-4 bg-(--bg) text-sm leading-7">
                   <div className="muted text-xs mb-2">Description</div>
-                  {it.description}
+                  {it.body || "No description provided."}
                 </div>
               </div>
             ))}
           </div>
         )}
+        {!error && pagination && <div className="flex justify-between items-center mt-4"><span className="muted text-sm">Page {pagination.page} · {pagination.perPage} per page</span><div className="flex gap-2"><button className="btn btn-ghost" disabled={!pagination.hasPrevious || loading} onClick={previous}>Previous</button><button className="btn btn-ghost" disabled={!pagination.hasNext || loading} onClick={next}>Next</button></div></div>}
       </div>
     </div>
   );

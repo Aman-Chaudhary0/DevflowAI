@@ -35,3 +35,20 @@ Socket.IO is attached to the same HTTP server as Express. Browser connections au
 - `POST /api/auth/resend-verification`
 
 OAuth routes are available at `/api/auth/google` and `/api/auth/github` once their client IDs and secrets are configured.
+
+## GitHub repository integration
+
+GitHub login (`GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`) is separate from repository access. Configure a dedicated GitHub OAuth App with:
+
+```env
+GITHUB_INTEGRATION_CLIENT_ID=
+GITHUB_INTEGRATION_CLIENT_SECRET=
+GITHUB_INTEGRATION_CALLBACK_URL=http://localhost:5000/api/github/callback
+GITHUB_TOKEN_ENCRYPTION_KEY=<32-byte key encoded as 64 hex characters>
+```
+
+The callback URL must exactly match the OAuth App setting. The integration requests the `repo` scope to read private repositories and repository metadata; the GitHub user profile endpoint is available without `read:user`. GitHub OAuth App's `repo` scope also permits write operations at GitHub's authorization layer; this implementation exposes only read operations. For production, consider migrating to a GitHub App with read-only repository permissions for a narrower grant.
+
+OAuth authorization uses single-use, ten-minute state records and PKCE S256. Access tokens are encrypted with AES-256-GCM before MongoDB storage and are never returned to the browser. Rotating `GITHUB_TOKEN_ENCRYPTION_KEY` makes existing stored credentials unreadable; disconnect and reconnect those integrations after rotation. GitHub API routes are authenticated and scoped to the signed-in DevFlow user. Disconnect removes the locally stored credential; the user can also revoke the OAuth grant in GitHub settings.
+
+Routes: `GET /api/github/connect`, `GET /api/github/callback`, `GET /api/github/status`, `DELETE /api/github/connection`, `GET /api/github/repositories`, `POST /api/github/sync`, `GET /api/github/repositories/by-id/:repositoryId`, and `GET /api/github/repositories/:owner/:repo/:resource` for detail, branches, commits, pull requests, issues, releases, contributors, and languages. Repository and list-resource endpoints accept `page` and `perPage` query parameters and return pagination metadata parsed from GitHub's `Link` response header. Page sizes are limited to 100; list pages default to 30. Repository synchronization is the only operation that follows multiple pages automatically, capped at 1,000 repositories.

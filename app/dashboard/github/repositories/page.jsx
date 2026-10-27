@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   Archive,
   Book,
@@ -18,112 +18,19 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/dashboard-ui";
 import { Avatar } from "@/components/dashboard-ui";
-
-// Mock repositories data
-const mockRepositories = [
-  {
-    id: "r1",
-    name: "devflow-ai",
-    owner: "Aman-Chaudhary0",
-    description: "AI-powered developer workspace with projects, tasks, and analytics.",
-    language: "JavaScript",
-    languageColor: "#f59e0b",
-    stars: 128,
-    forks: 34,
-    visibility: "private",
-    defaultBranch: "main",
-    lastSync: "2 min ago",
-    syncStatus: "synced",
-    size: "245 MB",
-    updatedAt: "2026-07-26T10:00:00Z"
-  },
-  {
-    id: "r2",
-    name: "ecommerce-platform",
-    owner: "Aman-Chaudhary0",
-    description: "Full-stack e-commerce solution with payments and inventory management.",
-    language: "TypeScript",
-    languageColor: "#3b82f6",
-    stars: 64,
-    forks: 18,
-    visibility: "private",
-    defaultBranch: "main",
-    lastSync: "1 hour ago",
-    syncStatus: "synced",
-    size: "189 MB",
-    updatedAt: "2026-07-25T14:00:00Z"
-  },
-  {
-    id: "r3",
-    name: "mobile-banking-app",
-    owner: "team-devflow",
-    description: "Secure mobile banking application with biometric authentication.",
-    language: "React Native",
-    languageColor: "#61dafb",
-    stars: 32,
-    forks: 8,
-    visibility: "team",
-    defaultBranch: "develop",
-    lastSync: "3 hours ago",
-    syncStatus: "warning",
-    size: "312 MB",
-    updatedAt: "2026-07-24T11:00:00Z"
-  },
-  {
-    id: "r4",
-    name: "analytics-dashboard",
-    owner: "Aman-Chaudhary0",
-    description: "Real-time analytics and reporting platform for business intelligence.",
-    language: "Vue.js",
-    languageColor: "#42b883",
-    stars: 256,
-    forks: 67,
-    visibility: "public",
-    defaultBranch: "main",
-    lastSync: "30 min ago",
-    syncStatus: "synced",
-    size: "156 MB",
-    updatedAt: "2026-07-26T09:30:00Z"
-  },
-  {
-    id: "r5",
-    name: "devops-pipeline",
-    owner: "Aman-Chaudhary0",
-    description: "Automated CI/CD pipeline with Docker, Kubernetes, and monitoring.",
-    language: "Go",
-    languageColor: "#00add8",
-    stars: 89,
-    forks: 23,
-    visibility: "private",
-    defaultBranch: "main",
-    lastSync: "2 weeks ago",
-    syncStatus: "outdated",
-    size: "78 MB",
-    updatedAt: "2026-07-10T08:00:00Z"
-  },
-  {
-    id: "r6",
-    name: "ai-code-review",
-    owner: "team-devflow",
-    description: "Automated code review tool powered by GPT-4 with inline suggestions.",
-    language: "Python",
-    languageColor: "#3776ab",
-    stars: 412,
-    forks: 98,
-    visibility: "public",
-    defaultBranch: "main",
-    lastSync: "5 hours ago",
-    syncStatus: "failed",
-    size: "234 MB",
-    updatedAt: "2026-07-26T07:00:00Z"
-  }
-];
+import { api } from "@/lib/api";
 
 const languageOptions = ["All Languages", "JavaScript", "TypeScript", "Python", "Go", "Vue.js", "React Native"];
 const visibilityOptions = ["All", "Public", "Private", "Team"];
 const sortOptions = ["Last Updated", "Name", "Stars", "Forks"];
 
 export default function GitHubRepositoriesPage() {
+  const [repositories, setRepositories] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+  const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [languageFilter, setLanguageFilter] = useState("All Languages");
   const [visibilityFilter, setVisibilityFilter] = useState("All");
@@ -131,7 +38,21 @@ export default function GitHubRepositoriesPage() {
   const [selectedRepos, setSelectedRepos] = useState([]);
   const [viewMode, setViewMode] = useState("grid"); // grid, list
 
-  const filteredRepos = mockRepositories.filter(repo => {
+  const loadRepositories = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await api.github.repositories({ page, perPage: 30 });
+      const colors = { JavaScript: "#f59e0b", TypeScript: "#3b82f6", Python: "#3776ab", Go: "#00add8", "Vue.js": "#42b883" };
+      setRepositories((response.data.repositories || []).map((repo) => ({ ...repo, languageColor: colors[repo.language] || "var(--muted)", visibility: repo.visibility, lastSync: `Updated ${new Date(repo.updatedAt).toLocaleString()}`, syncStatus: "accessible", size: `${Math.round((repo.size || 0) / 1024)} MB` })));
+      setPagination(response.data.pagination);
+      setError("");
+    } catch (requestError) { setError(requestError.message); setRepositories([]); }
+    finally { setLoading(false); }
+  }, [page]);
+
+  useEffect(() => { loadRepositories(); }, [loadRepositories]);
+
+  const filteredRepos = repositories.filter(repo => {
     const matchesSearch = repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       repo.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesLanguage = languageFilter === "All Languages" || repo.language === languageFilter;
@@ -151,23 +72,18 @@ export default function GitHubRepositoriesPage() {
     );
   };
 
-  const handleSync = (repoId) => {
-    toast("Syncing repository...", "info");
-    setTimeout(() => toast("Repository synced successfully", "success"), 2000);
+  const handleSync = async () => {
+    setSyncing(true);
+    try { const result = await api.github.sync(); toast(`Synchronized ${result.data.repositoryCount} repositories`, "success"); await loadRepositories(); }
+    catch (requestError) { setError(requestError.message); toast(requestError.message, "error"); }
+    finally { setSyncing(false); }
   };
 
-  const handleBulkSync = () => {
-    toast(`Syncing ${selectedRepos.length} repositories...`, "info");
-    setTimeout(() => toast("All repositories synced", "success"), 3000);
-  };
-
-  const handleArchive = (repoId) => {
-    toast("Repository archived", "success");
-  };
+  const handleBulkSync = async () => { await handleSync(); setSelectedRepos([]); };
 
   const getSyncStatusColor = (status) => {
     switch (status) {
-      case "synced": return "var(--success)";
+      case "accessible": return "var(--success)";
       case "warning": return "var(--warning)";
       case "failed": return "var(--danger)";
       case "outdated": return "var(--muted)";
@@ -177,7 +93,7 @@ export default function GitHubRepositoriesPage() {
 
   const getSyncStatusText = (status) => {
     switch (status) {
-      case "synced": return "Synced";
+      case "accessible": return "Accessible";
       case "warning": return "Warning";
       case "failed": return "Failed";
       case "outdated": return "Outdated";
@@ -211,12 +127,17 @@ export default function GitHubRepositoriesPage() {
             fontWeight: 600,
             color: "white"
           }}
+          onClick={() => { window.location.href = api.github.connectUrl(); }}
           type="button"
         >
           <Github size={16} />
-          Connect Repository
+          Connect GitHub
         </button>
       </div>
+
+      {error && <div className="card p-4" role="alert">{error}<button className="btn btn-ghost ml-3" onClick={loadRepositories} type="button">Retry</button></div>}
+      {loading && <div className="card p-4" role="status">Loading repositories…</div>}
+      {!loading && !error && repositories.length === 0 && <div className="card p-4">No accessible repositories. <a href={api.github.connectUrl()}>Connect GitHub</a></div>}
 
       {/* Toolbar */}
       <div style={{
@@ -339,7 +260,7 @@ export default function GitHubRepositoriesPage() {
               cursor: "pointer",
               color: viewMode === "grid" ? "white" : "var(--muted)"
             }}
-            type="button"
+          type="button"
           >
             <Filter size={14} />
           </button>
@@ -382,7 +303,8 @@ export default function GitHubRepositoriesPage() {
               Sync ({selectedRepos.length})
             </button>
             <button
-              onClick={() => { toast("Repositories archived", "success"); setSelectedRepos([]); }}
+              disabled
+              title="Repository archiving is not available in the read-only integration"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -399,7 +321,7 @@ export default function GitHubRepositoriesPage() {
               type="button"
             >
               <Archive size={14} />
-              Archive
+              Archive unavailable
             </button>
           </div>
         )}
@@ -486,6 +408,7 @@ export default function GitHubRepositoriesPage() {
                   </button>
                   <button
                     onClick={(e) => e.stopPropagation()}
+                    disabled
                     style={{
                       width: 28,
                       height: 28,
@@ -497,7 +420,7 @@ export default function GitHubRepositoriesPage() {
                       placeItems: "center",
                       color: "var(--muted)"
                     }}
-                    title="More options"
+                    title="More repository actions are unavailable"
                     type="button"
                   >
                     <MoreVertical size={14} />
@@ -594,6 +517,8 @@ export default function GitHubRepositoriesPage() {
           </table>
         </div>
       )}
+      {!loading && !error && filteredRepos.length === 0 && repositories.length > 0 && <div className="card p-4">No repositories match the current filters.</div>}
+      {pagination && <div className="flex justify-between items-center"><span className="muted text-sm">Page {pagination.page} · {pagination.perPage} per page</span><div className="flex gap-2"><button className="btn btn-ghost" disabled={!pagination.hasPrevious || loading} onClick={() => setPage(pagination.previousPage)}>Previous</button><button className="btn btn-ghost" disabled={!pagination.hasNext || loading} onClick={() => setPage(pagination.nextPage)}>Next</button></div></div>}
     </div>
   );
 }

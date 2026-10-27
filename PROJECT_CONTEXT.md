@@ -1646,3 +1646,140 @@ Phase 6 remains **PARTIAL** until the required two-browser verification is perfo
 #### History and next phase
 
 This entry appends to the existing audit trail; prior Phase 5 and Phase 6 records and their historical test outcomes remain unchanged. Phase 6 stays **PARTIAL** pending the previously documented two-browser verification. Phase 7 — GitHub Integration remains blocked until the Phase 6 preflight checks genuinely pass. No Phase 7 GitHub integration work was started.
+
+### 3.4.8 Phase 6 manual verification update (2026-10-27)
+
+The user confirmed that the previously required two-browser verification was completed and directed work to proceed with Phase 7. Detailed browser observations or a separate verification artifact were not supplied in this audit, so this is recorded as user-confirmed rather than independently reproduced. This update satisfies the stated Phase 7 preflight gate; it does not change the historical Phase 6 audit or claim the unsupported Phase 6 team workflows are complete. Phase 6 remains **PARTIAL** for those documented limitations.
+
+### 3.4.9 Phase 7 — GitHub Integration (implementation audit, 2026-10-27)
+
+**Status: Partial.** The current branch is `feature/phase-7-github-integration`; the working tree changes are uncommitted. GitHub behavior below was validated with service tests using a mocked provider, not with configured GitHub credentials or live GitHub API requests.
+
+#### 1. Status and audit scope
+
+- Replaced mock data on the existing GitHub dashboard, repository list/detail, branches, commits, pull requests, issues, and releases surfaces with the shared authenticated frontend API and Express integration.
+- No route, page, navigation item, dependency, or database infrastructure was added beyond the existing route family. Unsupported create/delete/write actions from the mock screens were removed.
+- The integration is user-scoped: every data route uses the authenticated DevFlow user and their own GitHub connection. It does not accept workspace/project IDs or link repositories to `Project.repository`; no workspace/project GitHub operation is exposed.
+
+#### 2. Branch and implementation baseline
+
+- Branch: `feature/phase-7-github-integration`.
+- The Phase 6 two-browser check is user-confirmed complete (see 3.4.8); its detailed results were not independently available in this audit.
+- Existing GitHub Passport login remains a separate sign-in mechanism and is not used for repository API credentials.
+
+#### 3. Verified connection architecture
+
+- Selected a separate GitHub OAuth App web authorization flow because the backend already uses OAuth App credentials and this integration is user-account based. Authorization uses a random single-use state record tied to the authenticated DevFlow user, a ten-minute expiry, and PKCE S256. Callback errors are checked and OAuth denial consumes and validates state.
+- GitHub OAuth Apps require the broad `repo` scope to read private repositories; this permission also allows writes at GitHub's grant level. DevFlow exposes read operations only. A GitHub App with read-only repository permissions is the narrower production option.
+- Access tokens (and optional refresh tokens) are encrypted with AES-256-GCM using `GITHUB_TOKEN_ENCRYPTION_KEY`; token fields are excluded from default Mongoose selection and never sent to the browser. Expiring tokens are refreshed when possible; revoked/expired credentials are removed and require reconnection.
+- Disconnect deletes local credentials and pending state. It does not revoke the remote GitHub OAuth grant; users can revoke that in GitHub settings.
+
+#### 4. Backend API implementation
+
+- `GET /api/github/connect` — authenticated OAuth start.
+- `GET /api/github/callback` — state/PKCE authorization callback, account lookup, encrypted connection persistence, and redirect to the existing dashboard.
+- `GET /api/github/status` and `DELETE /api/github/connection` — connection status and local disconnect.
+- `GET /api/github/repositories?page=&perPage=` — accessible repository listing from GitHub, capped at 100 per page.
+- `POST /api/github/sync` — fetches up to 1,000 accessible repositories from GitHub, stores repository metadata and reports count, timestamp, and whether the cap was reached.
+- `GET /api/github/repositories/:owner/:repo/:resource` — live repository detail, branches, commits, pull requests, issues, or releases. Issue results filter out GitHub pull request entries in the frontend.
+- All API data routes require existing `requireAuth`; query and resource parameters use Zod validation. API failures are returned as errors, with expired credentials removed on 401 responses.
+
+#### 5. Database and credential storage
+
+- Added `GitHubIntegration` for one integration per user, encrypted access/refresh token fields, GitHub account summary, synchronization time, and cached repository metadata.
+- Added `GitHubOAuthState` with unique hashed state, user, PKCE verifier, and TTL expiry.
+- No changes were made to User, Workspace, Project, or their membership schemas. No workspace/project repository association was implemented.
+
+#### 6. Frontend page integration
+
+- Existing `/dashboard/github` includes connect, status, sync, and disconnect controls plus repository summary.
+- Existing repositories list and numeric detail route load actual GitHub metadata. Branches, commits, pull requests, issues, and releases use a shared resource view and select from the user's accessible repositories.
+- Loading, disconnected, empty, and request error states are present. Repository pagination is available; resource responses currently use GitHub's first page and do not expose full resource pagination controls.
+- Mock imports and fake success actions were removed from the connected GitHub screens. Styling/layout was replaced with simpler existing primitives in the feature route components; visual equivalence to the former screens was not manually checked.
+
+#### 7. Authorization and security
+
+- Authenticated user identity comes from existing access-cookie/bearer `requireAuth`; client-supplied user IDs are not accepted.
+- Connections and repository metadata are keyed to that user, and tokens are never returned to the frontend. GitHub OAuth login remains separate.
+- Workspace/project permission checks are not applicable to the user-owned GitHub browsing endpoints as currently designed; no project-scoped read/write endpoints exist. Adding project linking or sharing requires explicit project/workspace authorization checks.
+- GitHub API 401 responses clear the local integration; 403 responses are reported as an upstream permission/rate-limit failure. Token encryption key rotation requires users to reconnect because no key version/key ring migration was added.
+
+#### 8. Files changed
+
+- Backend: `backend/src/app.js`, `backend/src/controllers/github.controller.js`, `backend/src/models/GitHubIntegration.js`, `backend/src/models/GitHubOAuthState.js`, `backend/src/routes/github.routes.js`, `backend/src/services/github.service.js`, `backend/src/validators/github.validator.js`.
+- Frontend: `lib/api.js`, `components/github-resource-page.jsx`, `app/dashboard/github/page.jsx`, repository list/detail, branches, commits, pull requests, issues, and releases pages.
+- Tests: `backend/src/__tests__/github.integration.test.js`.
+- Configuration/documentation: `backend/.env.example`, `backend/README.md`, and this context record.
+
+#### 9. Environment configuration
+
+- Added `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY` to `backend/.env.example` and documented setup in `backend/README.md`. No secret values were added.
+- OAuth callback default is `http://localhost:5000/api/github/callback`; it must exactly match the GitHub OAuth App callback URL. The encryption key must be 32 random bytes encoded as 64 hexadecimal characters.
+
+#### 10. Automated validation record
+
+- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 2 tests. Covers PKCE state use, token encryption/redaction, mocked GitHub account/repository retrieval, replay rejection, disconnect, and invalid encryption-key configuration.
+- `cd backend && npm test -- --runInBand` — passed: 7 suites, 29 tests. An earlier run failed because the new ESM test omitted the Jest import; corrected before the passing run.
+- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
+- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
+- `git diff --check` — passed after the documentation update. Git printed informational LF-to-CRLF working-copy warnings for newly patched files; no whitespace errors were reported.
+
+#### 11. Manual verification record
+
+- Phase 6 two-browser verification: user-confirmed complete; detailed observations/artifact were not supplied in this audit.
+- GitHub authorization, live GitHub API calls, private/empty account behavior, revoked authorization, and browser credential inspection were not manually verified. GitHub provider service behavior in tests was mocked.
+
+#### 12. Limitations and unresolved risks
+
+- GitHub OAuth App `repo` grants broader upstream write permission than this read-only UI uses. The application has no GitHub App installation model or read-only project-scoped repository authorization.
+- Live OAuth/API flow, pagination beyond the repository listing first page for resource views, and real rate-limit behavior remain unverified. Synchronization is capped at 1,000 repositories per run.
+- Disconnect clears DevFlow's local access but does not revoke the remote grant. No webhook-driven refresh or background synchronization exists.
+
+#### 13. Next phase and acceptance criteria
+
+Configure a dedicated GitHub OAuth App and encryption key, then manually verify connect/callback, an account with private repositories, each resource page, empty access, upstream revocation, disconnect, and absence of tokens from browser storage/responses/logs. Add resource pagination and restore the prior page layouts while wiring their live data flows. Reassess a GitHub App with read-only permissions before production use. Phase 7 remains **Partial** until these items pass; no deployment, commit, or push is claimed.
+
+### 3.4.10 Phase 7 progress update (2026-10-27)
+
+**Status: Implemented; live provider verification remains incomplete.** This entry supersedes the earlier Phase 7 statements about simplified layouts and missing resource pagination. The earlier entries remain as historical audit records.
+
+#### Layout restoration and frontend behavior
+
+- Recovered the original GitHub page components from the current branch's Git history, then wired them back to the authenticated API while preserving their page hierarchy, visual styles, cards, tabs, and resource views. Updated existing screens: `/dashboard/github`, repositories list/detail, branches, commits, pull requests, issues, and releases.
+- Added a shared repository picker and data hook to the existing resource pages. The hook aborts stale requests on unmount or context changes; selecting a repository resets its resource page. The screens retain their search/filter behavior and now show loading, error/retry, empty, and page navigation states.
+- Removed the unused simplified `components/github-resource-page.jsx` replacement. No routes, pages, navigation items, or TypeScript files were added.
+- Read-only integration actions are presented as disabled where the original mock UI offered writes. GitHub links remain available for supported actions. Branch author and timestamp are shown as unavailable because the branch-list response does not include those fields.
+
+#### Pagination behavior
+
+- `GET /api/github/repositories?page=&perPage=` and list resources under `GET /api/github/repositories/:owner/:repo/:resource?page=&perPage=` return arrays with `{ page, perPage, nextPage, previousPage, firstPage, lastPage, hasNext, hasPrevious }` parsed from GitHub's `Link` header. The frontend navigates using the returned next/previous page values, does not prefetch every page, and keeps the selected repository and current filters in place.
+- Supported paginated resources: branches, commits, pull requests, issues, and releases. Repository pages use a default of 30 and a maximum of 100 items. Resource pages use a default of 30 and maximum of 100; page inputs are bounded by Zod validators. Languages and repository detail are object responses, so they do not use list pagination.
+- `POST /api/github/sync` remains the deliberate exception that follows pages automatically; it follows Link metadata up to ten pages of 100 repositories (1,000 maximum) and reports whether more pages remain. Page reads do not change synchronization timestamps.
+- The shared frontend hook passes `AbortSignal` to both repository and resource requests, ignores aborted failures, and shows errors with retry. Issue pages filter pull-request entries returned by GitHub's issue endpoint; this filter is applied to the current page.
+
+#### OAuth, authorization, and permissions
+
+- The dedicated integration OAuth flow requests `repo` only. The GitHub user profile endpoint used here is available without `read:user`. OAuth App `repo` permission still grants broad write authority at GitHub even though DevFlow exposes read-only repository/resource operations. A GitHub App with read-only Contents, Metadata, and relevant Issues/Pull requests permissions is the recommended production direction; migration is a separate product/configuration change and was not performed.
+- Connection initiation generates random state and a PKCE S256 verifier/challenge, stores only a hash of the single-use state with the authenticated DevFlow user and a ten-minute expiry, and binds the callback to that same authenticated user. Token exchange uses the stored verifier and fixed configured callback URL. Production callback URLs must use HTTPS; query strings and fragments are rejected.
+- Access and refresh tokens are AES-256-GCM encrypted in MongoDB, token fields are excluded from normal model selection, and status responses contain account metadata only. Callback logs emit only a generic error name; no token or secret is logged. A provider 401 clears the local integration; rate-limited 403 maps to 429; other 403 responses report permission failure. Local disconnect clears the credential and pending OAuth states but does not revoke the GitHub grant.
+- Authenticated routes resolve the integration only by `req.user._id`; cross-user repository access is not authorized by client identifiers. GitHub endpoint owner/repository paths are syntax validated, while GitHub itself authorizes the connected account's requested resource.
+- Encryption-key rotation still makes existing records unreadable and currently requires users to disconnect/reconnect; no key-version/key-ring migration exists. The production OAuth App scope remains broader than the read-only feature needs.
+
+#### Configuration and live verification
+
+- Required backend configuration names: `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY`. The callback must exactly match the OAuth App setting. The encryption key must be 32 random bytes encoded as 64 hex characters. No secret values are recorded here.
+- The existing `backend/.env` was checked by variable name only; it has the legacy GitHub login settings but none of the four integration settings above. Therefore no real OAuth authorization, callback, account connection, live repository/resource request, cancellation/denial flow, revocation, or real rate-limit behavior was attempted or verified.
+- To perform live checks, configure a dedicated OAuth App and the four backend variables (plus the exact frontend origin/session setup), restart the backend, then connect in the browser and verify account identity, private/accessible repositories, a paginated resource, denial/invalid-state behavior, disconnect, and that responses/browser storage/logs contain no credentials. Revoke the OAuth App grant separately in GitHub settings when checking remote revocation behavior.
+
+#### Validation record
+
+- `cd backend && npm test -- --runInBand` — passed: 7 suites, 31 tests. GitHub tests use mocked `fetch` responses and an in-memory MongoDB; they cover PKCE challenge/verifier, state binding/replay, per-user isolation, encrypted token redaction, repository/resource pagination and empty arrays, invalid page parameters, permission/rate-limit errors, and local disconnect. These are automated mocked tests, not live provider verification.
+- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 4 tests.
+- `npm run lint` — passed. Existing warnings remain for two `<img>` uses in file preview pages; Next.js also reports `next lint` deprecation.
+- `npm run build` — passed; all 72 existing routes generated without adding a route. The same two existing image warnings were reported.
+- `git diff --check` — passed. Git emitted an informational LF-to-CRLF working-copy warning for `backend/.env.example`.
+- The tests/lint/build were run locally on 2026-10-27. No commit or push was made.
+
+#### Remaining work
+
+Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-account authorization/API behavior is verified. Resource pagination, original page layout restoration, and local automated checks are implemented and pass. Consider a GitHub App migration before production to reduce grant permissions. No Phase 8 work was started.
