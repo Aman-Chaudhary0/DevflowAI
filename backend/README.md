@@ -52,3 +52,19 @@ The callback URL must exactly match the OAuth App setting. The integration reque
 OAuth authorization uses single-use, ten-minute state records and PKCE S256. Access tokens are encrypted with AES-256-GCM before MongoDB storage and are never returned to the browser. Rotating `GITHUB_TOKEN_ENCRYPTION_KEY` makes existing stored credentials unreadable; disconnect and reconnect those integrations after rotation. GitHub API routes are authenticated and scoped to the signed-in DevFlow user. Disconnect removes the locally stored credential; the user can also revoke the OAuth grant in GitHub settings.
 
 Routes: `GET /api/github/connect`, `GET /api/github/callback`, `GET /api/github/status`, `DELETE /api/github/connection`, `GET /api/github/repositories`, `POST /api/github/sync`, `GET /api/github/repositories/by-id/:repositoryId`, and `GET /api/github/repositories/:owner/:repo/:resource` for detail, branches, commits, pull requests, issues, releases, contributors, and languages. Repository and list-resource endpoints accept `page` and `perPage` query parameters and return pagination metadata parsed from GitHub's `Link` response header. Page sizes are limited to 100; list pages default to 30. Repository synchronization is the only operation that follows multiple pages automatically, capped at 1,000 repositories.
+
+## Shared AI infrastructure (Phase 8)
+
+The backend contains an internal AI service and an OpenAI Chat Completions adapter. The optional configuration below is read only when the service is called, so missing AI credentials do not prevent unrelated backend startup. Set `AI_API_KEY` in the backend's private `.env`; never use a `NEXT_PUBLIC_` variable or commit the secret. `AI_PROVIDER` currently supports only `openai`. The provider endpoint is fixed to `https://api.openai.com/v1/chat/completions`.
+
+```env
+AI_PROVIDER=openai
+AI_MODEL=gpt-4o-mini
+AI_API_KEY=
+AI_REQUEST_TIMEOUT_MS=30000
+AI_MAX_INPUT_LENGTH=20000
+AI_MAX_OUTPUT_LENGTH=40000
+AI_MAX_OUTPUT_TOKENS=2048
+```
+
+Timeout is limited to 120 seconds; configurable input/output lengths and output tokens have hard upper bounds. The internal service returns content, provider/model, duration, completion status, finish reason, and provider-reported token counts when available. Missing usage is represented as unavailable. There is no public AI API route, streaming implementation, usage persistence, per-user quota, or live-provider verification in this phase; future authenticated routes must apply the existing `requireAuth`, Zod validation, and a user-keyed rate limit before calling the shared service.

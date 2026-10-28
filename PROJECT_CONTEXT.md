@@ -97,7 +97,7 @@ The user reported that Phase 3 was implemented locally with:
 | Tasks and team collaboration | UI and models exist; end-to-end backend integration not verified | Planned Phase 5. |
 | Real-time collaboration | Socket.IO server bootstrap exists; product events/rooms not verified | Planned Phase 6. |
 | GitHub product integration | UI/mock layer exists; live OAuth/API integration not verified | Planned Phase 7. |
-| AI features | UI/mock flows exist; production model orchestration not verified | Planned Phases 8–11. |
+| AI features | Shared service foundation implemented locally; AI tools remain mock-only | Phase 8 infrastructure is mock-tested; live provider, usage persistence, and later AI-tool phases remain unverified/planned. |
 | Editor/playground | UI exists; execution/security boundaries need implementation and verification | Planned Phase 12. |
 | Workflows and background jobs | UI and dependencies exist; production workflow execution not verified | Planned Phases 13–14. |
 | Deployments/domains | UI/mock flows exist; live provider integration not verified | Planned Phase 15. |
@@ -1783,3 +1783,53 @@ Configure a dedicated GitHub OAuth App and encryption key, then manually verify 
 #### Remaining work
 
 Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-account authorization/API behavior is verified. Resource pagination, original page layout restoration, and local automated checks are implemented and pass. Consider a GitHub App migration before production to reduce grant permissions. No Phase 8 work was started.
+
+### 3.4.11 Phase 8 — Centralized AI Infrastructure (2026-10-28)
+
+**Status: Implemented; live provider verification and usage persistence remain incomplete.** This entry records the local `feature/phase-8-ai-infrastructure` checkout. No public AI endpoint or individual AI tool was added.
+
+#### Initial audit and scope
+
+- Before editing, `git status --short` was empty, the current branch was `feature/phase-8-ai-infrastructure`, and the latest history included the Phase 7 GitHub integration merge. No pre-existing working-tree changes were present.
+- No backend AI provider SDK, direct AI API call, AI endpoint, AI usage model, token accounting service, or streaming utility was found. Existing AI pages use simulated responses and `lib/mock/ai.js`; `lib/api.js` had no live AI request methods. No API key environment configuration existed in the backend. Existing authentication, Express routes, Zod validation, structured errors, and `express-rate-limit` conventions were available.
+- The scope was a server-side reusable service and one provider adapter. AI Chat and the other individual AI tools, public routes, streaming, persistence, billing, quotas, and background processing remain outside this phase.
+
+#### Architecture and contracts
+
+- `backend/src/services/ai.service.js` owns normalized request validation, trusted server-supplied actor identity, configured input/output/token limits, timeout and caller cancellation, provider invocation, output validation, safe error normalization, and the common result contract. Results include generated content, completion status, provider/model, finish reason, request duration, and usage metadata with the trusted actor ID.
+- `backend/src/services/ai-provider.service.js` implements the provider adapter interface for OpenAI Chat Completions using the existing Node `fetch`; no runtime dependency was added. It normalizes provider responses and maps authentication, rate-limit, timeout, outage, and malformed-response failures without returning upstream payloads. The API origin is fixed to `https://api.openai.com`, avoiding arbitrary URL configuration and SSRF exposure. Streaming is explicitly unsupported by this adapter.
+- `backend/src/config/ai.js` validates optional configuration when the AI service is called. Missing AI credentials do not fail unrelated server startup. `backend/src/validators/ai.validator.js` defines the internal prompt/message shape and bounds.
+- No public API endpoint was added. Existing AI pages, routes, and frontend API behavior were not changed. Future public AI routes must use `requireAuth`, Zod validation, derive actor identity from `req.user`, add a per-user request limiter, and expose only intended user-facing fields from the internal result.
+
+#### Files changed
+
+- `backend/src/config/ai.js` — optional provider configuration and hard-bounded defaults.
+- `backend/src/validators/ai.validator.js` — normalized generation request validation.
+- `backend/src/services/ai-provider.service.js` — OpenAI adapter and provider error mapping.
+- `backend/src/services/ai.service.js` — shared request lifecycle and response/usage contract.
+- `backend/src/__tests__/ai.infrastructure.test.js` — deterministic mocked provider/config/service tests.
+- `backend/.env.example` and `backend/README.md` — safe setup notes and deferred-capability documentation.
+- `PROJECT_CONTEXT.md` — this Phase 8 record and the single AI status snapshot row update.
+
+#### Configuration and security
+
+- Optional backend variables: `AI_PROVIDER` (`openai` only), `AI_MODEL` (defaults to `gpt-4o-mini`), `AI_API_KEY`, `AI_REQUEST_TIMEOUT_MS` (default 30000; maximum 120000), `AI_MAX_INPUT_LENGTH` (default 20000), `AI_MAX_OUTPUT_LENGTH` (default 40000), and `AI_MAX_OUTPUT_TOKENS` (default 2048). Input/output length and output-token settings also have hard upper bounds. No secret value was added to source control or sent to the browser.
+- The API key is used only in the server-side authorization header. Config errors, provider failures, and invalid provider payloads are normalized without exposing the key or raw upstream response. Prompts and completions are not logged. Cancellation is passed to provider fetch; request timeouts abort that fetch. The service enforces request bounds and the adapter has no configurable base URL.
+- No public route exists in this phase, so HTTP authentication, route-level rate limiting, and client disconnect handling are not yet exercised. Future routes must apply the existing authentication/validation patterns and a per-user limiter. Centralization does not provide prompt-injection protection, and project/workspace context authorization is deferred until a tool needs that context.
+
+#### Usage metadata and limitations
+
+- Provider-reported prompt/completion/total token counts are returned when supplied. Missing counts are `null` and marked `unavailable`; no token estimate or monetary cost is fabricated. The trusted actor ID is carried in internal result metadata for later server-side attribution.
+- No usage/history persistence, idempotent accounting write, quota enforcement, cost calculation, streaming, retries, concurrency control, or live provider call was implemented or verified. No provider secret was inspected or reported. The current local AI configuration was not validated against a real credential, and no AI feature should be described as live.
+- Automated provider tests use mocked fetch responses only; they do not establish that credentials, account permissions, model availability, or live OpenAI behavior work in the deployment environment.
+
+#### Automated validation and manual verification
+
+- `cd backend && npm test -- --runInBand` — passed: 8 suites, 36 tests. The suite includes mocked AI provider/configuration tests and existing backend regression suites. The Node experimental VM Modules warning appeared; integration tests started MongoDB Memory Server successfully.
+- `npm run lint` — passed. Existing warnings remain for `<img>` usage in `app/dashboard/files/page.jsx` and `app/dashboard/projects/[projectId]/files/page.jsx`; the installed Next.js version reports that `next lint` is deprecated.
+- `npm run build` — passed; all 72 existing routes generated, with the same two image warnings. No route was added.
+- `git diff --check` — passed after the documentation update. No real-provider/manual browser verification was performed. Changes remain uncommitted; no commit or push was made.
+
+#### Next phase
+
+Phase 9 is **AI Chat**. It may connect the existing chat UI to this service after a separate design for authenticated conversation/message persistence, user-scoped history, request limits, cancellation/streaming needs, and response-field filtering. Phase 9 has not started.
