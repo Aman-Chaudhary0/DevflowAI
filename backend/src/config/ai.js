@@ -1,5 +1,5 @@
 const DEFAULTS = {
-  requestTimeoutMs: 30_000,
+  requestTimeoutMs: 120_000,
   maxInputLength: 20_000,
   maxOutputLength: 40_000,
   maxOutputTokens: 2_048
@@ -16,14 +16,14 @@ function positiveInteger(value, name, fallback, { max } = {}) {
 
 /** Resolve optional AI configuration on demand so unrelated backend startup is unaffected. */
 export function getAIConfig(env = process.env) {
-  const provider = env.AI_PROVIDER || "openai";
-  const model = env.AI_MODEL || "gpt-4o-mini";
+  const provider = env.AI_PROVIDER || "ollama";
+  const model = env.AI_MODEL || (provider === "openai" ? "gpt-4o-mini" : "qwen3:1.7b");
   const apiKey = env.AI_API_KEY;
 
-  if (provider !== "openai") {
-    throw new Error("AI_PROVIDER must be openai; no other provider adapter is configured");
+  if (!new Set(["ollama", "openai"]).has(provider)) {
+    throw new Error("AI_PROVIDER must be ollama or openai");
   }
-  if (!/^[A-Za-z0-9._:-]{1,100}$/.test(model)) {
+  if (!/^[A-Za-z0-9._:/-]{1,100}$/.test(model)) {
     throw new Error("AI_MODEL must be a valid model identifier");
   }
 
@@ -32,18 +32,19 @@ export function getAIConfig(env = process.env) {
   const maxOutputLength = positiveInteger(env.AI_MAX_OUTPUT_LENGTH, "AI_MAX_OUTPUT_LENGTH", DEFAULTS.maxOutputLength, { max: 200_000 });
   const maxOutputTokens = positiveInteger(env.AI_MAX_OUTPUT_TOKENS, "AI_MAX_OUTPUT_TOKENS", DEFAULTS.maxOutputTokens, { max: 16_384 });
 
-  if (!apiKey || !apiKey.trim()) {
+  if (provider === "openai" && (!apiKey || !apiKey.trim())) {
     throw new Error("AI_API_KEY is required to use the configured AI provider");
   }
-  if (apiKey.length > 500 || /[\r\n]/.test(apiKey)) {
+  if (provider === "openai" && (apiKey.length > 500 || /[\r\n]/.test(apiKey))) {
     throw new Error("AI_API_KEY is malformed");
   }
 
   return Object.freeze({
     provider,
     model,
-    apiKey,
-    endpoint: "https://api.openai.com/v1/chat/completions",
+    ...(provider === "openai" ? { apiKey } : {}),
+    endpoint: provider === "ollama" ? "http://127.0.0.1:11434/api/chat" : "https://api.openai.com/v1/chat/completions",
+    modelsEndpoint: provider === "ollama" ? "http://127.0.0.1:11434/api/tags" : null,
     requestTimeoutMs,
     maxInputLength,
     maxOutputLength,

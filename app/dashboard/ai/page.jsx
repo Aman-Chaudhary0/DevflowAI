@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import {
   Sparkles, MessageSquare, Code2, ShieldCheck, FileText, Bug, ArrowRight,
-  Zap, Cpu, CheckCircle2, History, Copy, Play
+  Zap, Play
 } from "lucide-react";
-import { PageHeader, StatCard, ProgressRing, toast } from "@/components/dashboard-ui";
+import { PageHeader } from "@/components/dashboard-ui";
 
 const aiTools = [
   {
     id: "chat",
     title: "AI Chat Assistant",
-    description: "Context-aware conversational AI with streaming responses, code highlighting, and repo context.",
+    description: "Authenticated conversations with persistent history and Markdown responses.",
     icon: MessageSquare,
     color: "#3b82f6",
     link: "/dashboard/ai/chat",
-    tag: "Gemini & GPT-4o"
+    tag: "Configured backend model"
   },
   {
     id: "generator",
@@ -64,42 +63,17 @@ const promptTemplates = [
 ];
 
 export default function AIHubPage() {
-  const [selectedPrompt, setSelectedPrompt] = useState("");
-
   return (
     <div style={{ padding: "24px", maxWidth: 1300, margin: "0 auto" }}>
-      <PageHeader title="AI Assistant Hub" subtitle="Centralized suite of developer AI tools powered by Claude, GPT-4o, and Gemini">
+      <PageHeader title="AI Assistant Hub" subtitle="Developer AI tools. Chat availability depends on the server-side provider configuration.">
         <Link className="btn btn-primary" href="/dashboard/ai/chat" style={{ minHeight: 38, fontSize: 13, gap: 6 }}>
           <Sparkles size={16} /> Open AI Chat
         </Link>
       </PageHeader>
 
-      {/* Usage & Model Status Banner */}
-      <div style={{ background: "linear-gradient(135deg, rgba(26, 34, 53, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%)", border: "1px solid var(--border)", borderRadius: 18, padding: 24, marginBottom: 28, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 20, alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <ProgressRing value={142} max={500} size={70} stroke={8} color="#a855f7" />
-          <div>
-            <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 500 }}>Monthly AI Tokens</div>
-            <div style={{ fontSize: 20, fontWeight: 800, margin: "2px 0" }}>142.5K <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 400 }}>/ 500K</span></div>
-            <div style={{ fontSize: 11, color: "var(--success)" }}>357.5K tokens remaining</div>
-          </div>
-        </div>
-
-        <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Active AI Engine</div>
-          <div style={{ fontSize: 15, fontWeight: 700, margin: "2px 0", color: "#3b82f6", display: "flex", alignItems: "center", gap: 6 }}>
-            <Cpu size={16} /> Gemini 1.5 & GPT-4o
-          </div>
-          <div style={{ fontSize: 11, color: "var(--success)", display: "flex", alignItems: "center", gap: 4 }}>
-            <CheckCircle2 size={12} /> All models operational
-          </div>
-        </div>
-
-        <div style={{ borderLeft: "1px solid var(--border)", paddingLeft: 20 }}>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Time Saved This Week</div>
-          <div style={{ fontSize: 20, fontWeight: 800, margin: "2px 0", color: "#10b981" }}>18.4 Hours</div>
-          <div style={{ fontSize: 11, color: "var(--muted)" }}>Across 142 AI prompts</div>
-        </div>
+      <div style={{ background: "linear-gradient(135deg, rgba(26, 34, 53, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%)", border: "1px solid var(--border)", borderRadius: 18, padding: 24, marginBottom: 28 }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>AI Chat</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>The chat page uses the configured server-side AI provider when available. Usage totals and provider health metrics are not available yet.</div>
       </div>
 
       {/* AI Tool Cards Grid */}
@@ -158,12 +132,9 @@ export default function AIHubPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
           {promptTemplates.map((p, idx) => (
-            <button
+            <Link
               key={idx}
-              onClick={() => {
-                toast("Prompt template copied!", "info");
-              }}
-              type="button"
+              href={`/dashboard/ai/chat?prompt=${encodeURIComponent(p.text)}`}
               style={{
                 border: "1px solid var(--border)",
                 borderRadius: 12,
@@ -179,7 +150,7 @@ export default function AIHubPage() {
             >
               <span style={{ fontSize: 13, color: "var(--fg)", lineHeight: 1.4 }}>{p.text}</span>
               <Play size={14} style={{ color: "var(--primary)", flexShrink: 0 }} />
-            </button>
+            </Link>
           ))}
         </div>
       </div>

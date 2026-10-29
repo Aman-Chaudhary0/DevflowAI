@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { getAIConfig } from "../config/ai.js";
 import { aiGenerationSchema } from "../validators/ai.validator.js";
-import { AIProviderError, createOpenAIProvider } from "./ai-provider.service.js";
+import { AIProviderError, createAIProvider } from "./ai-provider.service.js";
 
 export class AIServiceError extends Error {
   constructor(code, message, statusCode) {
@@ -20,7 +20,7 @@ function safeConfig() {
   }
 }
 
-export function createAIService({ configProvider = safeConfig, providerFactory = createOpenAIProvider, now = Date.now } = {}) {
+export function createAIService({ configProvider = safeConfig, providerFactory = createAIProvider, now = Date.now } = {}) {
   return Object.freeze({
     async generate(request) {
       const actorId = request?.userId === undefined || request?.userId === null ? "" : String(request.userId);
@@ -63,6 +63,12 @@ export function createAIService({ configProvider = safeConfig, providerFactory =
         }
 
         const result = await provider.generate({ messages, maxOutputTokens, signal: controller.signal });
+        if (request.signal?.aborted) {
+          throw new AIServiceError("AI_REQUEST_CANCELLED", "AI request was cancelled", 499);
+        }
+        if (controller.signal.aborted) {
+          throw new AIServiceError("AI_REQUEST_TIMEOUT", "AI request timed out", 504);
+        }
         if (typeof result?.content !== "string" || !result.content.trim()) {
           throw new AIServiceError("AI_INVALID_RESPONSE", "AI provider returned an invalid response", 502);
         }

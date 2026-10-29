@@ -40,7 +40,6 @@ import {
   Wand2,
   X
 } from "lucide-react";
-import Image from "next/image";
 
 // ─── Code Block Component ──────────────────────────────────────
 function CodeBlock({ language, code, onCopy }) {
@@ -506,14 +505,25 @@ export function ChatHistory({
   const filteredConversations = search
     ? conversations.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
     : conversations;
+  const conversationButtonStyle = (conversation) => ({
+    display: "flex", alignItems: "center", gap: 10, width: "100%", minWidth: 0,
+    boxSizing: "border-box", padding: "9px 10px", marginBottom: 3,
+    border: conversation.id === activeId ? "1px solid color-mix(in srgb, var(--primary) 40%, transparent)" : "1px solid transparent",
+    borderRadius: 9,
+    background: conversation.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent",
+    color: conversation.id === activeId ? "var(--primary)" : "var(--text)",
+    cursor: "pointer", textAlign: "left"
+  });
 
   return (
-    <div className="flex flex-col h-full border-r border-(--border) bg-(--surface) min-w-65 w-65" style={{ minWidth: collapsed ? 0 : 260, width: collapsed ? 0 : 260 }}>
+    <aside aria-label="Conversation history" className="flex flex-col h-full border-r border-(--border) bg-(--surface) min-w-65 w-65" style={{ display: "flex", flexDirection: "column", flex: "0 0 260px", minWidth: collapsed ? 0 : 260, width: collapsed ? 0 : 260, height: "100%", minHeight: 0, boxSizing: "border-box", overflow: "hidden", pointerEvents: "auto", color: "var(--text)" }}>
+      <div style={{ flex: "0 0 auto", padding: "16px 16px 8px", color: "var(--text)", fontSize: 14, fontWeight: 700, lineHeight: "20px" }}>Chat History</div>
       {/* New Chat Button */}
-      <div className="p-3">
+      <div style={{ flex: "0 0 auto", padding: "8px 12px 12px", boxSizing: "border-box", width: "100%" }}>
         <button
           onClick={onNew}
           className="w-full flex items-center gap-2 px-3 py-2.5 bg-(--primary) border-none rounded-xl text-white font-semibold text-sm cursor-pointer transition-all duration-150"
+          style={{ width: "100%", minHeight: 40, boxSizing: "border-box", justifyContent: "center" }}
           type="button"
         >
           <Wand2 size={16} />
@@ -523,21 +533,22 @@ export function ChatHistory({
 
       {/* Search */}
       {!collapsed && (
-        <div className="px-3 pb-3">
-          <div className="flex items-center gap-2 px-3 py-2 bg-(--card) border border-(--border) rounded-lg">
+        <div style={{ flex: "0 0 auto", padding: "0 12px 12px", boxSizing: "border-box", width: "100%" }}>
+          <div className="flex items-center gap-2 px-3 py-2 bg-(--card) border border-(--border) rounded-lg" style={{ width: "100%", minWidth: 0, boxSizing: "border-box" }}>
             <Search size={14} color="var(--muted)" />
             <input
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Search chats..."
               className="flex-1 border-none outline-none bg-transparent text-sm text-(--text)"
+              style={{ flex: "1 1 0%", width: "100%", minWidth: 0, boxSizing: "border-box" }}
             />
           </div>
         </div>
       )}
 
       {/* Folders & Conversations */}
-      <div className="flex-1 overflow-y-auto px-2">
+      <div className="flex-1 overflow-y-auto px-2" style={{ flex: "1 1 0%", minHeight: 0, minWidth: 0, overflowY: "auto", overscrollBehavior: "contain", boxSizing: "border-box", padding: "0 8px 12px" }}>
         {/* Pinned */}
         {!collapsed && conversations.some(c => c.pinned) && (
           <div className="mb-4">
@@ -548,13 +559,15 @@ export function ChatHistory({
               <button
                 key={c.id}
                 onClick={() => onSelect(c.id)}
-                className="w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
-                style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
+                className="relative z-10 w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                style={conversationButtonStyle(c)}
+                aria-current={c.id === activeId ? "page" : undefined}
+                title={c.title}
                 type="button"
               >
                 <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                <div className="flex-1 overflow-hidden">
-                  <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
+                <div style={{ flex: "1 1 0%", minWidth: 0, overflow: "hidden" }}>
+                  <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                     {c.title}
                   </div>
                 </div>
@@ -591,13 +604,15 @@ export function ChatHistory({
                     <button
                       key={c.id}
                       onClick={() => onSelect(c.id)}
-                      className="w-full flex items-center gap-2.5 px-2.5 py-1.5 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
-                      style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
+                      className="relative z-10 w-full flex items-center gap-2.5 px-2.5 py-1.5 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                      style={conversationButtonStyle(c)}
+                      aria-current={c.id === activeId ? "page" : undefined}
+                      title={c.title}
                       type="button"
                     >
                       <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                      <div className="flex-1 overflow-hidden">
-                        <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
+                      <div style={{ flex: "1 1 0%", minWidth: 0, overflow: "hidden" }}>
+                        <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {c.title}
                         </div>
                       </div>
@@ -612,7 +627,12 @@ export function ChatHistory({
         {/* Recent (no folder) */}
         {(() => {
           const recentConversations = filteredConversations.filter(c => !c.folder);
-          if (recentConversations.length === 0) return null;
+          if (recentConversations.length === 0) {
+            if (filteredConversations.length === 0) {
+              return <div className="px-3 py-5 text-sm" style={{ color: "var(--muted)" }}>{search ? "No conversations match your search." : "Your conversations will appear here."}</div>;
+            }
+            return null;
+          }
 
           return (
             <div>
@@ -625,13 +645,15 @@ export function ChatHistory({
                 <button
                   key={c.id}
                   onClick={() => onSelect(c.id)}
-                  className="w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
-                  style={{ background: c.id === activeId ? "color-mix(in srgb, var(--primary) 16%, transparent)" : "transparent" }}
+                  aria-current={c.id === activeId ? "page" : undefined}
+                  title={c.title}
+                  className="relative z-10 w-full flex items-center gap-2.5 px-2.5 py-2 bg-[color-mix(in_srgb,var(--primary)_16%,transparent)] border-none rounded-lg cursor-pointer text-left"
+                  style={conversationButtonStyle(c)}
                   type="button"
                 >
                   <MessageSquare size={14} color={c.id === activeId ? "var(--primary)" : "var(--muted)"} />
-                  <div className="flex-1 overflow-hidden">
-                    <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)" }}>
+                  <div style={{ flex: "1 1 0%", minWidth: 0, overflow: "hidden" }}>
+                    <div className="text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis" style={{ color: c.id === activeId ? "var(--primary)" : "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {c.title}
                     </div>
                   </div>
@@ -641,7 +663,7 @@ export function ChatHistory({
           );
         })()}
       </div>
-    </div>
+    </aside>
   );
 }
 
@@ -651,6 +673,10 @@ export function ModelSelector({ value, onChange, options = [] }) {
 
   const selected = options.find(o => o.id === value) || options[0];
 
+  if (!selected) {
+    return <button type="button" disabled className="flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg text-sm font-semibold text-(--muted) cursor-not-allowed">AI model unavailable</button>;
+  }
+
   return (
     <div className="relative">
       <button
@@ -658,13 +684,9 @@ export function ModelSelector({ value, onChange, options = [] }) {
         className="flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
         type="button"
       >
-<Image
-  src={selected.icon}
-  alt={selected.name}
-  width={20}
-  height={20}
-  className="w-5 h-5 rounded"
-/>        {selected.name}
+<span aria-label={`${selected.name} icon`} className="flex w-5 h-5 shrink-0 items-center justify-center rounded bg-blue-500 text-[9px] font-bold text-white">
+  {selected.icon || selected.name.slice(0, 2).toUpperCase()}
+</span>        {selected.name}
         <ChevronDown size={14} color="var(--muted)" />
       </button>
 
@@ -680,13 +702,9 @@ export function ModelSelector({ value, onChange, options = [] }) {
                 style={{ background: option.id === value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }}
                 type="button"
               >
-<Image
-  src={option.icon}
-  alt={option.name}
-  width={20}
-  height={20}
-  className="w-5 h-5 rounded"
-/>                <div>
+<span aria-label={`${option.name} icon`} className="flex w-5 h-5 shrink-0 items-center justify-center rounded bg-blue-500 text-[9px] font-bold text-white">
+  {option.icon || option.name.slice(0, 2).toUpperCase()}
+</span>                <div>
                   <div className="text-sm font-semibold">{option.name}</div>
                   <div className="text-xs text-(--muted)">{option.description}</div>
                 </div>

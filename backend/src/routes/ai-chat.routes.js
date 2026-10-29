@@ -1,0 +1,20 @@
+import { Router } from "express";
+import rateLimit from "express-rate-limit";
+import { requireAuth } from "../middlewares/auth.js";
+import { validate } from "../middlewares/validate.js";
+import { conversationParamsSchema, createConversationSchema, listConversationsSchema, listMessagesSchema, regenerateSchema, sendMessageSchema, updateConversationSchema } from "../validators/aiChat.validator.js";
+import { getConversation, getConversations, getMessages, getModels, patchConversation, postConversation, postMessage, postRegenerate, removeConversation } from "../controllers/ai-chat.controller.js";
+
+const router = Router();
+const chatLimiter = rateLimit({ windowMs: 60_000, limit: 20, standardHeaders: "draft-7", legacyHeaders: false, keyGenerator: (req) => String(req.user._id) });
+router.use(requireAuth);
+router.get("/models", getModels);
+router.get("/conversations", validate(listConversationsSchema), getConversations);
+router.post("/conversations", validate(createConversationSchema), postConversation);
+router.get("/conversations/:conversationId", validate(conversationParamsSchema), getConversation);
+router.patch("/conversations/:conversationId", validate(updateConversationSchema), patchConversation);
+router.delete("/conversations/:conversationId", validate(conversationParamsSchema), removeConversation);
+router.get("/conversations/:conversationId/messages", validate(listMessagesSchema), getMessages);
+router.post("/chat", chatLimiter, validate(sendMessageSchema), postMessage);
+router.post("/conversations/:conversationId/messages/:messageId/regenerate", chatLimiter, validate(regenerateSchema), postRegenerate);
+export default router;
