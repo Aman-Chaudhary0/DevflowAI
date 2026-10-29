@@ -4,7 +4,8 @@
 >
 > **Truth rule:** Source code and tests are the authority for current implementation. A planned feature is not implemented merely because a route, model, UI, dependency, mock, or roadmap item exists. Clearly label verified, partial, mock-only, planned, and locally reported work.
 
-Last documentation audit: 2026-10-23  
+Last documentation audit: 2026-10-28
+
 Repository: \`Aman-Chaudhary0/DevflowAI\`  
 Audited remote branch: \`main\`  
 Primary product: AI-assisted developer workspace
@@ -97,7 +98,7 @@ The user reported that Phase 3 was implemented locally with:
 | Tasks and team collaboration | UI and models exist; end-to-end backend integration not verified | Planned Phase 5. |
 | Real-time collaboration | Socket.IO server bootstrap exists; product events/rooms not verified | Planned Phase 6. |
 | GitHub product integration | UI/mock layer exists; live OAuth/API integration not verified | Planned Phase 7. |
-| AI features | Shared service foundation implemented locally; AI tools remain mock-only | Phase 8 infrastructure is mock-tested; live provider, usage persistence, and later AI-tool phases remain unverified/planned. |
+| AI features | Phase 9 chat implemented on `feature/phase-9-ai-chat`; local Ollama/Qwen inference verified | Authenticated chat persistence and mocked-provider flows are tested; local Qwen responded successfully. Browser UX, OpenAI live access, usage analytics, and later AI tools remain unverified or planned. |
 | Editor/playground | UI exists; execution/security boundaries need implementation and verification | Planned Phase 12. |
 | Workflows and background jobs | UI and dependencies exist; production workflow execution not verified | Planned Phases 13–14. |
 | Deployments/domains | UI/mock flows exist; live provider integration not verified | Planned Phase 15. |
@@ -348,6 +349,7 @@ Reuse these components where appropriate. Avoid parallel components with overlap
 
 - \`components/auth-ui.jsx\`: reusable auth presentation and form states.
 - \`components/ai-ui.jsx\`: AI-specific interactive UI.
+- \`app/dashboard/ai/chat/page.jsx\`: Phase 9 authenticated conversation list, message loading, send/retry/cancel state, copy, export, and honest unavailable-context UI using the shared AI components.
 - \`components/remaining-pages.jsx\`: shared frontend-only implementations for several later product surfaces.
 - \`components/final-pages.jsx\`: shared simulations for later workspace/integration surfaces.
 - \`components/contact-form.jsx\`: contact form component.
@@ -377,6 +379,7 @@ The existing \`lib/api.js\` wrapper:
 - Throws an \`Error\` using the backend message or a generic fallback for non-success responses.
 - Exposes auth methods for registration, login, logout, current user, password reset, email verification, and resend verification.
 - Also exports mock helpers for AI, GitHub, project task/analytics fixtures, deployments, and domains.
+- Phase 9 adds \`api.ai\` methods for configured models, conversations, messages, send, regenerate, update, and delete. The AI Chat route uses these methods and does not fall back to mock AI data.
 
 When adding real APIs:
 - Extend this client rather than creating a second generic client.
@@ -392,7 +395,7 @@ When adding real APIs:
 
 | Path | Responsibility |
 |---|---|
-| \`backend/src/app.js\` | Express middleware and route registration |
+| \`backend/src/app.js\` | Express middleware and route registration, including authenticated \`/api/ai\` routes |
 | \`backend/src/server.js\` | Environment validation, database connection, HTTP/Socket.IO bootstrap, shutdown |
 | \`backend/src/config/db.js\` | MongoDB connection lifecycle |
 | \`backend/src/config/passport.js\` | OAuth strategy configuration |
@@ -453,6 +456,24 @@ The audited backend route file defines:
 
 Confirm exact request/response contracts in validators, controllers, and services before changing an endpoint. The presence of OAuth routes does not prove that provider credentials are configured in a deployed environment.
 
+### 8.4 AI Chat API (Phase 9 local branch)
+
+All `/api/ai` endpoints require `requireAuth` and derive ownership from `req.user._id`. JSON responses use the existing `{ statusCode, data, message, success }` envelope.
+
+| Method | Path | Contract |
+|---|---|---|
+| GET | `/api/ai/models` | Returns `{ configured, models: [{ id, name, provider }], availabilityMessage }`; Ollama models are listed only after checking local `/api/tags`. |
+| GET | `/api/ai/conversations?search=` | Lists at most 100 owner conversations, ordered pinned first then most recently updated; optional title search. |
+| POST | `/api/ai/conversations` | Body `{ model? }`; creates an empty conversation with the authenticated owner and `New chat` title. |
+| GET | `/api/ai/conversations/:conversationId` | Reads owner conversation metadata. |
+| PATCH | `/api/ai/conversations/:conversationId` | Body may contain `title` (1-120 chars) and/or `pinned` (boolean). |
+| DELETE | `/api/ai/conversations/:conversationId` | Permanently deletes the owned conversation and its messages. |
+| GET | `/api/ai/conversations/:conversationId/messages?limit=50&before=` | Returns ascending `{ messages, hasMore, nextBefore }`; limit 1-100; `before` is an ISO datetime cursor. |
+| POST | `/api/ai/chat` | Body `{ conversationId, content, model, requestId }`; `requestId` is a UUID used for idempotent user-message retries. Returns persisted user/assistant messages, updated conversation, provider/model, and provider-reported usage only when available. |
+| POST | `/api/ai/conversations/:conversationId/messages/:messageId/regenerate` | Body `{ model }`; regenerates the assistant response for its preceding user message and replaces the old response after success. |
+
+Generation errors preserve the submitted user message for retry and do not persist a failed assistant completion. Common errors include 400 validation/model errors, 401 authentication, 404 for missing or non-owned conversations, 429 request/provider rate limits, 503 unconfigured/unavailable provider, and 504 provider timeout. Ollama and OpenAI use non-streaming JSON responses. Browser abort is passed to provider fetch; only completed assistant output is stored. The provider may continue work if upstream cancellation is not honored. The model-list endpoint checks the configured Ollama model against the local `/api/tags` response.
+
 ## 9. Authentication and session behavior
 
 ### 9.1 Principles
@@ -510,6 +531,8 @@ The audited model index exports:
 - \`TaskComment\`
 - \`Notification\`
 - \`Activity\`
+
+Phase 9 adds \`AIConversation\` and \`AIMessage\` (not workspace-scoped; private to their authenticated owner). Conversations store owner, title, selected model, pin state, and timestamps, with an owner/update ordering index. Messages reference a conversation and store \`user\`/\`assistant\` role, content, optional model, user retry UUID, optional parent user-message reference, and creation time. Indexes support ordered conversation history and unique per-conversation user request IDs. Conversation deletion explicitly deletes its messages first. No token costs or estimated usage are persisted.
 
 The presence of a schema means the data shape has been started; it does not mean CRUD endpoints, authorization, UI wiring, storage, notifications, or business workflows are complete.
 
@@ -700,6 +723,8 @@ The backend example includes:
 - ImageKit public/private keys and URL endpoint
 - \`REDIS_URL\`
 
+Phase 8/9 AI configuration is optional and server-only. \`AI_PROVIDER\` supports \`ollama\` (default) and \`openai\`; the default model is \`qwen3:1.7b\` for Ollama and \`gpt-4o-mini\` for OpenAI. \`AI_API_KEY\` is required only for OpenAI. \`AI_REQUEST_TIMEOUT_MS\`, \`AI_MAX_INPUT_LENGTH\`, \`AI_MAX_OUTPUT_LENGTH\`, and \`AI_MAX_OUTPUT_TOKENS\` remain bounded server settings. Missing/unavailable Ollama or a model that is not installed is reported by \`/api/ai/models\`; generation returns a safe service-unavailable error. Never expose these values through \`NEXT_PUBLIC_*\`.
+
 The 2FA implementation also uses an encryption key setting in test/runtime logic; inspect the current encryption utility and deployment config for its exact name and production requirements.
 
 Never add real credentials to this document, source control, logs, or client-side code. Use placeholders only.
@@ -820,7 +845,7 @@ Maintain this matrix as phases are delivered. Status values must be updated from
 | Notifications | UI exists | Notification model | Not verified end-to-end |
 | Real-time | Existing server bootstrap | Socket.IO dependency | Basic connection only; product events not verified |
 | GitHub | Pages and mock data | OAuth hooks exist for login, not necessarily repository authorization | Live repository integration not verified |
-| AI | Multiple UI surfaces | No production AI service confirmed by this audit | Mock/demo behavior until proven otherwise |
+| AI | Multiple UI surfaces | Phase 8 provider abstraction and Phase 9 chat models/routes exist on local feature branch | Chat persistence and mocked-provider flow tested; live provider/browser verification incomplete. Other AI tools remain mock/demo-only. |
 | Editor/playground | UI exists | Safe execution backend not confirmed | Not production-ready until sandbox/security design is verified |
 | Workflows/jobs | UI exists | BullMQ/Redis dependencies | Durable execution not verified |
 | Deployments/domains | UI exists | External provider integration not confirmed | Mock/demo behavior until proven otherwise |
@@ -1041,6 +1066,8 @@ Acceptance:
 ### Phase 9 — AI chat
 
 **Goal:** Connect the existing AI chat page to a real conversation service.
+
+**Current local branch status (2026-10-28):** Implemented; mocked tests pass and local Ollama/Qwen inference is verified. Manual browser verification remains incomplete; live OpenAI behavior is not tested.
 
 Scope:
 - Conversation creation/list/detail and message persistence if supported by the approved design.
@@ -1380,6 +1407,8 @@ After a phase:
 - Create the next branch from the newly updated main.
 
 ## 20. Current next steps
+
+The ordered list below records the remote-main/Phase 3 reconciliation recommendation from an earlier audit. On the current `feature/phase-9-ai-chat` checkout, Phase 9 is implemented as recorded in section 3.4.12. First configure the backend AI provider and manually verify chat creation, persistence after refresh, model availability, provider failure, and cancellation. Then proceed to Phase 10 (AI developer tools) as defined above. Phase 9 does not complete Phase 10 or Phase 11.
 
 1. Reconcile the developer-reported Phase 3 local implementation with the remote repository. The audited remote \`main\) currently shows the earlier mock-based project pages and does not include the reported project API/service/test files.
 2. Ensure Phase 3 is pushed or merged through the agreed feature-branch workflow, not by silently editing main.
@@ -1833,3 +1862,47 @@ Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-a
 #### Next phase
 
 Phase 9 is **AI Chat**. It may connect the existing chat UI to this service after a separate design for authenticated conversation/message persistence, user-scoped history, request limits, cancellation/streaming needs, and response-field filtering. Phase 9 has not started.
+
+### 3.4.12 Phase 9 — AI Chat (implementation audit, 2026-10-28)
+
+**Status: Implemented; automated tests pass and local Ollama/Qwen inference is verified. Manual browser verification remains incomplete.** This entry describes the current local `feature/phase-9-ai-chat` checkout and supersedes the Phase 8 next-phase statement above. Earlier Phase 8 implementation history is retained.
+
+#### Objective and implementation
+
+- Connected the existing `/dashboard/ai/chat` page to authenticated persistent conversations. The route and overall chat layout remain; it uses the existing chat UI components and shared API client.
+- Added `GET /api/ai/models`, conversation list/create/detail/update/delete, message list with bounded cursor pagination, `POST /api/ai/chat`, and assistant regeneration. All are behind `requireAuth`, use validated payloads, and derive owner identity from `req.user`.
+- Added minimal `AIConversation` and `AIMessage` models. Conversation ownership, title, selected model, pin state, and timestamps are stored. Messages record role/content/model, creation time, retry UUID for user messages, and the parent user message for an assistant response. History is limited to the latest 20 messages sent to the provider; retrieval pages are limited to 100 messages. Conversation deletion removes its messages.
+- Chat calls the Phase 8 AI service with a server-selected Ollama or OpenAI adapter. Development defaults to local `qwen3:1.7b`; `/api/ai/models` confirms it is installed before offering it. OpenAI remains available by setting `AI_PROVIDER=openai` and a server-only API key. There is no provider fallback and endpoints are fixed server-side. The Ollama chat API is called with streaming disabled, so responses are ordinary JSON. Client abort signals reach provider fetch; late provider results after an abort or timeout are discarded before persistence, but upstream cancellation depends on provider behavior.
+- The first successful user request sets a deterministic title from the first message. Request UUIDs make repeated message submissions idempotent and avoid duplicate user/assistant records after a successful retry. Regeneration updates the existing assistant message after successful generation and retains its previous content if generation fails.
+- The frontend replaces mock chats/replies with API results; adds loading, empty, retry, send, cancel, copy, Markdown/text export, message regeneration, and refresh selection through a query parameter. PDF, attachments, voice input, project/repository context, folders, and feedback persistence are unavailable. No repository data is sent to the model. AI Hub fabricated token/health/time-saved metrics were removed; prompt starters now populate the existing chat composer and create an empty conversation.
+
+#### Files changed
+
+- Frontend: `app/dashboard/ai/chat/page.jsx`, `app/dashboard/ai/page.jsx`, `components/ai-ui.jsx`, `lib/api.js`.
+- Backend: `backend/src/app.js`, `backend/src/routes/ai-chat.routes.js`, `backend/src/controllers/ai-chat.controller.js`, `backend/src/services/ai-chat.service.js`, `backend/src/services/ai.service.js` (post-provider abort/timeout guard), `backend/src/validators/aiChat.validator.js`, `backend/src/models/AIConversation.js`, `backend/src/models/AIMessage.js`.
+- Tests: `backend/src/__tests__/ai.chat.test.js`.
+- Documentation: `PROJECT_CONTEXT.md`, `backend/README.md`, and `backend/.env.example`.
+
+#### Security, configuration, and limitations
+
+- Every private route checks the owner before reads, edits, deletion, messages, and generation; non-owned IDs return 404. Route schemas validate ObjectIds, content length, model IDs, UUID retry keys, title/pin fields, and page limits. JSON parsing has the existing 1 MB limit, generation/regeneration is limited to 20 requests per user per minute, and provider calls use the existing timeout/error normalization.
+- The existing server-only variables from Phase 8 are reused: `AI_PROVIDER` (`ollama` by default, or `openai`), `AI_MODEL` (defaults to `qwen3:1.7b` for Ollama and `gpt-4o-mini` for OpenAI), `AI_API_KEY` (OpenAI only), `AI_REQUEST_TIMEOUT_MS`, `AI_MAX_INPUT_LENGTH`, `AI_MAX_OUTPUT_LENGTH`, and `AI_MAX_OUTPUT_TOKENS`. Ollama uses the fixed loopback API on port 11434 and requires the model to be installed; OpenAI requires a valid server key. No key values were read or recorded.
+- Provider-reported token counts are returned when available; chat usage is not persisted and the AI Hub does not claim totals. Local Ollama `qwen3:1.7b` availability and one real generation through the shared AI service were verified in this development environment. Manual browser behavior and live OpenAI access were not verified. Mocked tests do not establish deployment connectivity.
+- Regeneration replaces an answer after the provider completes. The service does not persist partial assistant output. Feedback buttons show toast feedback but do not persist it. There is no folder/category support, PDF implementation, project context retrieval, or streaming UI.
+
+#### Automated validation record
+
+- `cd backend && npm test -- --runInBand src/__tests__/ai.chat.test.js` — passed: 7 tests covering persistence, retry idempotency, provider failure, validation/model rejection, HTTP authentication/ownership, regeneration, and late-provider cancellation using MongoDB Memory Server and mocked provider responses.
+- `cd backend && npm test -- --runInBand` — passed after the final backend source changes: 9 suites, 45 tests. The Node experimental VM Modules warning appeared.
+- `npm run lint` — passed after the final frontend changes; only the two existing `<img>` warnings were reported. Next.js reports `next lint` deprecation.
+- `npm run build` — passed; all 72 existing routes generated and no route was added. The same two image warnings appeared.
+- `node --check` on the changed backend service/controller/routes — passed. Final `git diff --check` result is recorded after the documentation preservation review.
+- A live local provider call was verified through the shared AI service. No manual browser check was performed. No commit or push was made.
+
+#### Next phase
+
+After manually verifying chat behavior in the browser, proceed to Phase 10 — AI developer tools. To switch from local Ollama to OpenAI later, configure `AI_PROVIDER=openai`, a supported `AI_MODEL`, and the server-only `AI_API_KEY`. Phase 9 does not mark Phase 10 or Phase 11 complete.
+
+#### Chat history sidebar follow-up (2026-10-28)
+
+The existing chat history sidebar was adjusted in `components/ai-ui.jsx` for fixed-width sizing, aligned heading/New Chat controls, contained search input, independently scrolling conversation list, truncated titles, and a distinct active-conversation state. A follow-up based on the supplied screenshot explicitly sets the sidebar to a vertical flex layout because project utility styles set `display:flex` but do not set `flex-direction`; this had placed the heading, button, search, and conversation list in a clipped row. Existing search, create, selection, and API behavior were preserved. Validation: `npm run lint` and `npm run build` passed; lint/build reported the existing `<img>` warnings in the two dashboard files pages. `git diff --check` passed. No manual browser verification was performed after the fix.

@@ -53,18 +53,26 @@ OAuth authorization uses single-use, ten-minute state records and PKCE S256. Acc
 
 Routes: `GET /api/github/connect`, `GET /api/github/callback`, `GET /api/github/status`, `DELETE /api/github/connection`, `GET /api/github/repositories`, `POST /api/github/sync`, `GET /api/github/repositories/by-id/:repositoryId`, and `GET /api/github/repositories/:owner/:repo/:resource` for detail, branches, commits, pull requests, issues, releases, contributors, and languages. Repository and list-resource endpoints accept `page` and `perPage` query parameters and return pagination metadata parsed from GitHub's `Link` response header. Page sizes are limited to 100; list pages default to 30. Repository synchronization is the only operation that follows multiple pages automatically, capped at 1,000 repositories.
 
-## Shared AI infrastructure (Phase 8)
+## AI Chat (Phases 8-9)
 
-The backend contains an internal AI service and an OpenAI Chat Completions adapter. The optional configuration below is read only when the service is called, so missing AI credentials do not prevent unrelated backend startup. Set `AI_API_KEY` in the backend's private `.env`; never use a `NEXT_PUBLIC_` variable or commit the secret. `AI_PROVIDER` currently supports only `openai`. The provider endpoint is fixed to `https://api.openai.com/v1/chat/completions`.
+The authenticated chat API reuses the centralized AI service and supports local Ollama or OpenAI. Local development defaults to Ollama at the fixed loopback endpoint `http://127.0.0.1:11434`, using `qwen3:1.7b`. Start Ollama and pull the model before starting a chat:
+
+```bash
+ollama pull qwen3:1.7b
+```
+
+The `/api/ai/models` endpoint checks that the configured Ollama model is installed before offering it to the UI. If it is unavailable, start Ollama or pull the model; no provider credentials are needed for local Ollama.
+
+To use OpenAI later, change `AI_PROVIDER` to `openai`, set `AI_MODEL` to a supported model, and provide `AI_API_KEY` in the backend's private `.env`. Never use a `NEXT_PUBLIC_` variable or commit the secret. Provider endpoints are fixed in the backend; the browser cannot set a provider URL or key.
 
 ```env
-AI_PROVIDER=openai
-AI_MODEL=gpt-4o-mini
+AI_PROVIDER=ollama
+AI_MODEL=qwen3:1.7b
 AI_API_KEY=
-AI_REQUEST_TIMEOUT_MS=30000
+AI_REQUEST_TIMEOUT_MS=120000
 AI_MAX_INPUT_LENGTH=20000
 AI_MAX_OUTPUT_LENGTH=40000
 AI_MAX_OUTPUT_TOKENS=2048
 ```
 
-Timeout is limited to 120 seconds; configurable input/output lengths and output tokens have hard upper bounds. The internal service returns content, provider/model, duration, completion status, finish reason, and provider-reported token counts when available. Missing usage is represented as unavailable. There is no public AI API route, streaming implementation, usage persistence, per-user quota, or live-provider verification in this phase; future authenticated routes must apply the existing `requireAuth`, Zod validation, and a user-keyed rate limit before calling the shared service.
+Timeout is limited to 120 seconds; configurable input/output lengths and output tokens have hard upper bounds. Ollama requests use `/api/chat` with streaming disabled and `num_predict` bounded by the server output limit. Its token counts are reported only when returned by Ollama. OpenAI uses Chat Completions and requires provider-reported API usage when available. Chat routes require authentication, validate input with Zod, enforce user ownership, and rate-limit generation. Streaming and persisted usage analytics are not implemented. Mocked provider tests do not verify a live Ollama or OpenAI runtime.

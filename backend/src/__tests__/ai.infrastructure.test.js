@@ -1,6 +1,6 @@
 import { jest } from "@jest/globals";
 import { getAIConfig } from "../config/ai.js";
-import { createOpenAIProvider } from "../services/ai-provider.service.js";
+import { createAIProvider, createOpenAIProvider, listConfiguredAIModels } from "../services/ai-provider.service.js";
 import { AIServiceError, createAIService } from "../services/ai.service.js";
 
 const baseConfig = {
@@ -16,16 +16,57 @@ const baseConfig = {
 
 describe("AI infrastructure", () => {
   it("accepts valid provider configuration and rejects unsafe or malformed values without exposing secrets", () => {
-    expect(getAIConfig({ AI_API_KEY: "secret-value", AI_MODEL: "gpt-test" })).toMatchObject({
+    expect(getAIConfig({ AI_PROVIDER: "openai", AI_API_KEY: "secret-value", AI_MODEL: "gpt-test" })).toMatchObject({
       provider: "openai", model: "gpt-test", endpoint: "https://api.openai.com/v1/chat/completions"
     });
+    expect(getAIConfig({ AI_PROVIDER: "ollama" })).toMatchObject({ provider: "ollama", model: "qwen3:1.7b", endpoint: "http://127.0.0.1:11434/api/chat" });
+    expect(getAIConfig({ AI_PROVIDER: "openai", AI_API_KEY: "secret-value" }).model).toBe("gpt-4o-mini");
+    expect(() => getAIConfig({ AI_PROVIDER: "openai" })).toThrow("AI_API_KEY");
+    expect(() => getAIConfig({ AI_PROVIDER: "ollama", AI_MODEL: "bad model" })).toThrow("AI_MODEL");
     expect(() => getAIConfig({ AI_API_KEY: "sensitive-key", AI_REQUEST_TIMEOUT_MS: "0" })).toThrow("AI_REQUEST_TIMEOUT_MS");
     expect(() => getAIConfig({ AI_API_KEY: "sensitive-key", AI_PROVIDER: "other" })).toThrow("AI_PROVIDER");
     try {
-      getAIConfig({ AI_API_KEY: "sensitive-key\nforged" });
+      getAIConfig({ AI_PROVIDER: "openai", AI_API_KEY: "sensitive-key\nforged" });
     } catch (error) {
       expect(error.message).not.toContain("sensitive-key");
     }
+  });
+
+  it("sends non-streaming chat to local Ollama and normalizes real token metadata", async () => {
+    const config = getAIConfig({ AI_PROVIDER: "ollama", AI_MODEL: "qwen3:1.7b" });
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        model: "qwen3:1.7b",
+        message: { role: "assistant", thinking: "private reasoning", content: "Ollama response" },
+        done: true,
+        done_reason: "stop",
+        prompt_eval_count: 12,
+        eval_count: 8
+      })
+    });
+    const provider = createAIProvider({ config, fetchImpl });
+    const result = await provider.generate({ messages: [{ role: "user", content: "hello" }], maxOutputTokens: 64 });
+    const [url, request] = fetchImpl.mock.calls[0];
+    expect(url).toBe("http://127.0.0.1:11434/api/chat");
+    expect(request.headers.Authorization).toBeUndefined();
+    expect(JSON.parse(request.body)).toMatchObject({
+      model: "qwen3:1.7b", stream: false, think: false, options: { num_predict: 64 }
+    });
+    expect(result).toMatchObject({
+      content: "Ollama response", provider: "ollama", model: "qwen3:1.7b", finishReason: "stop",
+      usage: { inputTokens: 12, outputTokens: 8, totalTokens: 20, source: "provider" }
+    });
+    expect(JSON.stringify(result)).not.toContain("private reasoning");
+  });
+
+  it("checks the configured local model against Ollama's installed model list", async () => {
+    const config = getAIConfig({ AI_PROVIDER: "ollama", AI_MODEL: "qwen3:1.7b" });
+    const fetchImpl = jest.fn().mockResolvedValue({ ok: true, json: async () => ({ models: [{ name: "qwen3:1.7b", model: "qwen3:1.7b" }] }) });
+    await expect(listConfiguredAIModels({ config, fetchImpl })).resolves.toEqual([{ id: "qwen3:1.7b", name: "qwen3:1.7b", provider: "ollama" }]);
+    fetchImpl.mockResolvedValueOnce({ ok: true, json: async () => ({ models: [] }) });
+    await expect(listConfiguredAIModels({ config, fetchImpl })).resolves.toEqual([]);
+    expect(fetchImpl.mock.calls[0][0]).toBe("http://127.0.0.1:11434/api/tags");
   });
 
   it("normalizes successful provider output and provider-reported usage", async () => {
