@@ -2558,7 +2558,6 @@ select {
 .schema-list details {
   border: 1px solid var(--border);
   border-radius: 8px;
-  overflow: hidden;
 }
 
 .schema-list summary {

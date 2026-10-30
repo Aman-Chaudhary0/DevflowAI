@@ -14,11 +14,8 @@ import {
   ToastContainer, toast
 } from "@/components/dashboard-ui";
 import { Crumb, Drawer } from "@/components/workspace-primitives";
-import {
-  helpArticles, integrationData, searchItems, sqlHistory, sqlTables
-} from "@/lib/mock/remaining-pages";
-
-const sql = `SELECT\n  u.id,\n  u.name,\n  SUM(o.total) AS total_spent\nFROM users u\nJOIN orders o ON o.user_id = u.id\nWHERE o.created_at >= CURRENT_DATE - INTERVAL '30 days'\nGROUP BY u.id, u.name\nORDER BY total_spent DESC\nLIMIT 10;`;
+import { helpArticles, integrationData, searchItems, sqlTables } from "@/lib/mock/remaining-pages";
+import { api } from "@/lib/api";
 
 // ─── SQL Generator ────────────────────────────────────────────────────────────
 
@@ -30,46 +27,47 @@ export function SQLGenerator() {
   const [selected, setSelected] = useState(["users", "orders"]);
   const [tab, setTab] = useState("SQL");
   const [loading, setLoading] = useState(false);
-  const [generated, setGenerated] = useState(true);
-  const [history, setHistory] = useState(sqlHistory);
+  const [generated, setGenerated] = useState(false);
+  const [result, setResult] = useState(null);
+  const [history, setHistory] = useState([]);
   const [confirm, setConfirm] = useState(null);
 
-  const generate = () => {
+  const generate = async () => {
     if (!prompt.trim()) return toast("Describe the data you need first.", "warning");
+    if (loading) return;
     setLoading(true);
     setGenerated(false);
-    setTimeout(() => {
+    try {
+      const schema = sqlTables.filter((table) => selected.includes(table.name)).map((table) => `${table.name}(${table.fields.join(", ")})`).join("\n");
+      const response = await api.ai.tools.generateSQL({ prompt, dialect: database, schema });
+      setResult(response.data?.result);
       setLoading(false);
       setGenerated(true);
       setHistory(prev => [[prompt, database, "Just now"], ...prev]);
       toast("Query generated successfully.");
-    }, 1400);
+    } catch (error) { setLoading(false); toast(error.message || "SQL generation failed", "error"); }
   };
 
   const copy = () => {
-    navigator.clipboard?.writeText(sql);
+    navigator.clipboard?.writeText(result?.sql || "");
     toast("SQL copied to clipboard.");
   };
 
   const tabContent = {
-    SQL: <pre className="sql-code">{sql}</pre>,
+    SQL: <pre className="sql-code">{result?.sql || ""}</pre>,
     Explanation: (
       <div className="result-copy">
         <p>
-          This query joins users to their orders, considers only orders from the
-          last 30 days, then totals spending for each user.
+          {result?.explanation || "No explanation provided."}
         </p>
         <p>
-          Results are ordered from highest total spending to lowest and limited
-          to the top ten customers.
+          Tables: {(result?.tables || []).join(", ") || "Not specified"}. Joins: {(result?.joins || []).join(", ") || "Not specified"}.
         </p>
       </div>
     ),
     Optimization: (
       <ul className="result-copy">
-        <li>Add an index on <code>orders.user_id</code>.</li>
-        <li>Add a composite index on <code>orders.created_at, user_id</code>.</li>
-        <li>The selected columns avoid unnecessary payload.</li>
+        {(result?.performanceConcerns || []).map((item, index) => <li key={index}>{item}</li>)}
       </ul>
     ),
     Indexes: (
@@ -118,8 +116,8 @@ export function SQLGenerator() {
                 <option>MySQL</option>
               </select>
             </label>
-            <span className="badge">
-              <Database size={14} /> Project schema
+              <span className="badge">
+              <Database size={14} /> Example schema
             </span>
           </div>
 
@@ -202,7 +200,7 @@ export function SQLGenerator() {
             <div>
               <h2 className="tool-title">Generated SQL</h2>
               <span className="safe-indicator">
-                <ShieldCheck size={14} /> Safe query · 98/100
+                <ShieldCheck size={14} /> {result ? `AI classification: ${result.safety.classification}` : "Safety assessment appears after generation"}
               </span>
             </div>
             <div className="flex gap-1">
@@ -210,7 +208,7 @@ export function SQLGenerator() {
                 <Copy size={15} />
               </button>
               <button
-                onClick={() => toast("SQL file downloaded.")}
+                onClick={() => { if (!result?.sql) return; const blob = new Blob([result.sql], { type: "text/sql" }); const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = "generated-query.sql"; link.click(); URL.revokeObjectURL(url); }}
                 className="icon-btn small-icon"
                 aria-label="Download SQL"
               >
@@ -259,8 +257,8 @@ export function SQLGenerator() {
 
           <div className="safety-box">
             <strong>SQL Safety</strong>
-            <span>98/100</span>
-            <p>✓ No destructive operations · ✓ Parameterized values · ✓ Reasonable complexity</p>
+            <span>{result?.safety.classification || "Not assessed"}</span>
+            <p>{(result?.safety.warnings || []).join(" · ") || "Generated SQL is untrusted and has not been executed."}</p>
           </div>
         </div>
       </section>
@@ -269,7 +267,7 @@ export function SQLGenerator() {
       <section className="card card-pad mt-6">
         <div className="flex justify-between items-center">
           <h2 className="tool-title">Recent Queries</h2>
-          <span className="muted text-sm">Local workspace history</span>
+          <span className="muted text-sm">This session</span>
         </div>
         <div className="table-scroll">
           <table className="data-table">

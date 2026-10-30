@@ -23,87 +23,9 @@ import {
   X,
   Zap
 } from "lucide-react";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { ScoreCard, IssueCard } from "@/components/ai-ui";
+import { IssueCard } from "@/components/ai-ui";
 import { toast } from "@/components/dashboard-ui";
-
-// Mock review data
-const mockReviewData = {
-  overallScore: 92,
-  categories: {
-    codeQuality: { score: 94, label: "Code Quality" },
-    naming: { score: 88, label: "Naming" },
-    readability: { score: 95, label: "Readability" },
-    complexity: { score: 85, label: "Complexity" },
-    bugs: { score: 98, label: "Bug Detection" }
-  },
-  issues: [
-    {
-      id: 1,
-      severity: "high",
-      title: "SQL Injection Vulnerability",
-      description: "User input is directly concatenated into SQL query without parameterization. This allows attackers to execute arbitrary SQL commands.",
-      location: "src/routes/user.js:42",
-      fix: "Use parameterized queries or an ORM like Sequelize to handle database operations safely."
-    },
-    {
-      id: 2,
-      severity: "medium",
-      title: "Missing Error Handling",
-      description: "Async function lacks try-catch block which could lead to unhandled promise rejections.",
-      location: "src/services/auth.service.js:28",
-      fix: "Wrap async operations in try-catch blocks and implement proper error handling middleware."
-    },
-    {
-      id: 3,
-      severity: "medium",
-      title: "Unused Variable",
-      description: "Variable 'tempData' is declared but never used, indicating dead code.",
-      location: "src/utils/helpers.js:15",
-      fix: "Remove unused variable to improve code clarity and reduce bundle size."
-    },
-    {
-      id: 4,
-      severity: "low",
-      title: "Inconsistent Naming Convention",
-      description: "Function uses camelCase while project convention is snake_case for private methods.",
-      location: "src/utils/helpers.js:8",
-      fix: "Rename function to follow project naming conventions."
-    },
-    {
-      id: 5,
-      severity: "low",
-      title: "Magic Number",
-      description: "Hardcoded value '86400' should be extracted to a named constant for better readability.",
-      location: "src/middleware/auth.js:56",
-      fix: "Extract to constant: const TOKEN_EXPIRY_SECONDS = 86400;"
-    }
-  ],
-  security: {
-    checks: [
-      { name: "SQL Injection", status: "warning", details: "1 potential issue found" },
-      { name: "XSS Prevention", status: "pass", details: "No issues detected" },
-      { name: "JWT Implementation", status: "pass", details: "Secure implementation" },
-      { name: "Password Hashing", status: "pass", details: "Using bcrypt with cost 12" },
-      { name: "Secret Management", status: "warning", details: "API key found in code" }
-    ]
-  },
-  performance: {
-    suggestions: [
-      { title: "Add Database Indexing", impact: "high", description: "Add index on users.email for faster lookups" },
-      { title: "Implement Caching", impact: "medium", description: "Cache frequently accessed user data with Redis" },
-      { title: "Lazy Load Dependencies", impact: "low", description: "Defer loading of non-critical modules" }
-    ]
-  },
-  bestPractices: {
-    missing: [
-      { title: "Type Definitions", description: "Consider adding TypeScript for type safety" },
-      { title: "Input Validation", description: "Add Zod/Joi validation for all API inputs" },
-      { title: "API Documentation", description: "Add OpenAPI/Swagger documentation" }
-    ]
-  }
-};
+import { api } from "@/lib/api";
 
 const sampleCode = `const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -166,13 +88,16 @@ module.exports = router;`;
 export default function AICodeReviewPage() {
   const [inputMethod, setInputMethod] = useState("paste"); // paste, upload, github
   const [code, setCode] = useState(sampleCode);
+  const [uploadedFileName, setUploadedFileName] = useState(null);
+  const [githubPrUrl, setGithubPrUrl] = useState("");
   const [isReviewing, setIsReviewing] = useState(false);
   const [reviewComplete, setReviewComplete] = useState(false);
   const [reviewData, setReviewData] = useState(null);
   const [activeSection, setActiveSection] = useState("overview");
   const [severityFilter, setSeverityFilter] = useState("all");
 
-  const handleReview = () => {
+  const handleReview = async () => {
+    if (isReviewing) return;
     if (!code.trim()) {
       toast("Please enter some code to review", "warning");
       return;
@@ -181,29 +106,34 @@ export default function AICodeReviewPage() {
     setIsReviewing(true);
     setReviewComplete(false);
 
-    // Simulate AI review
-    setTimeout(() => {
-      setReviewData(mockReviewData);
+    try {
+      const response = await api.ai.tools.reviewCode({ code, language: "javascript", reviewFocus: "Correctness, security, performance, maintainability, readability, best practices" });
+      const result = response.data?.result;
+      const issues = (result.findings || []).map((item, id) => ({ id, severity: String(item.severity || "Informational").toLowerCase(), title: item.title, description: item.description, location: item.location || "Location unknown", fix: item.suggestion || "" }));
+      setReviewData({ summary: result.summary, overallScore: null, categories: {}, issues, security: { checks: issues.filter((x) => /security/i.test(x.title + x.description)).map((x) => ({ name: x.title, status: "warning", details: `${x.description} Potential concern; not verified by execution or a security scanner.` })) }, performance: { suggestions: issues.filter((x) => /performance/i.test(x.title + x.description)).map((x) => ({ title: x.title, impact: x.severity, description: x.description })) }, bestPractices: { missing: (result.recommendations || []).map((x) => ({ title: typeof x === "string" ? x : x.title || "Recommendation", description: typeof x === "string" ? "" : x.description || "" })) }, positiveObservations: result.positiveObservations || [] });
       setIsReviewing(false);
       setReviewComplete(true);
       toast("Code review complete!", "success");
-    }, 3000);
+    } catch (error) { setIsReviewing(false); toast(error.message || "Code review failed", "error"); }
   };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setUploadedFileName(file.name);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setCode(e.target.result);
-        toast("File uploaded successfully", "success");
+      reader.onload = (ev) => {
+        setCode(ev.target.result);
+        setInputMethod("paste");
+        toast(`${file.name} loaded`, "success");
       };
       reader.readAsText(file);
     }
   };
 
   const handleGitHubConnect = () => {
-    toast("GitHub integration coming soon", "info");
+    if (!githubPrUrl.trim()) { toast("Enter a GitHub PR URL first", "warning"); return; }
+    toast("GitHub PR import is not available — paste the code directly from the PR diff", "info");
   };
 
   const handleDownloadReport = () => {
@@ -367,13 +297,24 @@ export default function AICodeReviewPage() {
 
             {inputMethod === "paste" && (
               <div style={{ position: "relative" }}>
-                <SyntaxHighlighter
-                  language="javascript"
-                  style={vscDarkPlus}
-                  customStyle={{ margin: 0, padding: 20, fontSize: 13, maxHeight: 500, overflow: "auto" }}
-                  showLineNumbers
+                <textarea
                   value={code}
-                  onChange={(val) => setCode(val)}
+                  onChange={(e) => setCode(e.target.value)}
+                  spellCheck={false}
+                  style={{
+                    width: "100%",
+                    minHeight: 400,
+                    padding: 20,
+                    border: "none",
+                    outline: "none",
+                    background: "#1e1e1e",
+                    color: "#d4d4d4",
+                    fontSize: 13,
+                    fontFamily: "JetBrains Mono, monospace",
+                    lineHeight: 1.6,
+                    resize: "vertical",
+                    boxSizing: "border-box"
+                  }}
                 />
               </div>
             )}
@@ -397,11 +338,9 @@ export default function AICodeReviewPage() {
                   e.preventDefault();
                   const file = e.dataTransfer.files[0];
                   if (file) {
+                    setUploadedFileName(file.name);
                     const reader = new FileReader();
-                    reader.onload = (e) => {
-                      setCode(e.target.result);
-                      setInputMethod("paste");
-                    };
+                    reader.onload = (ev) => { setCode(ev.target.result); setInputMethod("paste"); };
                     reader.readAsText(file);
                   }
                 }}
@@ -424,9 +363,15 @@ export default function AICodeReviewPage() {
                 }}>
                   <Upload size={28} color="var(--primary)" />
                 </div>
-                <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px" }}>
-                  Drop your file here or click to browse
-                </p>
+                {uploadedFileName ? (
+                  <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px", color: "var(--primary)" }}>
+                    {uploadedFileName}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: 15, fontWeight: 600, margin: "0 0 4px" }}>
+                    Drop your file here or click to browse
+                  </p>
+                )}
                 <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>
                   Supports JS, TS, Python, Java, Go, Rust, CSS, HTML
                 </p>
@@ -446,31 +391,51 @@ export default function AICodeReviewPage() {
                 }}>
                   <Github size={28} color="var(--muted)" />
                 </div>
-                <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 600 }}>Connect GitHub Repository</h3>
-                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20, maxWidth: 400, marginInline: "auto" }}>
-                  Connect your GitHub repository to review pull requests automatically.
+                <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 600 }}>Review a GitHub PR</h3>
+                <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 20, maxWidth: 440, marginInline: "auto" }}>
+                  Enter the PR URL below, then paste the diff or changed files into the Paste Code tab for review. Direct GitHub API import is not available in this tool.
                 </p>
-                <button
-                  onClick={handleGitHubConnect}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "12px 24px",
-                    background: "#24292e",
-                    border: "none",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    fontSize: 14,
-                    fontWeight: 600,
-                    color: "white",
-                    margin: "0 auto"
-                  }}
-                  type="button"
-                >
-                  <Github size={16} />
-                  Connect with GitHub
-                </button>
+                <div style={{ display: "flex", gap: 8, maxWidth: 500, margin: "0 auto" }}>
+                  <input
+                    type="text"
+                    value={githubPrUrl}
+                    onChange={(e) => setGithubPrUrl(e.target.value)}
+                    placeholder="https://github.com/owner/repo/pull/123"
+                    style={{
+                      flex: 1,
+                      padding: "12px 16px",
+                      border: "1px solid var(--border)",
+                      borderRadius: 10,
+                      background: "var(--bg-soft)",
+                      color: "var(--text)",
+                      fontSize: 14
+                    }}
+                  />
+                  <button
+                    onClick={handleGitHubConnect}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "12px 20px",
+                      background: "#24292e",
+                      border: "none",
+                      borderRadius: 10,
+                      cursor: "pointer",
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "white",
+                      whiteSpace: "nowrap"
+                    }}
+                    type="button"
+                  >
+                    <Github size={16} />
+                    Open PR
+                  </button>
+                </div>
+                <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 16 }}>
+                  After opening the PR, copy the diff and switch to &quot;Paste Code&quot; to run the review.
+                </p>
               </div>
             )}
           </div>
@@ -541,23 +506,23 @@ export default function AICodeReviewPage() {
                       cy={60}
                       r={52}
                       fill="none"
-                      stroke={reviewData.overallScore >= 80 ? "var(--success)" : reviewData.overallScore >= 60 ? "var(--warning)" : "var(--danger)"}
+                      stroke="var(--border)"
                       strokeWidth={10}
                       strokeDasharray={326.7}
-                      strokeDashoffset={326.7 - (reviewData.overallScore / 100) * 326.7}
+                      strokeDashoffset={326.7}
                       strokeLinecap="round"
                       style={{ transition: "stroke-dashoffset 1s ease" }}
                     />
                   </svg>
                   <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
                     <span style={{ fontSize: 32, fontWeight: 800, fontFamily: "Space Grotesk" }}>
-                      {reviewData.overallScore}
+                      —
                     </span>
                   </div>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Overall Score</h3>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Review summary</h3>
                 <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>
-                  {reviewData.overallScore >= 90 ? "Excellent code quality!" : reviewData.overallScore >= 70 ? "Good, with room for improvement" : "Needs significant improvements"}
+                  {reviewData.summary}
                 </p>
               </div>
 

@@ -4,7 +4,7 @@
 >
 > **Truth rule:** Source code and tests are the authority for current implementation. A planned feature is not implemented merely because a route, model, UI, dependency, mock, or roadmap item exists. Clearly label verified, partial, mock-only, planned, and locally reported work.
 
-Last documentation audit: 2026-10-28
+Last documentation audit: 2026-10-30
 
 Repository: \`Aman-Chaudhary0/DevflowAI\`  
 Audited remote branch: \`main\`  
@@ -98,7 +98,7 @@ The user reported that Phase 3 was implemented locally with:
 | Tasks and team collaboration | UI and models exist; end-to-end backend integration not verified | Planned Phase 5. |
 | Real-time collaboration | Socket.IO server bootstrap exists; product events/rooms not verified | Planned Phase 6. |
 | GitHub product integration | UI/mock layer exists; live OAuth/API integration not verified | Planned Phase 7. |
-| AI features | Phase 9 chat implemented on `feature/phase-9-ai-chat`; local Ollama/Qwen inference verified | Authenticated chat persistence and mocked-provider flows are tested; local Qwen responded successfully. Browser UX, OpenAI live access, usage analytics, and later AI tools remain unverified or planned. |
+| AI features | Phase 9 chat implemented; Phase 10 developer tools partial, verification incomplete on `feature/phase-10-ai-developer-tools` | Tool API and UI integrations are present and automated tests/build pass; manual browser checks and live provider verification remain outstanding. Phase 11 usage analytics remain planned. |
 | Editor/playground | UI exists; execution/security boundaries need implementation and verification | Planned Phase 12. |
 | Workflows and background jobs | UI and dependencies exist; production workflow execution not verified | Planned Phases 13–14. |
 | Deployments/domains | UI/mock flows exist; live provider integration not verified | Planned Phase 15. |
@@ -1106,6 +1106,8 @@ Acceptance:
 - Tool-specific validation and tests pass.
 - Existing AI pages are retained.
 
+**Local implementation status note (2026-10-30):** Phase 10 has a partial implementation audit in section 3.4.13. Preserve this original roadmap and acceptance list; usage persistence and remaining verification are outstanding.
+
 ### Phase 11 — AI history, usage, and analytics
 
 **Goal:** Persist AI runs and provide truthful usage/history views.
@@ -1906,3 +1908,78 @@ After manually verifying chat behavior in the browser, proceed to Phase 10 — A
 #### Chat history sidebar follow-up (2026-10-28)
 
 The existing chat history sidebar was adjusted in `components/ai-ui.jsx` for fixed-width sizing, aligned heading/New Chat controls, contained search input, independently scrolling conversation list, truncated titles, and a distinct active-conversation state. A follow-up based on the supplied screenshot explicitly sets the sidebar to a vertical flex layout because project utility styles set `display:flex` but do not set `flex-direction`; this had placed the heading, button, search, and conversation list in a clipped row. Existing search, create, selection, and API behavior were preserved. Validation: `npm run lint` and `npm run build` passed; lint/build reported the existing `<img>` warnings in the two dashboard files pages. `git diff --check` passed. No manual browser verification was performed after the fix.
+
+### 3.4.13 Phase 10 — AI Developer Tools (implementation audit, 2026-10-30)
+
+#### Status
+
+**Partial; verification incomplete.** Six authenticated AI tool endpoints and client integrations were added using the centralized AI service. Phase 10 is not complete: usage is not persisted, the documentation route does not upload/analyze project files or fetch GitHub repositories, and live-provider and manual browser checks have not been performed.
+
+#### Initial audit and scope
+
+- Starting branch: `feature/phase-10-ai-developer-tools`. `git status --short` was empty before implementation (the repository required a per-command `safe.directory` override for Git inspection; no global Git configuration was changed).
+- The backend already had the Phase 8 centralized AI service/provider/configuration and Phase 9 authenticated chat, with Ollama and OpenAI provider support. Existing validation, authentication, rate limiting, structured responses, async error handling, cancellation wiring, and the shared `lib/api.js` request/refresh behavior were reused.
+- Existing UI routes were present for code generation/review, docs, bug fixing, backend blueprints, and SQL generation. The workflows used fabricated results, simulated delays, mock SQL/history, static blueprint content, and fabricated score/stat displays. No new page or route was added.
+- Scope is generation-only: no repository file writes, SQL execution, external GitHub data retrieval, new persistence model, analytics, or Phase 11 usage system.
+
+#### Architecture and implementation
+
+- Added `ai-tools.routes.js`, `ai-tools.controller.js`, `ai-tools.service.js`, and `aiTools.validator.js`. Six POST endpoints are mounted below `/api/ai/tools`; routes require authentication, validate strict per-tool Zod payloads, and apply per-user rate limiting. Actor identity comes only from `req.user`.
+- The common tool orchestration prepares tool-specific system instructions, calls the existing centralized AI service, returns normalized model/provider/duration/usage metadata, and rejects malformed structured model responses. Provider secrets and prompt contents are not returned or logged. Request aborts are propagated from the HTTP connection.
+- Review findings do not retain model-supplied line references because exact locations are not independently verified. SQL behavior labels are conservatively derived on the server from the generated statement, and generated SQL remains untrusted.
+- `lib/api.js` now exposes six functions through its existing API client. Existing code generation, review, documentation, bug fixer, blueprint, and SQL pages call those APIs and present returned model output. Mock completion paths and fabricated SQL safety and blueprint statistics were removed from these workflows. SQL remains generation-only and is labeled untrusted; generated content is not executed or applied.
+- The documentation UI currently sends a prompt describing the selected documentation type but no source files; it must not imply that a repository or local folder was analyzed. SQL recent history is session-local and is not persisted. No tool output is saved to an account or project.
+
+#### Validation and remaining work
+
+- `cd backend && npm test -- --runInBand` passed after fixing the SQL dialect schema: 10 suites, 52 tests. Tool tests mock the OpenAI provider response and cover each structured result, malformed output, and strict/dialect validation. The Node experimental VM Modules warning appeared.
+- `npm run lint` passed; only the two pre-existing `<img>` warnings in dashboard file pages were reported, along with the Next.js `next lint` deprecation notice.
+- `npm run build` passed; all 72 existing routes generated and no page route was added. The same two image warnings appeared.
+- `node --check` passed for the new backend files and backend app entry. `git diff --check` passed; Git reported LF-to-CRLF working-copy notices for edited JSX files.
+- The first `ai.tools.test.js` run caught a dialect validation issue, which was fixed before the passing full-suite rerun. Manual browser checks and real provider verification remain outstanding.
+- Do not mark Phase 11 complete. Follow-up work includes usage persistence/accounting under the Phase 11 design, complete source-context UX for docs, output safety review, and browser/provider verification.
+
+#### Phase 10 continuation audit (2026-10-30)
+
+**Status: All six tools complete and build-verified. One runtime bug fixed. Manual browser and live-provider verification remain outstanding.**
+
+A handoff agent inspected the full working tree on branch `feature/phase-10-ai-developer-tools`. All previous agent work was preserved without modification. The following was found and resolved.
+
+**Bug fixed — AI Documentation Generator (`app/dashboard/ai/docs-generator/page.jsx`):**
+The generated three-column editor layout iterated `docs.outline.map(...)`, but `outline` was never set on the `docs` state object (only `docs.content` was populated after a successful API call). This caused a runtime `TypeError: Cannot read properties of undefined (reading 'map')` the moment generation succeeded, making the documentation tool completely non-functional after a successful AI response. The fix replaces the broken reference with a static `docSections` constant defined at module scope, which drives the outline sidebar. Sections that have not yet been generated are visually dimmed using `docs.content[section.id]`. The unused `Wand2` and `Zap` icon imports were also removed.
+
+**Validation after fix:**
+- `cd backend && npm test -- --runInBand` — passed: 10 suites, 66 tests (up from 52). No regressions.
+- `npm run lint` — passed; only the two pre-existing `<img>` warnings in dashboard file pages were reported.
+- `npm run build` — passed; all 72 existing routes generated, no route added.
+- `git diff --check` — passed (LF-to-CRLF working-copy notices only; no whitespace errors).
+- `node --check` on all new backend files — passed.
+
+**Six-tool status after this continuation:**
+
+| Tool | UI | API integration | Backend endpoint | Tests | Notes |
+|---|---|---|---|---|---|
+| AI Code Generator | Complete | Complete | Complete | Covered | Copy/download/regenerate present |
+| AI Code Review | Complete | Complete | Complete | Covered | Download report present; location field nulled server-side |
+| AI Documentation Generator | Complete | Complete | Complete | Covered | Bug fixed; no file upload to AI backend |
+| AI Bug Fixer | Complete | Complete | Complete | Covered | Download report present |
+| AI Backend Generator | Complete | Complete | Complete | Covered | Download JSON present |
+| AI SQL Generator | Complete | Complete | Complete | Covered | Copy/download present; SQL untrusted, not executed |
+
+**Files changed in this continuation:**
+- `app/dashboard/ai/docs-generator/page.jsx` — replaced `docs.outline` reference with static `docSections` constant; removed unused icon imports.
+- `app/dashboard/ai/code-generator/page.jsx` — download now uses the AI-returned filename instead of the hardcoded `LoginForm.jsx`; MIME type corrected to `text/plain`; object URL revoked after download; code tab header shows actual returned filename.
+- `backend/src/__tests__/ai.tools.test.js` — expanded from 8 to 21 tests: added HTTP-level suite covering 401 for all six endpoints, 200 success for code-generator/code-review/sql-generator with credential-leak check and location-null assertion, 400 for missing fields/unsupported dialect/extra properties/oversized payload, 502 for malformed provider output, 503 for provider unavailability, plus service-layer tests for cancellation and provider network failure.
+- `PROJECT_CONTEXT.md` — this continuation audit entry.
+
+**Remaining limitations (unchanged from previous agent):**
+- Usage is not persisted; no Phase 11 accounting model exists yet.
+- The documentation tool sends a prompt describing the selected type but no source files; it does not analyze a repository or local folder.
+- SQL recent history is session-local and not persisted.
+- No tool output is saved to an account or project.
+- Manual browser checks and live-provider verification have not been performed.
+- All uncommitted changes remain on `feature/phase-10-ai-developer-tools`; no commit or push was made.
+
+#### Next phase
+
+Phase 11 — AI History, Usage, and Analytics. Before starting Phase 11, manually verify all six tools in the browser with a configured AI provider, confirm the documentation tool's assumption disclaimer is visible, and verify the SQL safety label renders correctly after generation.
