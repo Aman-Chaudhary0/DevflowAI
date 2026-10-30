@@ -24,6 +24,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { MarkdownContent } from "@/components/ai-ui";
 import { toast } from "@/components/dashboard-ui";
+import { api } from "@/lib/api";
 
 // Language options
 const languageOptions = [
@@ -73,180 +74,6 @@ const outputOptions = [
   { id: "full-app", name: "Full Application" }
 ];
 
-// Mock generated code
-const mockGeneratedCode = `import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-
-// Validation schema
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain uppercase')
-    .regex(/[a-z]/, 'Password must contain lowercase')
-    .regex(/[0-9]/, 'Password must contain a number'),
-  rememberMe: z.boolean().optional()
-});
-
-export default function LoginForm({ onSubmit, isLoading }) {
-  const [showPassword, setShowPassword] = useState(false);
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isValid, isSubmitting },
-    setError,
-    clearErrors
-  } = useForm({
-    resolver: zodResolver(loginSchema),
-    mode: 'onChange'
-  });
-
-  const handleFormSubmit = async (data) => {
-    try {
-      clearErrors();
-      await onSubmit?.(data);
-    } catch (error) {
-      setError('root', {
-        type: 'manual',
-        message: error.message || 'Login failed'
-      });
-    }
-  };
-
-  return (
-    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-      {/* Email Field */}
-      <div className="form-field">
-        <label htmlFor="email" className="form-label">
-          Email Address
-        </label>
-        <input
-          id="email"
-          type="email"
-          autoComplete="email"
-          className={\`form-input \${errors.email ? 'error' : ''}\`}
-          {...register('email')}
-          placeholder="you@example.com"
-        />
-        {errors.email && (
-          <span className="form-error">{errors.email.message}</span>
-        )}
-      </div>
-
-      {/* Password Field */}
-      <div className="form-field">
-        <label htmlFor="password" className="form-label">
-          Password
-        </label>
-        <div className="password-input-wrapper">
-          <input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="current-password"
-            className={\`form-input \${errors.password ? 'error' : ''}\`}
-            {...register('password')}
-            placeholder="Enter your password"
-          />
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="password-toggle"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
-          >
-            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </div>
-        {errors.password && (
-          <span className="form-error">{errors.password.message}</span>
-        )}
-      </div>
-
-      {/* Remember Me & Forgot Password */}
-      <div className="form-options">
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            {...register('rememberMe')}
-            className="checkbox-input"
-          />
-          <span>Remember me for 30 days</span>
-        </label>
-        <a href="/forgot-password" className="forgot-link">
-          Forgot password?
-        </a>
-      </div>
-
-      {/* Root Error */}
-      {errors.root && (
-        <div className="root-error" role="alert">
-          {errors.root.message}
-        </div>
-      )}
-
-      {/* Submit Button */}
-      <button
-        type="submit"
-        disabled={isSubmitting || isLoading || !isValid}
-        className="btn btn-primary btn-full"
-      >
-        {isSubmitting || isLoading ? (
-          <>
-            <Loader2 className="spin" size={18} />
-            Signing in...
-          </>
-        ) : (
-          'Sign In'
-        )}
-      </button>
-    </form>
-  );
-}`;
-
-const mockExplanation = `## Code Explanation
-
-This login form component implements a production-ready authentication UI with the following features:
-
-### 1. Form Validation
-- Uses **React Hook Form** for performant form handling
-- **Zod schema** for type-safe validation
-- Real-time validation on change (mode: 'onChange')
-
-### 2. Password Security
-- Password visibility toggle
-- Complexity requirements (uppercase, lowercase, numbers)
-- Minimum 8 characters
-
-### 3. Error Handling
-- Field-level error messages
-- Root-level error display for API errors
-- Error clearing on resubmit
-
-### 4. Accessibility
-- Proper label associations
-- ARIA attributes
-- Keyboard navigation support
-
-### 5. User Experience
-- Loading states
-- Disabled states
-- Remember me functionality`;
-
-const mockFolderStructure = `src/
-├── components/
-│   └── auth/
-│       ├── LoginForm.jsx
-│       ├── LoginForm.module.css
-│       └── index.js
-├── hooks/
-│   └── useAuth.js
-├── schemas/
-│   └── auth.schema.js
-└── utils/
-    └── validation.js`;
-
 export default function AICodeGeneratorPage() {
   const [prompt, setPrompt] = useState("Build a reusable login form with React Hook Form and Zod validation.");
   const [language, setLanguage] = useState("javascript");
@@ -266,7 +93,8 @@ export default function AICodeGeneratorPage() {
   const [generatedExplanation, setGeneratedExplanation] = useState("");
   const [generatedStructure, setGeneratedStructure] = useState("");
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
+    if (isGenerating) return;
     if (!prompt.trim()) {
       toast("Please enter a prompt", "warning");
       return;
@@ -275,15 +103,17 @@ export default function AICodeGeneratorPage() {
     setIsGenerating(true);
     setGenerated(false);
 
-    // Simulate AI generation
-    setTimeout(() => {
-      setGeneratedCode(mockGeneratedCode);
-      setGeneratedExplanation(mockExplanation);
-      setGeneratedStructure(mockFolderStructure);
+    try {
+      const response = await api.ai.tools.generateCode({ prompt, language, framework, codeType: outputType, instructions: [styling, stateManagement, cleanArch && "clean architecture", includeTests && "include tests", accessibility && "accessibility", responsive && "responsive"].filter(Boolean).join(", ") + (useTypeScript ? ", TypeScript" : "") });
+      const result = response.data?.result;
+      if (!result?.code) throw new Error("The AI response did not contain code.");
+      setGeneratedCode(result.code);
+      setGeneratedExplanation(result.explanation || "");
+      setGeneratedStructure([result.filename || "Generated file", ...(result.dependencies || []).map((item) => `Dependency: ${item}`), ...(result.assumptions || []).map((item) => `Assumption: ${item}`)].join("\n"));
       setIsGenerating(false);
       setGenerated(true);
       toast("Code generated successfully!", "success");
-    }, 2500);
+    } catch (error) { setIsGenerating(false); toast(error.message || "Code generation failed", "error"); }
   };
 
   const handleCopy = async () => {
@@ -292,12 +122,13 @@ export default function AICodeGeneratorPage() {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([generatedCode], { type: "text/javascript" });
+    const blob = new Blob([generatedCode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "LoginForm.jsx";
+    a.download = generatedStructure.split("\n")[0] || "generated-code.txt";
     a.click();
+    URL.revokeObjectURL(url);
     toast("File downloaded", "success");
   };
 
@@ -811,7 +642,7 @@ export default function AICodeGeneratorPage() {
                 fontSize: 12,
                 color: "var(--muted)"
               }}>
-                <span style={{ fontWeight: 600 }}>LoginForm.jsx</span>
+                <span style={{ fontWeight: 600 }}>{generatedStructure.split("\n")[0] || "generated-code"}</span>
                 <span>{language}</span>
               </div>
               <SyntaxHighlighter
@@ -843,70 +674,22 @@ export default function AICodeGeneratorPage() {
                 gap: 8
               }}>
                 <Frame size={14} />
-                Live Preview
+                Preview — generated code is not executed in the browser
               </div>
               <div style={{
                 padding: 40,
                 display: "grid",
                 placeItems: "center",
-                background: "var(--bg)"
+                background: "var(--bg)",
+                minHeight: 300,
+                textAlign: "center"
               }}>
-                <div style={{
-                  width: "100%",
-                  maxWidth: 400,
-                  padding: 24,
-                  border: "1px solid var(--border)",
-                  borderRadius: 16,
-                  background: "var(--card)"
-                }}>
-                  <h3 style={{ margin: "0 0 20px", fontSize: 20, fontWeight: 700 }}>Welcome Back</h3>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Email</label>
-                      <input
-                        type="email"
-                        placeholder="you@example.com"
-                        style={{
-                          width: "100%",
-                          padding: 10,
-                          border: "1px solid var(--border)",
-                          borderRadius: 8,
-                          background: "var(--bg-soft)",
-                          fontSize: 14
-                        }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 6 }}>Password</label>
-                      <input
-                        type="password"
-                        placeholder="Enter your password"
-                        style={{
-                          width: "100%",
-                          padding: 10,
-                          border: "1px solid var(--border)",
-                          borderRadius: 8,
-                          background: "var(--bg-soft)",
-                          fontSize: 14
-                        }}
-                      />
-                    </div>
-                    <button
-                      style={{
-                        width: "100%",
-                        padding: 12,
-                        background: "var(--primary)",
-                        border: "none",
-                        borderRadius: 8,
-                        color: "white",
-                        fontSize: 14,
-                        fontWeight: 600,
-                        cursor: "pointer"
-                      }}
-                    >
-                      Sign In
-                    </button>
-                  </div>
+                <div>
+                  <Frame size={40} color="var(--muted)" style={{ marginBottom: 16 }} />
+                  <h3 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 600 }}>Live preview not available</h3>
+                  <p style={{ fontSize: 13, color: "var(--muted)", maxWidth: 360, margin: "0 auto" }}>
+                    Generated code is not executed here. Copy or download the code and run it in your local environment.
+                  </p>
                 </div>
               </div>
             </div>
