@@ -17,6 +17,7 @@ import invitationRoutes from "./routes/invitation.routes.js";
 import githubRoutes from "./routes/github.routes.js";
 import aiChatRoutes from "./routes/ai-chat.routes.js";
 import aiToolsRoutes from "./routes/ai-tools.routes.js";
+import aiHistoryRoutes from "./routes/ai-history.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -63,6 +64,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/invitations", invitationRoutes);
 app.use("/api/github", githubRoutes);
 app.use("/api/ai", aiChatRoutes);
+app.use("/api/ai", aiHistoryRoutes);
 app.use("/api/ai/tools", aiToolsRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/dashboard", dashboardRouter);

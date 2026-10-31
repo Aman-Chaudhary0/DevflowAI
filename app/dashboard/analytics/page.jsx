@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ArrowDown,
   ArrowUp,
@@ -30,6 +30,7 @@ import {
   toast
 } from "@/components/dashboard-ui";
 import { mockAnalytics, mockProjects, mockTeamMembers } from "@/lib/dashboard-data";
+import { api } from "@/lib/api";
 
 const timeFilters = [
   { label: "Today", value: "today" },
@@ -61,11 +62,54 @@ const heatmapDays = Array.from({ length: 35 }, (_, i) => {
   };
 });
 
+function getDateRange(timeFilter) {
+  const now = new Date();
+  const to = now.toISOString();
+  let from;
+  if (timeFilter === "today") {
+    const d = new Date(now); d.setHours(0, 0, 0, 0); from = d.toISOString();
+  } else if (timeFilter === "week") {
+    const d = new Date(now); d.setDate(d.getDate() - 7); from = d.toISOString();
+  } else if (timeFilter === "month") {
+    const d = new Date(now); d.setMonth(d.getMonth() - 1); from = d.toISOString();
+  } else {
+    const d = new Date(now); d.setFullYear(d.getFullYear() - 1); from = d.toISOString();
+  }
+  return { from, to };
+}
+
 // AnalyticsPage is a page component that renders the "Analytics" dashboard of the application. It displays key performance metrics such as tasks completed, total commits, deployments, and AI requests, along with visualizations like area charts, pie charts, and heatmaps. The page also includes filters for time and project selection, as well as a team leaderboard showcasing top performers.
 export default function AnalyticsPage() {
   const [timeFilter, setTimeFilter] = useState("week");
   const [projectFilterVal, setProjectFilterVal] = useState("all");
   const [chartView, setChartView] = useState("tasks");
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiByTool, setAiByTool] = useState(null);
+  const [aiTimeseries, setAiTimeseries] = useState(null);
+  const [aiLoading, setAiLoading] = useState(true);
+
+  const loadAIData = useCallback(async (tf) => {
+    setAiLoading(true);
+    const { from, to } = getDateRange(tf);
+    try {
+      const [summaryRes, byToolRes, timeseriesRes] = await Promise.all([
+        api.ai.usage.summary({ from, to }),
+        api.ai.usage.byTool({ from, to }),
+        api.ai.usage.timeseries({ from, to, interval: tf === "today" ? "day" : tf === "week" ? "day" : "day" })
+      ]);
+      setAiSummary(summaryRes.data);
+      setAiByTool(byToolRes.data?.byTool || []);
+      setAiTimeseries(timeseriesRes.data?.timeseries || []);
+    } catch {
+      setAiSummary(null);
+      setAiByTool(null);
+      setAiTimeseries(null);
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadAIData(timeFilter); }, [timeFilter, loadAIData]);
 
   return (
     <>
@@ -142,7 +186,7 @@ export default function AnalyticsPage() {
             <div>
               <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>AI Requests</p>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>
-                {mockAnalytics.aiRequests.value}
+                {aiLoading ? "…" : (aiSummary?.total ?? "—")}
               </p>
             </div>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--purple) 15%, transparent)", display: "grid", placeItems: "center" }}>
@@ -151,9 +195,9 @@ export default function AnalyticsPage() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <span style={{ display: "flex", alignItems: "center", gap: 2, color: "var(--success)", fontSize: 12, fontWeight: 700 }}>
-              <ArrowUp size={12} /> {mockAnalytics.aiRequests.delta}
+              {aiLoading ? "" : aiSummary ? `${aiSummary.completed} completed` : "unavailable"}
             </span>
-            <span className="muted" style={{ fontSize: 11 }}>vs last period</span>
+            <span className="muted" style={{ fontSize: 11 }}>{aiLoading ? "" : "this period"}</span>
           </div>
         </div>
       </div>
@@ -390,66 +434,74 @@ export default function AnalyticsPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>AI Usage Analytics</p>
-              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Model performance and usage</p>
+              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Actual usage for selected period</p>
             </div>
             <div className="logo-mark" style={{ width: 36, height: 36, background: "linear-gradient(135deg, var(--purple), var(--primary))" }}>
               <Zap size={18} />
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: 14 }}>
-            <div style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span className="muted" style={{ fontSize: 13 }}>Current Model</span>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>{mockAnalytics.aiStats.model}</span>
-              </div>
-              <div style={{ display: "flex", gap: 8 }}>
-                {["GPT-4o", "GPT-4", "Claude"].map((model) => (
-                  <button
-                    key={model}
-                    className="badge"
-                    style={{ padding: "4px 10px", fontSize: 11, background: model === mockAnalytics.aiStats.model ? "var(--primary)" : "transparent", color: model === mockAnalytics.aiStats.model ? "white" : "var(--muted)" }}
-                    onClick={() => toast(`Switched to ${model}`, "info")}
-                    type="button"
-                  >
-                    {model}
-                  </button>
-                ))}
+          {aiLoading ? (
+            <div className="muted" style={{ fontSize: 13, padding: 8 }}>Loading AI usage…</div>
+          ) : !aiSummary ? (
+            <div className="muted" style={{ fontSize: 13, padding: 8 }}>AI usage data unavailable</div>
+          ) : (
+            <div style={{ display: "grid", gap: 14 }}>
+              {aiSummary.mostUsedModel && (
+                <div style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 12 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="muted" style={{ fontSize: 13 }}>Most Used Model</span>
+                    <span style={{ fontWeight: 700, fontSize: 14 }}>{aiSummary.mostUsedModel}</span>
+                  </div>
+                </div>
+              )}
+
+              {[
+                { label: "Total Tokens", value: aiSummary.tokensAvailable ? (aiSummary.totalTokens ?? 0).toLocaleString() : "unavailable", icon: Code },
+                { label: "Avg Response Time", value: aiSummary.avgRequestDurationMs != null ? `${(aiSummary.avgRequestDurationMs / 1000).toFixed(1)}s` : "—", icon: Clock },
+                { label: "Success Rate", value: aiSummary.total > 0 ? `${Math.round((aiSummary.completed / aiSummary.total) * 100)}%` : "—", icon: TrendingUp }
+              ].map((stat) => (
+                <div key={stat.label} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--purple) 15%, transparent)", display: "grid", placeItems: "center" }}>
+                    <stat.icon size={16} color="var(--purple)" />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p className="muted" style={{ margin: "0 0 2px", fontSize: 12 }}>{stat.label}</p>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{stat.value}</p>
+                  </div>
+                </div>
+              ))}
+
+              {aiByTool && aiByTool.length > 0 && (
+                <div style={{ padding: 14, border: "1px solid var(--border)", borderRadius: 12 }}>
+                  <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700 }}>By Tool</p>
+                  <div style={{ display: "grid", gap: 8 }}>
+                    {aiByTool.slice(0, 4).map((row) => (
+                      <div key={row._id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: 12, color: "var(--muted)" }}>{row._id}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700 }}>{row.total}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div style={{ padding: 14, background: "color-mix(in srgb, var(--purple) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--purple) 25%, transparent)", borderRadius: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 14 }}>Requests This Period</p>
+                    <p className="muted" style={{ margin: 0, fontSize: 12 }}>{aiSummary.completed} completed · {aiSummary.failed} failed · {aiSummary.cancelled} cancelled</p>
+                  </div>
+                  <ProgressRing value={aiSummary.completed} max={Math.max(aiSummary.total, 1)} size={48} stroke={5} color="var(--purple)" />
+                </div>
+                {aiSummary.total > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <ProgressBar value={aiSummary.completed} max={aiSummary.total} color="linear-gradient(90deg, var(--purple), var(--primary))" />
+                  </div>
+                )}
               </div>
             </div>
-
-            {[
-              { label: "Tokens Used", value: mockAnalytics.aiStats.tokensUsed.toLocaleString(), icon: Code },
-              { label: "Avg Response Time", value: mockAnalytics.aiStats.avgResponse, icon: Clock },
-              { label: "Success Rate", value: mockAnalytics.aiStats.successRate, icon: TrendingUp }
-            ].map((stat) => (
-              <div key={stat.label} style={{ display: "flex", alignItems: "center", gap: 14, padding: "12px 14px", border: "1px solid var(--border)", borderRadius: 12 }}>
-                <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--purple) 15%, transparent)", display: "grid", placeItems: "center" }}>
-                  <stat.icon size={16} color="var(--purple)" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p className="muted" style={{ margin: "0 0 2px", fontSize: 12 }}>{stat.label}</p>
-                  <p style={{ margin: 0, fontWeight: 700, fontSize: 16 }}>{stat.value}</p>
-                </div>
-              </div>
-            ))}
-
-            <div style={{ padding: 14, background: "color-mix(in srgb, var(--purple) 8%, transparent)", border: "1px solid color-mix(in srgb, var(--purple) 25%, transparent)", borderRadius: 12 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <p style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 14 }}>AI Request Limit</p>
-                  <p className="muted" style={{ margin: 0, fontSize: 12 }}>118 of 138 requests used</p>
-                </div>
-                <ProgressRing value={118} max={138} size={48} stroke={5} color="var(--purple)" />
-              </div>
-              <div style={{ marginTop: 12 }}>
-                <ProgressBar value={118} max={138} color="linear-gradient(90deg, var(--purple), var(--primary))" />
-              </div>
-              <button className="btn btn-primary" onClick={() => toast("Opening upgrade page...", "info")} style={{ minHeight: 34, fontSize: 12, marginTop: 12, width: "100%" }} type="button">
-                Upgrade Plan
-              </button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </>

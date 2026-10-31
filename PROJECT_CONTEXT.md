@@ -1983,3 +1983,193 @@ The generated three-column editor layout iterated `docs.outline.map(...)`, but `
 #### Next phase
 
 Phase 11 — AI History, Usage, and Analytics. Before starting Phase 11, manually verify all six tools in the browser with a configured AI provider, confirm the documentation tool's assumption disclaimer is visible, and verify the SQL safety label renders correctly after generation.
+
+### 3.4.14 Phase 11 — AI History, Usage, and Analytics (implementation audit, 2026-10-31)
+
+#### 1. Status
+
+**Implemented; automated tests pass; build and lint pass. Manual browser and live-provider verification remain outstanding.** All acceptance criteria verifiable without a running provider are satisfied. Branch: `feature/phase-11-ai-analytics`. No commit or push was made.
+
+#### 2. Objective
+
+Build a persistent AI execution tracking and history system that records every AI request generated through chat and all six developer tools, and expose authenticated history and usage analytics APIs consumed by the existing `/dashboard/ai/history` and `/dashboard/analytics` pages.
+
+#### 3. Initial repository audit
+
+- Branch at start: `feature/phase-11-ai-analytics`. `git status --short` was empty; no uncommitted changes were present.
+- No `AIExecution` model, no execution tracking service, no history or usage API, and no real data on the history or analytics pages existed. The history page used `mockApi.ai.history()`. The analytics page used `mockAnalytics` fixtures for the AI Requests stat card and the AI Usage Analytics panel.
+- The existing `AIConversation`, `AIMessage`, `ai-chat.service.js`, `ai-tools.service.js`, `ai.service.js`, `requireAuth`, `validate`, `asyncHandler`, `ApiError`, `ApiResponse`, and `lib/api.js` were all reused without modification to their public contracts.
+- The existing `app.js` route registration pattern, Zod validator conventions, and Jest/MongoDB Memory Server test conventions were followed exactly.
+
+#### 4. Architecture and implementation
+
+- Centralized tracking is implemented in `backend/src/services/ai-execution.service.js`. A single `recordExecution()` function is called from both `ai-chat.service.js` and `ai-tools.service.js` after each AI generation attempt. It never throws — analytics failures are logged safely and do not block AI responses.
+- `ai-chat.service.js` calls `recordExecution` for completed, failed, and cancelled chat and regeneration requests.
+- `ai-tools.service.js` calls `recordExecution` for all six tools for completed, failed, and cancelled outcomes.
+- History and usage routes are mounted at `/api/ai` alongside the existing chat routes via a new `ai-history.routes.js`. No existing route was changed.
+
+#### 5. Database models and indexes
+
+**New model: `AIExecution`** (`backend/src/models/AIExecution.js`)
+
+Fields: `owner` (User ref, required), `conversation` (AIConversation ref, optional), `message` (AIMessage ref, optional), `project` (Project ref, optional), `tool` (enum: chat/code-generator/code-review/documentation/bug-fixer/backend-generator/sql-generator), `provider`, `model`, `status` (enum: pending/processing/completed/failed/cancelled), `inputTokens` (nullable, min 0), `outputTokens` (nullable, min 0), `totalTokens` (nullable, min 0), `usageSource` (enum: provider/unavailable), `requestDurationMs` (nullable, min 0), `errorCode`, `startedAt`, `completedAt`, timestamps.
+
+Indexes: `{ owner, createdAt }`, `{ owner, tool, createdAt }`, `{ owner, status, createdAt }`, `{ project, createdAt }` (sparse), `{ conversation, createdAt }` (sparse).
+
+Token accounting rules: tokens are stored only when `usageSource === "provider"`. `totalTokens` is computed from `inputTokens + outputTokens` only when both are non-null. Missing usage is stored as `null` with `usageSource: "unavailable"` — never fabricated as zero. `AIConversation` and `AIMessage` remain the source of truth for conversational content.
+
+#### 6. API endpoints
+
+All endpoints require `requireAuth`. User identity is derived from `req.user._id`. All query parameters are validated with Zod.
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/ai/history` | Paginated execution history. Supports: `page`, `limit` (max 100), `search`, `tool`, `provider`, `model`, `status`, `projectId`, `from`, `to`, `sort`. |
+| GET | `/api/ai/history/:id` | Single execution record. Returns 404 if not owned by authenticated user. |
+| DELETE | `/api/ai/history/:id` | Deletes execution record only. Does NOT delete associated conversations or messages. |
+| GET | `/api/ai/usage/summary` | Aggregated totals: total, completed, failed, cancelled, inputTokens, outputTokens, totalTokens (null when unavailable), tokensAvailable, avgRequestDurationMs, mostUsedTool, mostUsedModel. Supports `from`, `to`, `projectId`. |
+| GET | `/api/ai/usage/timeseries` | Daily/weekly/monthly aggregated counts. Supports `from`, `to`, `interval`, `projectId`. |
+| GET | `/api/ai/usage/by-tool` | Grouped by tool: total, completed, failed, totalTokens, avgDurationMs. |
+| GET | `/api/ai/usage/by-model` | Grouped by provider+model. |
+| GET | `/api/ai/usage/by-project` | Grouped by project (sparse — only records with a project reference). |
+
+#### 7. Frontend integrations
+
+**`app/dashboard/ai/history/page.jsx`** — fully replaced mock data with real API:
+- Loads execution history from `api.ai.history.list()` with pagination, tool filter, and debounced search.
+- Loads usage summary from `api.ai.usage.summary()` for four stat cards (Total Requests, Completed, Failed, Avg Duration). Fabricated "This week", "Openable", and "Time saved" stats replaced with real values.
+- Open: navigates to the existing AI Chat page with the conversation query parameter when a conversation reference exists; shows an honest unavailable message for tool executions (no output is persisted).
+- Duplicate: navigates to the appropriate existing tool page without auto-executing.
+- Delete: inline confirmation, calls `api.ai.history.delete()`, refreshes list and summary.
+- New session: navigates to `/dashboard/ai/chat`.
+- Loading skeleton, empty state, error state with retry, and pagination controls present.
+
+**`app/dashboard/analytics/page.jsx`** — integrated real AI usage data:
+- Added `useCallback`/`useEffect` to load `api.ai.usage.summary()` and `api.ai.usage.byTool()` on mount and on time filter change.
+- AI Requests stat card shows real `aiSummary.total` and `aiSummary.completed` for the selected period.
+- AI Usage Analytics panel shows real Most Used Model, Total Tokens (honest "unavailable" when no provider-reported tokens exist), Avg Response Time, Success Rate, and By Tool breakdown.
+- All non-AI sections (Tasks Completed, Total Commits, Deployments, Languages Used, Coding Activity heatmap, Deployment Stats, Team Leaderboard) remain unchanged and continue to use their existing mock data — not claimed as live.
+
+**`lib/api.js`** — added under the existing `api.ai` object:
+- `api.ai.history.list(params)`, `api.ai.history.get(id)`, `api.ai.history.delete(id)`
+- `api.ai.usage.summary(params)`, `api.ai.usage.timeseries(params)`, `api.ai.usage.byTool(params)`, `api.ai.usage.byModel(params)`, `api.ai.usage.byProject(params)`
+
+#### 8. Usage accounting and cost limitations
+
+- Token counts stored only when the provider reports them (`usageSource: "provider"`).
+- Missing usage represented as `null` and `usageSource: "unavailable"` — never as zero.
+- `totalTokens` computed from `inputTokens + outputTokens` only when both are non-null.
+- No monetary cost calculation implemented. No model pricing configuration added. Ollama local inference is not represented as a provider API charge.
+- Failed and cancelled requests tracked separately; not counted as successful generations.
+
+#### 9. Security and authorization
+
+- All endpoints require `requireAuth`; user identity comes only from `req.user._id`.
+- Every history query and aggregation is scoped to `{ owner: req.user._id }` — cross-user access is impossible.
+- Delete verifies ownership via `findOneAndDelete({ _id, owner })`.
+- No prompts, generated content, API keys, or provider secrets are stored in `AIExecution` records.
+- Analytics failures in `recordExecution` are caught and logged with only the error name.
+
+#### 10. Files created
+
+- `backend/src/models/AIExecution.js`
+- `backend/src/services/ai-execution.service.js`
+- `backend/src/controllers/ai-history.controller.js`
+- `backend/src/routes/ai-history.routes.js`
+- `backend/src/validators/aiHistory.validator.js`
+- `backend/src/__tests__/ai.history.test.js`
+
+#### 11. Files modified
+
+- `backend/src/services/ai-chat.service.js` — added `recordExecution` calls for completed/failed/cancelled chat and regeneration flows.
+- `backend/src/services/ai-tools.service.js` — added `recordExecution` calls for all six tools.
+- `backend/src/app.js` — imported and mounted `ai-history.routes.js` at `/api/ai`.
+- `backend/src/models/index.js` — exported `AIExecution`.
+- `lib/api.js` — added `api.ai.history` and `api.ai.usage` method groups.
+- `app/dashboard/ai/history/page.jsx` — replaced mock API with real backend integration.
+- `app/dashboard/analytics/page.jsx` — integrated real AI usage data; preserved all existing non-AI content.
+
+#### 12. Environment configuration
+
+No new environment variables are required for Phase 11. The existing AI provider variables are sufficient. `backend/.env.example` was not changed.
+
+#### 13. Automated validation
+
+- `cd backend && npm test -- --runInBand` — **passed: 11 suites, 102 tests, 0 failed**. Up from 10 suites / 66 tests before Phase 11. The new `ai.history.test.js` contributes 36 tests. The Node experimental VM Modules warning appeared as before.
+- `npm run lint` — passed. Only the two pre-existing `<img>` warnings in the two file preview pages were reported.
+- `npm run build` — passed. All 72 existing routes generated; no new page route was added.
+- `git diff --check` — passed. LF-to-CRLF working-copy notices for new JSX files; no whitespace errors.
+
+#### 14. Manual verification
+
+Manual browser and live-provider verification have not been performed. Outstanding checks:
+1. Start backend with a configured AI provider; send a chat message and a tool request; confirm `AIExecution` records appear in `/api/ai/history`.
+2. Verify the history page loads real records, filters work, pagination works, Open navigates to the correct conversation, Duplicate navigates to the tool page without auto-executing, and Delete removes the record with confirmation.
+3. Verify the analytics page AI Requests stat card and AI Usage Analytics panel update when the time filter changes.
+4. Verify that a second user cannot access the first user's history or usage data.
+
+#### 15. Known limitations
+
+- Project-level usage attribution is stored when a `project` field is provided, but no current AI tool or chat flow passes a project reference. Project-level analytics will show empty results until a future phase wires project context into AI requests.
+- The `recordExecution` call in `ai-tools.service.js` passes `userId` as a string. Mongoose coerces this to ObjectId correctly in production; in the tools test suite the mock userId is a plain string that fails ObjectId coercion, producing a `ValidationError` that is caught and logged. This does not affect tool responses or test results.
+- No bulk deletion endpoint was implemented; the existing UI does not justify it.
+- The misleading "Save view" toast button was removed from the history page; no persistent saved-view system exists.
+- All changes remain uncommitted on `feature/phase-11-ai-analytics`; no commit or push was made.
+
+#### 16. Remaining work
+
+- Wire a `project` reference into AI tool and chat requests when a project context is selected (future phase).
+- Manual browser and live-provider verification.
+- Consider adding project membership authorization to `/api/ai/usage/by-project` when project-scoped AI requests are implemented.
+
+#### 17. Next phase
+
+Phase 12 — Editor and Playground. Before starting Phase 12, manually verify Phase 11 history and analytics in the browser with a configured AI provider.
+
+### 3.4.15 Phase 11 — Final Verification (2026-10-31)
+
+#### Status
+
+**Verified; ready to merge pending manual browser confirmation.** All automated acceptance criteria pass. One known limitation was resolved. Manual browser and live-provider verification remain outstanding.
+
+#### Fix applied — ObjectId coercion in `ai-execution.service.js`
+
+The previously documented known limitation — `recordExecution` in `ai-tools.service.js` passing a plain string userId from service-layer unit tests, causing a `ValidationError` caught silently — was resolved.
+
+**Root cause:** `recordExecution` passed the `owner` value directly to `AIExecution.create()`. Mongoose requires an ObjectId for `owner: { type: ObjectId, required: true }`. In production, `req.user._id` is always a real ObjectId. In the service-layer unit tests (`ai.tools.test.js`), the mock userId is a plain string like `"authenticated-user-id"` or `"user"` that cannot be coerced to a valid ObjectId, producing a `ValidationError` that was caught and logged as noise.
+
+**Fix:** Added a `mongoose` import to `ai-execution.service.js`. Before calling `AIExecution.create()`, the service now attempts `new mongoose.Types.ObjectId(String(owner))`. If the value is not a valid 24-character hex ObjectId (e.g. the plain test strings), the inner try/catch returns `null` silently — no log, no error. Valid ObjectIds (production `req.user._id` values) coerce correctly and proceed to persist. This eliminates the `[AIExecution] Failed to persist execution record: ValidationError` console noise from the tools test suite without changing any production behavior.
+
+**File changed:** `backend/src/services/ai-execution.service.js` — added `import mongoose from "mongoose"` and an inner try/catch around `new mongoose.Types.ObjectId(String(owner))` before the `AIExecution.create()` call.
+
+#### Automated validation record (post-fix)
+
+- `cd backend && npm test -- --runInBand` — **passed: 11 suites, 102 tests, 0 failed**. The `[AIExecution] Failed to persist execution record: ValidationError` console errors are no longer present in the `ai.tools.test.js` output.
+- `npm run lint` — passed. Only the two pre-existing `<img>` warnings in the two file preview pages were reported.
+- `npm run build` — passed. All 72 existing routes generated; no new page route was added.
+- `git diff --check` — passed. LF-to-CRLF working-copy notices only; no whitespace errors.
+- `node --check src/services/ai-execution.service.js` — passed.
+
+#### Git status
+
+Branch: `feature/phase-11-ai-analytics`. Working tree has 8 modified files and 6 new untracked files. No commit or push was made.
+
+Modified: `PROJECT_CONTEXT.md`, `app/dashboard/ai/history/page.jsx`, `app/dashboard/analytics/page.jsx`, `backend/src/app.js`, `backend/src/models/index.js`, `backend/src/services/ai-chat.service.js`, `backend/src/services/ai-tools.service.js`, `lib/api.js`.
+
+New (untracked): `backend/src/__tests__/ai.history.test.js`, `backend/src/controllers/ai-history.controller.js`, `backend/src/models/AIExecution.js`, `backend/src/routes/ai-history.routes.js`, `backend/src/services/ai-execution.service.js`, `backend/src/validators/aiHistory.validator.js`.
+
+#### Live-provider status
+
+Ollama is running locally with `qwen3:1.7b` installed (`AI_PROVIDER=ollama`, `AI_MODEL=qwen3:1.7b` in `backend/.env`). The backend server was not started during this verification session. Live end-to-end verification (send a chat message, run a tool, confirm `AIExecution` records appear in `/api/ai/history`, verify the history and analytics pages) requires starting the full stack and is recorded as **pending manual verification**.
+
+#### Remaining limitations (unchanged)
+
+- Project-level usage attribution returns empty results until a future phase wires a `project` reference into AI tool and chat requests.
+- No bulk deletion endpoint; the existing UI does not require it.
+- All changes remain uncommitted on `feature/phase-11-ai-analytics`.
+
+#### Phase 11 merge readiness
+
+Phase 11 is **ready to merge** subject to:
+1. Approval of this verification report.
+2. Manual browser verification of the history page and analytics page with a running backend and configured AI provider.
