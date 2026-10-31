@@ -3,6 +3,7 @@ import { AIMessage } from "../models/AIMessage.js";
 import aiService from "./ai.service.js";
 import { ApiError } from "../utils/ApiError.js";
 import { getAIConfig } from "../config/ai.js";
+import { recordExecution } from "./ai-execution.service.js";
 
 const SYSTEM_INSTRUCTION = "You are DevFlow AI, a helpful development assistant. Provide accurate, concise explanations and code examples. You do not have access to the user's repository unless they include its contents in the conversation.";
 export function validateChatModel(model) {
@@ -52,8 +53,23 @@ async function generateForUserMessage(conversation, userMessage, owner, model, s
     { role: "system", content: SYSTEM_INSTRUCTION },
     ...history.reverse().map(({ role, content }) => ({ role, content }))
   ];
-  const result = await aiService.generate({ userId: owner, messages, signal });
-  if (signal?.aborted) throw new ApiError(499, "AI request was cancelled");
+  const startedAt = new Date();
+  let aiResult;
+  try {
+    aiResult = await aiService.generate({ userId: owner, messages, signal });
+  } catch (genError) {
+    if (signal?.aborted) {
+      recordExecution({ owner, tool: "chat", status: "cancelled", startedAt, completedAt: new Date(), conversation: conversation._id, message: userMessage._id });
+      throw new ApiError(499, "AI request was cancelled");
+    }
+    recordExecution({ owner, tool: "chat", status: "failed", errorCode: genError.code || "AI_ERROR", startedAt, completedAt: new Date(), conversation: conversation._id, message: userMessage._id });
+    throw genError;
+  }
+  if (signal?.aborted) {
+    recordExecution({ owner, tool: "chat", status: "cancelled", startedAt, completedAt: new Date(), conversation: conversation._id, message: userMessage._id });
+    throw new ApiError(499, "AI request was cancelled");
+  }
+  const result = aiResult;
   const assistant = replaceMessageId
     ? await AIMessage.findOneAndUpdate({ _id: replaceMessageId, conversation: conversation._id, role: "assistant" }, { content: result.content, model: result.model, parentMessage: userMessage._id }, { new: true })
     : await AIMessage.create({ conversation: conversation._id, role: "assistant", content: result.content, model: result.model, parentMessage: userMessage._id });
@@ -69,6 +85,20 @@ async function generateForUserMessage(conversation, userMessage, owner, model, s
     totalTokens: result.usage.totalTokens,
     source: "provider"
   };
+  // Persist execution record asynchronously — do not block the response
+  recordExecution({
+    owner,
+    tool: "chat",
+    status: "completed",
+    provider: result.provider,
+    model: result.model,
+    usage: result.usage,
+    requestDurationMs: result.requestDurationMs,
+    startedAt,
+    completedAt: new Date(),
+    conversation: conversation._id,
+    message: assistant._id
+  });
   return { conversation, userMessage, assistant, provider: result.provider, model: result.model, usage };
 }
 
