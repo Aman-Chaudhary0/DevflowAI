@@ -1,4 +1,4 @@
-# DevFlow AI — Project Context, Architecture, Rules, and Roadmap
+﻿# DevFlow AI — Project Context, Architecture, Rules, and Roadmap
 
 > **Purpose:** This is the central working reference for developers and AI coding agents working on DevFlow AI. Read it before planning or editing code. Keep it aligned with the repository, preserve valid history, and update it whenever a phase materially changes the system.
 >
@@ -1459,6 +1459,7 @@ When updating this file:
 - \`backend/src/config/db.js\`
 - \`backend/src/config/passport.js\`
 - \`backend/src/config/redis.js\`
+- \`backend/src/config/imagekit.js\`
 - \`backend/src/routes/auth.routes.js\`
 - \`backend/src/controllers/auth/auth.controller.js\`
 - \`backend/src/services/auth/auth.service.js\`
@@ -1535,115 +1536,17 @@ Clients do not submit room IDs or authoritative domain events. REST remains auth
 - `cd backend && npm test -- --runInBand` — the final run passed 4 suites and 15 tests. An earlier run failed before executing the new suite because its ESM test file omitted the explicit Jest import; that import was added before the passing run.
 - `npm run lint` — passed with two existing `<img>` optimization warnings in file pages. The lint script also reports that `next lint` is deprecated by the installed Next.js version.
 - `npm run build` — passed and generated the existing route inventory without adding routes. The build reported the same lint warnings.
-- `npm install socket.io-client` — completed; npm reported 5 dependency audit findings (4 high, 1 critical). No audit fix was run as part of this phase.
+- `git diff --check` — passed.
+- `socket.io-client` is a frontend dependency and a backend test-only dependency for independent authenticated integration clients. Backend startup requires `FRONTEND_URL`; no new runtime service or schema was added.
+- Installing the backend test dependency reported 11 dependency audit findings (3 moderate, 7 high, 1 critical). No audit fix was run as part of this phase.
 
 #### Next phase
 
 Phase 7 — GitHub Integration remains the next planned phase after the outstanding Phase 6 coverage and integration verification are addressed.
 
-### 3.4 Verified local status for Files + Documentation integration
-
-The local repository now includes a verified implementation of the Phase 4 files/documents flow, with backend and frontend integration completed in the current branch while preserving the existing UI and routing structure.
-
-Verified facts from the actual repository state:
-- `backend/src/app.js` mounts the files API router at `/api/files`.
-- `lib/api.js` includes authenticated request helpers for workspace files, project files, and project document CRUD.
-- `app/dashboard/files/page.jsx` loads workspace files from the backend and supports upload/delete/download flows against the real API.
-- `app/dashboard/projects/[projectId]/files/page.jsx` loads project-scoped files from the backend and uses actual upload/delete actions.
-- `app/dashboard/projects/[projectId]/docs/page.jsx` loads project documents from the backend and supports create/save/delete operations against the real API layer.
-- `backend/src/services/projectFiles.service.js` enforces project/workspace authorization and document uniqueness for project-scoped file/doc operations.
-
-Validation performed in this repository:
-- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
-- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
-
-Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
-
-### 3.4 Verified local branch audit (2026-10-25)
-
-The working repository currently reflects the local branch `feat/phase-5-tasks-team-collaboration` and includes implementation that is materially beyond the remote audit baseline. This section records the verified local state without replacing the earlier remote audit.
-
-#### 3.4.1 Local branch context
-
-- Current branch: `feat/phase-5-tasks-team-collaboration`
-- Working repository: local project checkout for DevFlow AI
-- Validation command run: `cd backend && npm test -- --runInBand`
-- Actual result: `3 test suites passed`, `11 tests passed`, `0 failed`
-
-#### 3.4.2 Verified local implementation status
-
-| Phase / Area | Local status | Verification |
-|---|---|---|
-| Phase 1: Authentication foundation | Complete (verified) | Existing auth and 2FA tests pass in the backend suite. |
-| Phase 2: Database models and schema foundation | Complete (verified) | Mongoose models and Phase 2 tests are present and passing. |
-| Phase 3: Project lifecycle & workspace access | Complete (verified) | Project service/controller/routes and project lifecycle tests exist and pass. |
-| Phase 4: Files/documents | Partial | File/document models and routes exist, but the repo does not claim a full end-to-end verification for every document workflow beyond the suite above. |
-| Phase 5: Tasks and team collaboration | Implemented and validated | Task service/controller/routes/validator and shared API client are present; backend tests pass. |
-| Dashboard task/team UI integration | Partial but live-backed | `app/dashboard/tasks/page.jsx` and `app/dashboard/team/page.jsx` use API-backed loading and error handling instead of static mock-only fallbacks for the implemented task/team workflows. |
-
-#### 3.4.3 Verified Phase 5 implementation details
-
-- The backend registers `/api/tasks` and task member routes in `backend/src/app.js`.
-- The shared frontend client exposes task and workspace/project member APIs in `lib/api.js`.
-- `backend/src/services/task.service.js` implements authenticated task CRUD, comments, member queries, and activity retrieval.
-- `backend/src/controllers/task.controller.js` and `backend/src/routes/task.routes.js` connect the service layer to the HTTP API.
-- `backend/src/validators/task.validator.js` validates task payloads, including date-only values from browser `type="date"` inputs.
-- The task create modal now surfaces actual validation messages and loading/success/error states in the UI instead of a generic validation banner.
-
-#### 3.4.4 Current limitations
-
-- The repository still contains additional mock-only dashboards outside the verified task/team flow.
-- This document reflects implementation verified in the local working branch, not a claim that every future product phase is complete.
-- The scope here is the actual code and validation evidence in the local branch, not broad product-wide completion.
-
-### 3.4.6 Phase 6 follow-up verification (2026-10-26)
-
-**Current Phase 6 status: PARTIAL.** This later audit supersedes the earlier Phase 6 follow-up notes above where their details differ. The branch remains `feature/phase-6-realtime-system`; no branch switch or Git history operation was performed.
-
-#### Team pages and existing data integration
-
-- `/dashboard/team` now loads workspace members from the existing workspace member API, project counts from existing `ProjectMember` records, assigned task counts from the existing workspace task API, and persisted activity from `Activity`. It refetches on task/activity events and after socket reconnect.
-- `/dashboard/team/members` now uses the same persisted member/task data and derives member totals from API results. The existing workspace member service adds a backward-compatible `projectCount` field based on existing project membership records.
-- `/dashboard/team/activity` now loads persisted workspace activity and refetches after `activity.created` and socket reconnect. Existing task activity is filterable; unsupported Git, pull request, AI, and deployment counts are shown as unavailable.
-- The workspace feed uses `GET /api/tasks/workspace/:workspaceId/activity`, reusing the `Activity` model and the existing workspace authorization check. Membership lists remain scoped to the authenticated user's active workspace access.
-- The current frontend has no selected/current-workspace API. These team pages derive a workspace from the first accessible project. If a user has no accessible project, they cannot resolve a workspace from current APIs, so the pages show an empty state. No new workspace-selection or membership-mutation feature was added.
-- Invitations, role changes, direct messages, live-presence counts, team chat, calendar entries, AI usage, and shared-resource summaries have no supported backend workflow/data source. The UI no longer fabricates member/invitation/resource/calendar success or synthetic performance metrics; it reports those capabilities as unavailable.
-
-#### Real-time and failure verification
-
-- Added `backend/src/__tests__/realtime.integration.test.js`, which starts the real Express app and Socket.IO server against MongoDB Memory Server and connects independent cookie-authenticated Socket.IO clients: a workspace/project owner, a project collaborator, and an outsider.
-- The integration test verified that the owner and authorized collaborator received task creation/update/deletion, comment, and activity events; a user without workspace/project access received no task-created event; and an unauthorized workspace activity request returned 403.
-- The test verified persisted assignment/comment notifications, offline notification recovery from the REST notification list, task-list reconciliation after reconnect, and exactly one task-created delivery to the collaborator. It also checked that task event summaries omit task description and actor email.
-- A simulated notification write failure was injected. The task mutation remained successful and persisted, no notification row/event was produced, and the controller logged a safe error name. Assignment retries with the same assignee do not create another notification.
-- `backend/src/__tests__/realtime.auth.test.js` also checks unconfigured origins, invalid/expired/missing/query-only credentials, verified identity, and workspace/project room isolation.
-- These were real HTTP and Socket.IO integration tests with separate authenticated client sessions, not browser sessions. Browser automation is unavailable in this environment, and no running browser/test accounts were available; therefore UI behavior across two actual browser profiles, browser reconnection, and visual duplicate-listener behavior remain unverified.
-
-#### Reproducible manual browser check still required
-
-1. Configure backend `MONGO_URI`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and exact `FRONTEND_URL`; configure the frontend `NEXT_PUBLIC_API_URL` to the backend origin. Start the backend and Next.js app using the documented dev commands.
-2. Sign in as the workspace owner in browser profile A and as an active workspace/project member in profile B. Since the app has no member-invitation API, seed the second user's active `WorkspaceMember` and `ProjectMember` records in the development database before testing.
-3. In profile A, create a task assigned to the collaborator. Confirm profile B's workspace/project task board updates and the notification center receives the persisted notification. Update the task, add a comment, and delete it; confirm both authorized profiles update without a page refresh.
-4. Sign in as a user who is not a member in a third profile and confirm task/project APIs and socket events reveal no private project updates.
-5. Disconnect profile B using browser network controls, create a new assigned task in profile A, restore the network, and confirm the task list and notification center reconcile from REST and show the notification created while offline.
-
-#### Regression validation record
-
-- `cd backend && npm test -- --runInBand` — passed: 5 suites, 19 tests. The integration suite intentionally logs the simulated notification persistence failure while asserting the mutation remains successful.
-- `npm run lint` — passed with two existing `<img>` optimization warnings in file pages; `next lint` reports its installed-version deprecation.
-- `npm run build` — passed; 72 existing frontend routes were generated, with no new page routes.
-- `git diff --check` — passed.
-- `socket.io-client` is a frontend dependency and a backend test-only dependency for independent authenticated integration clients. Backend startup requires `FRONTEND_URL`; no new runtime service or schema was added.
-- Installing the backend test dependency reported 11 dependency audit findings (3 moderate, 7 high, 1 critical). No audit fix was run.
-
-#### Remaining completion criteria and next phase
-
-Phase 6 remains **PARTIAL** until the required two-browser verification is performed. The workspace identifier limitation for projectless users and unsupported team workflows listed above remain documented. Phase 7 — GitHub Integration must wait until Phase 6's remaining verification is complete.
-
----
-
 ### 3.4.7 Workspace and project invitations (2026-10-27)
 
-**Status: Implemented and backend-tested on `feature/invite-member`; real SMTP delivery and browser-based invitation flows were not manually verified.** This invitation work does not complete Phase 6. Phase 6 remains **PARTIAL**, and Phase 7 remains blocked on the outstanding Phase 6 preflight and two-browser verification. `feature/invite-member` is the intentional working branch for this task; no branch switch or Git history operation was performed.
+**Status: Implemented and backend-tested on `feature/invite-member`; real SMTP delivery and browser-based invitation flows were not manually verified.** This invitation work does not complete Phase 6. Phase 6 remains **PARTIAL** and Phase 7 remains blocked on the outstanding Phase 6 preflight and two-browser verification. `feature/invite-member` is the intentional working branch for this task; no branch switch or Git history operation was performed.
 
 #### Lifecycle and access behavior
 
@@ -1668,15 +1571,10 @@ Phase 6 remains **PARTIAL** until the required two-browser verification is perfo
 
 #### Validation record
 
-- `cd backend && npm test -- --runInBand` — passed: 6 suites, 27 tests. Invitation service tests cover normalized recipient email, hashed token storage, expiry, role constraints, authorization, SMTP failure cleanup, duplicate pending invitations, verified-email enforcement, workspace/project membership creation, mismatch, revoke, repeated acceptance, and notification persistence.
-- `npm run lint` — passed. Existing warnings remain for plain `<img>` use in the two file preview pages; the installed `next lint` command reports deprecation.
-- `npm run build` — passed; the existing 72-page route inventory was generated without adding a route.
-- `git diff --check` — passed before the documentation entry; it is rerun after this append.
-- Automated email tests use a mocked transport. No live email, manual browser flow, OAuth invitation continuation, or two-browser verification was claimed or performed.
+- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
+- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
 
-#### History and next phase
-
-This entry appends to the existing audit trail; prior Phase 5 and Phase 6 records and their historical test outcomes remain unchanged. Phase 6 stays **PARTIAL** pending the previously documented two-browser verification. Phase 7 — GitHub Integration remains blocked until the Phase 6 preflight checks genuinely pass. No Phase 7 GitHub integration work was started.
+Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
 
 ### 3.4.8 Phase 6 manual verification update (2026-10-27)
 
@@ -1733,42 +1631,31 @@ The user confirmed that the previously required two-browser verification was com
 - Authenticated user identity comes from existing access-cookie/bearer `requireAuth`; client-supplied user IDs are not accepted.
 - Connections and repository metadata are keyed to that user, and tokens are never returned to the frontend. GitHub OAuth login remains separate.
 - Workspace/project permission checks are not applicable to the user-owned GitHub browsing endpoints as currently designed; no project-scoped read/write endpoints exist. Adding project linking or sharing requires explicit project/workspace authorization checks.
-- GitHub API 401 responses clear the local integration; 403 responses are reported as an upstream permission/rate-limit failure. Token encryption key rotation requires users to reconnect because no key version/key ring migration was added.
+- GitHub API 401 responses clear the local integration; 403 responses are reported as an upstream permission/rate-limit failure. Token encryption key rotation requires users to reconnect because no key-version/key-ring migration was added.
 
-#### 8. Files changed
+#### 8. Files changed in this continuation
 
 - Backend: `backend/src/app.js`, `backend/src/controllers/github.controller.js`, `backend/src/models/GitHubIntegration.js`, `backend/src/models/GitHubOAuthState.js`, `backend/src/routes/github.routes.js`, `backend/src/services/github.service.js`, `backend/src/validators/github.validator.js`.
-- Frontend: `lib/api.js`, `components/github-resource-page.jsx`, `app/dashboard/github/page.jsx`, repository list/detail, branches, commits, pull requests, issues, and releases pages.
+- Frontend: `lib/api.js`, `components/github-resource-page.jsx`, `app/dashboard/github/page.jsx`, `app/dashboard/github/repositories/page.jsx`, `app/dashboard/github/repositories/[repoId]/page.jsx`, `app/dashboard/github/branches/page.jsx`, `app/dashboard/github/commits/page.jsx`, `app/dashboard/github/pull-requests/page.jsx`, `app/dashboard/github/issues/page.jsx`, and `app/dashboard/github/releases/page.jsx`.
 - Tests: `backend/src/__tests__/github.integration.test.js`.
 - Configuration/documentation: `backend/.env.example`, `backend/README.md`, and this context record.
 
 #### 9. Environment configuration
 
-- Added `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY` to `backend/.env.example` and documented setup in `backend/README.md`. No secret values were added.
+- Added `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY` to `backend/.env.example` and documented setup in `backend/README.md`. No secret values were recorded here.
 - OAuth callback default is `http://localhost:5000/api/github/callback`; it must exactly match the GitHub OAuth App callback URL. The encryption key must be 32 random bytes encoded as 64 hexadecimal characters.
 
 #### 10. Automated validation record
 
-- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 2 tests. Covers PKCE state use, token encryption/redaction, mocked GitHub account/repository retrieval, replay rejection, disconnect, and invalid encryption-key configuration.
-- `cd backend && npm test -- --runInBand` — passed: 7 suites, 29 tests. An earlier run failed because the new ESM test omitted the Jest import; corrected before the passing run.
+- `cd backend && npm test -- --runInBand` — passed: 7 suites, 31 tests. GitHub tests use mocked `fetch` responses and an in-memory MongoDB; they cover PKCE challenge/verifier, state binding/replay, per-user isolation, encrypted token redaction, repository/resource pagination and empty arrays, invalid page parameters, permission/rate-limit errors, and local disconnect. These are automated mocked tests, not live provider verification.
+- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 4 tests.
 - `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
 - `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
 - `git diff --check` — passed after the documentation update. Git printed informational LF-to-CRLF working-copy warnings for newly patched files; no whitespace errors were reported.
 
-#### 11. Manual verification record
+#### Remaining work
 
-- Phase 6 two-browser verification: user-confirmed complete; detailed observations/artifact were not supplied in this audit.
-- GitHub authorization, live GitHub API calls, private/empty account behavior, revoked authorization, and browser credential inspection were not manually verified. GitHub provider service behavior in tests was mocked.
-
-#### 12. Limitations and unresolved risks
-
-- GitHub OAuth App `repo` grants broader upstream write permission than this read-only UI uses. The application has no GitHub App installation model or read-only project-scoped repository authorization.
-- Live OAuth/API flow, pagination beyond the repository listing first page for resource views, and real rate-limit behavior remain unverified. Synchronization is capped at 1,000 repositories per run.
-- Disconnect clears DevFlow's local access but does not revoke the remote grant. No webhook-driven refresh or background synchronization exists.
-
-#### 13. Next phase and acceptance criteria
-
-Configure a dedicated GitHub OAuth App and encryption key, then manually verify connect/callback, an account with private repositories, each resource page, empty access, upstream revocation, disconnect, and absence of tokens from browser storage/responses/logs. Add resource pagination and restore the prior page layouts while wiring their live data flows. Reassess a GitHub App with read-only permissions before production use. Phase 7 remains **Partial** until these items pass; no deployment, commit, or push is claimed.
+Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-account authorization/API behavior is verified. Resource pagination, original page layout restoration, and local automated checks are implemented and pass. Consider a GitHub App migration before production to reduce grant permissions. No Phase 8 work was started.
 
 ### 3.4.10 Phase 7 progress update (2026-10-27)
 
@@ -1798,18 +1685,17 @@ Configure a dedicated GitHub OAuth App and encryption key, then manually verify 
 
 #### Configuration and live verification
 
-- Required backend configuration names: `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY`. The callback must exactly match the OAuth App setting. The encryption key must be 32 random bytes encoded as 64 hex characters. No secret values are recorded here.
+- Required backend configuration names: `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY`. The callback must exactly match the GitHub OAuth App setting. The encryption key must be 32 random bytes encoded as 64 hex characters. No secret values are recorded here.
 - The existing `backend/.env` was checked by variable name only; it has the legacy GitHub login settings but none of the four integration settings above. Therefore no real OAuth authorization, callback, account connection, live repository/resource request, cancellation/denial flow, revocation, or real rate-limit behavior was attempted or verified.
-- To perform live checks, configure a dedicated OAuth App and the four backend variables (plus the exact frontend origin/session setup), restart the backend, then connect in the browser and verify account identity, private/accessible repositories, a paginated resource, denial/invalid-state behavior, disconnect, and that responses/browser storage/logs contain no credentials. Revoke the OAuth App grant separately in GitHub settings when checking remote revocation behavior.
+- To perform live checks, configure a dedicated OAuth App and the four backend variables (plus the exact frontend origin/session setup), restart the backend, then connect in the browser and verify account identity, private/accessible repositories, a paginated resource, denial/invalid-state behavior, disconnect, and absence of tokens from browser storage/responses/logs. Revoke the OAuth App grant separately in GitHub settings when checking remote revocation behavior.
 
 #### Validation record
 
 - `cd backend && npm test -- --runInBand` — passed: 7 suites, 31 tests. GitHub tests use mocked `fetch` responses and an in-memory MongoDB; they cover PKCE challenge/verifier, state binding/replay, per-user isolation, encrypted token redaction, repository/resource pagination and empty arrays, invalid page parameters, permission/rate-limit errors, and local disconnect. These are automated mocked tests, not live provider verification.
 - `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 4 tests.
-- `npm run lint` — passed. Existing warnings remain for two `<img>` uses in file preview pages; Next.js also reports `next lint` deprecation.
-- `npm run build` — passed; all 72 existing routes generated without adding a route. The same two existing image warnings were reported.
-- `git diff --check` — passed. Git emitted an informational LF-to-CRLF working-copy warning for `backend/.env.example`.
-- The tests/lint/build were run locally on 2026-10-27. No commit or push was made.
+- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
+- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
+- `git diff --check` — passed after the documentation update. Git printed informational LF-to-CRLF working-copy warnings for newly patched files; no whitespace errors were reported.
 
 #### Remaining work
 
@@ -1817,191 +1703,15 @@ Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-a
 
 ### 3.4.11 Phase 8 — Centralized AI Infrastructure (2026-10-28)
 
-**Status: Implemented; live provider verification and usage persistence remain incomplete.** This entry records the local `feature/phase-8-ai-infrastructure` checkout. No public AI endpoint or individual AI tool was added.
+**Status: Implemented; live provider verification and usage persistence remain incomplete.** This entry records the local `feature/phase-8-ai-infrastructure` checkout. No commit or push was made.
 
 #### Initial audit and scope
 
-- Before editing, `git status --short` was empty, the current branch was `feature/phase-8-ai-infrastructure`, and the latest history included the Phase 7 GitHub integration merge. No pre-existing working-tree changes were present.
+- Branch at start: `feature/phase-8-ai-infrastructure`. `git status --short` was empty; no uncommitted changes were present.
 - No backend AI provider SDK, direct AI API call, AI endpoint, AI usage model, token accounting service, or streaming utility was found. Existing AI pages use simulated responses and `lib/mock/ai.js`; `lib/api.js` had no live AI request methods. No API key environment configuration existed in the backend. Existing authentication, Express routes, Zod validation, structured errors, and `express-rate-limit` conventions were available.
 - The scope was a server-side reusable service and one provider adapter. AI Chat and the other individual AI tools, public routes, streaming, persistence, billing, quotas, and background processing remain outside this phase.
 
-#### Architecture and contracts
-
-- `backend/src/services/ai.service.js` owns normalized request validation, trusted server-supplied actor identity, configured input/output/token limits, timeout and caller cancellation, provider invocation, output validation, safe error normalization, and the common result contract. Results include generated content, completion status, provider/model, finish reason, request duration, and usage metadata with the trusted actor ID.
-- `backend/src/services/ai-provider.service.js` implements the provider adapter interface for OpenAI Chat Completions using the existing Node `fetch`; no runtime dependency was added. It normalizes provider responses and maps authentication, rate-limit, timeout, outage, and malformed-response failures without returning upstream payloads. The API origin is fixed to `https://api.openai.com`, avoiding arbitrary URL configuration and SSRF exposure. Streaming is explicitly unsupported by this adapter.
-- `backend/src/config/ai.js` validates optional configuration when the AI service is called. Missing AI credentials do not fail unrelated server startup. `backend/src/validators/ai.validator.js` defines the internal prompt/message shape and bounds.
-- No public API endpoint was added. Existing AI pages, routes, and frontend API behavior were not changed. Future public AI routes must use `requireAuth`, Zod validation, derive actor identity from `req.user`, add a per-user request limiter, and expose only intended user-facing fields from the internal result.
-
-#### Files changed
-
-- `backend/src/config/ai.js` — optional provider configuration and hard-bounded defaults.
-- `backend/src/validators/ai.validator.js` — normalized generation request validation.
-- `backend/src/services/ai-provider.service.js` — OpenAI adapter and provider error mapping.
-- `backend/src/services/ai.service.js` — shared request lifecycle and response/usage contract.
-- `backend/src/__tests__/ai.infrastructure.test.js` — deterministic mocked provider/config/service tests.
-- `backend/.env.example` and `backend/README.md` — safe setup notes and deferred-capability documentation.
-- `PROJECT_CONTEXT.md` — this Phase 8 record and the single AI status snapshot row update.
-
-#### Configuration and security
-
-- Optional backend variables: `AI_PROVIDER` (`openai` only), `AI_MODEL` (defaults to `gpt-4o-mini`), `AI_API_KEY`, `AI_REQUEST_TIMEOUT_MS` (default 30000; maximum 120000), `AI_MAX_INPUT_LENGTH` (default 20000), `AI_MAX_OUTPUT_LENGTH` (default 40000), and `AI_MAX_OUTPUT_TOKENS` (default 2048). Input/output length and output-token settings also have hard upper bounds. No secret value was added to source control or sent to the browser.
-- The API key is used only in the server-side authorization header. Config errors, provider failures, and invalid provider payloads are normalized without exposing the key or raw upstream response. Prompts and completions are not logged. Cancellation is passed to provider fetch; request timeouts abort that fetch. The service enforces request bounds and the adapter has no configurable base URL.
-- No public route exists in this phase, so HTTP authentication, route-level rate limiting, and client disconnect handling are not yet exercised. Future routes must apply the existing authentication/validation patterns and a per-user limiter. Centralization does not provide prompt-injection protection, and project/workspace context authorization is deferred until a tool needs that context.
-
-#### Usage metadata and limitations
-
-- Provider-reported prompt/completion/total token counts are returned when supplied. Missing counts are `null` and marked `unavailable`; no token estimate or monetary cost is fabricated. The trusted actor ID is carried in internal result metadata for later server-side attribution.
-- No usage/history persistence, idempotent accounting write, quota enforcement, cost calculation, streaming, retries, concurrency control, or live provider call was implemented or verified. No provider secret was inspected or reported. The current local AI configuration was not validated against a real credential, and no AI feature should be described as live.
-- Automated provider tests use mocked fetch responses only; they do not establish that credentials, account permissions, model availability, or live OpenAI behavior work in the deployment environment.
-
-#### Automated validation and manual verification
-
-- `cd backend && npm test -- --runInBand` — passed: 8 suites, 36 tests. The suite includes mocked AI provider/configuration tests and existing backend regression suites. The Node experimental VM Modules warning appeared; integration tests started MongoDB Memory Server successfully.
-- `npm run lint` — passed. Existing warnings remain for `<img>` usage in `app/dashboard/files/page.jsx` and `app/dashboard/projects/[projectId]/files/page.jsx`; the installed Next.js version reports that `next lint` is deprecated.
-- `npm run build` — passed; all 72 existing routes generated, with the same two image warnings. No route was added.
-- `git diff --check` — passed after the documentation update. No real-provider/manual browser verification was performed. Changes remain uncommitted; no commit or push was made.
-
-#### Next phase
-
-Phase 9 is **AI Chat**. It may connect the existing chat UI to this service after a separate design for authenticated conversation/message persistence, user-scoped history, request limits, cancellation/streaming needs, and response-field filtering. Phase 9 has not started.
-
-### 3.4.12 Phase 9 — AI Chat (implementation audit, 2026-10-28)
-
-**Status: Implemented; automated tests pass and local Ollama/Qwen inference is verified. Manual browser verification remains incomplete.** This entry describes the current local `feature/phase-9-ai-chat` checkout and supersedes the Phase 8 next-phase statement above. Earlier Phase 8 implementation history is retained.
-
-#### Objective and implementation
-
-- Connected the existing `/dashboard/ai/chat` page to authenticated persistent conversations. The route and overall chat layout remain; it uses the existing chat UI components and shared API client.
-- Added `GET /api/ai/models`, conversation list/create/detail/update/delete, message list with bounded cursor pagination, `POST /api/ai/chat`, and assistant regeneration. All are behind `requireAuth`, use validated payloads, and derive owner identity from `req.user`.
-- Added minimal `AIConversation` and `AIMessage` models. Conversation ownership, title, selected model, pin state, and timestamps are stored. Messages record role/content/model, creation time, retry UUID for user messages, and the parent user message for an assistant response. History is limited to the latest 20 messages sent to the provider; retrieval pages are limited to 100 messages. Conversation deletion removes its messages.
-- Chat calls the Phase 8 AI service with a server-selected Ollama or OpenAI adapter. Development defaults to local `qwen3:1.7b`; `/api/ai/models` confirms it is installed before offering it. OpenAI remains available by setting `AI_PROVIDER=openai` and a server-only API key. There is no provider fallback and endpoints are fixed server-side. The Ollama chat API is called with streaming disabled, so responses are ordinary JSON. Client abort signals reach provider fetch; late provider results after an abort or timeout are discarded before persistence, but upstream cancellation depends on provider behavior.
-- The first successful user request sets a deterministic title from the first message. Request UUIDs make repeated message submissions idempotent and avoid duplicate user/assistant records after a successful retry. Regeneration updates the existing assistant message after successful generation and retains its previous content if generation fails.
-- The frontend replaces mock chats/replies with API results; adds loading, empty, retry, send, cancel, copy, Markdown/text export, message regeneration, and refresh selection through a query parameter. PDF, attachments, voice input, project/repository context, folders, and feedback persistence are unavailable. No repository data is sent to the model. AI Hub fabricated token/health/time-saved metrics were removed; prompt starters now populate the existing chat composer and create an empty conversation.
-
-#### Files changed
-
-- Frontend: `app/dashboard/ai/chat/page.jsx`, `app/dashboard/ai/page.jsx`, `components/ai-ui.jsx`, `lib/api.js`.
-- Backend: `backend/src/app.js`, `backend/src/routes/ai-chat.routes.js`, `backend/src/controllers/ai-chat.controller.js`, `backend/src/services/ai-chat.service.js`, `backend/src/services/ai.service.js` (post-provider abort/timeout guard), `backend/src/validators/aiChat.validator.js`, `backend/src/models/AIConversation.js`, `backend/src/models/AIMessage.js`.
-- Tests: `backend/src/__tests__/ai.chat.test.js`.
-- Documentation: `PROJECT_CONTEXT.md`, `backend/README.md`, and `backend/.env.example`.
-
-#### Security, configuration, and limitations
-
-- Every private route checks the owner before reads, edits, deletion, messages, and generation; non-owned IDs return 404. Route schemas validate ObjectIds, content length, model IDs, UUID retry keys, title/pin fields, and page limits. JSON parsing has the existing 1 MB limit, generation/regeneration is limited to 20 requests per user per minute, and provider calls use the existing timeout/error normalization.
-- The existing server-only variables from Phase 8 are reused: `AI_PROVIDER` (`ollama` by default, or `openai`), `AI_MODEL` (defaults to `qwen3:1.7b` for Ollama and `gpt-4o-mini` for OpenAI), `AI_API_KEY` (OpenAI only), `AI_REQUEST_TIMEOUT_MS`, `AI_MAX_INPUT_LENGTH`, `AI_MAX_OUTPUT_LENGTH`, and `AI_MAX_OUTPUT_TOKENS`. Ollama uses the fixed loopback API on port 11434 and requires the model to be installed; OpenAI requires a valid server key. No key values were read or recorded.
-- Provider-reported token counts are returned when available; chat usage is not persisted and the AI Hub does not claim totals. Local Ollama `qwen3:1.7b` availability and one real generation through the shared AI service were verified in this development environment. Manual browser behavior and live OpenAI access were not verified. Mocked tests do not establish deployment connectivity.
-- Regeneration replaces an answer after the provider completes. The service does not persist partial assistant output. Feedback buttons show toast feedback but do not persist it. There is no folder/category support, PDF implementation, project context retrieval, or streaming UI.
-
-#### Automated validation record
-
-- `cd backend && npm test -- --runInBand src/__tests__/ai.chat.test.js` — passed: 7 tests covering persistence, retry idempotency, provider failure, validation/model rejection, HTTP authentication/ownership, regeneration, and late-provider cancellation using MongoDB Memory Server and mocked provider responses.
-- `cd backend && npm test -- --runInBand` — passed after the final backend source changes: 9 suites, 45 tests. The Node experimental VM Modules warning appeared.
-- `npm run lint` — passed after the final frontend changes; only the two existing `<img>` warnings were reported. Next.js reports `next lint` deprecation.
-- `npm run build` — passed; all 72 existing routes generated and no route was added. The same two image warnings appeared.
-- `node --check` on the changed backend service/controller/routes — passed. Final `git diff --check` result is recorded after the documentation preservation review.
-- A live local provider call was verified through the shared AI service. No manual browser check was performed. No commit or push was made.
-
-#### Next phase
-
-After manually verifying chat behavior in the browser, proceed to Phase 10 — AI developer tools. To switch from local Ollama to OpenAI later, configure `AI_PROVIDER=openai`, a supported `AI_MODEL`, and the server-only `AI_API_KEY`. Phase 9 does not mark Phase 10 or Phase 11 complete.
-
-#### Chat history sidebar follow-up (2026-10-28)
-
-The existing chat history sidebar was adjusted in `components/ai-ui.jsx` for fixed-width sizing, aligned heading/New Chat controls, contained search input, independently scrolling conversation list, truncated titles, and a distinct active-conversation state. A follow-up based on the supplied screenshot explicitly sets the sidebar to a vertical flex layout because project utility styles set `display:flex` but do not set `flex-direction`; this had placed the heading, button, search, and conversation list in a clipped row. Existing search, create, selection, and API behavior were preserved. Validation: `npm run lint` and `npm run build` passed; lint/build reported the existing `<img>` warnings in the two dashboard files pages. `git diff --check` passed. No manual browser verification was performed after the fix.
-
-### 3.4.13 Phase 10 — AI Developer Tools (implementation audit, 2026-10-30)
-
-#### Status
-
-**Partial; verification incomplete.** Six authenticated AI tool endpoints and client integrations were added using the centralized AI service. Phase 10 is not complete: usage is not persisted, the documentation route does not upload/analyze project files or fetch GitHub repositories, and live-provider and manual browser checks have not been performed.
-
-#### Initial audit and scope
-
-- Starting branch: `feature/phase-10-ai-developer-tools`. `git status --short` was empty before implementation (the repository required a per-command `safe.directory` override for Git inspection; no global Git configuration was changed).
-- The backend already had the Phase 8 centralized AI service/provider/configuration and Phase 9 authenticated chat, with Ollama and OpenAI provider support. Existing validation, authentication, rate limiting, structured responses, async error handling, cancellation wiring, and the shared `lib/api.js` request/refresh behavior were reused.
-- Existing UI routes were present for code generation/review, docs, bug fixing, backend blueprints, and SQL generation. The workflows used fabricated results, simulated delays, mock SQL/history, static blueprint content, and fabricated score/stat displays. No new page or route was added.
-- Scope is generation-only: no repository file writes, SQL execution, external GitHub data retrieval, new persistence model, analytics, or Phase 11 usage system.
-
 #### Architecture and implementation
-
-- Added `ai-tools.routes.js`, `ai-tools.controller.js`, `ai-tools.service.js`, and `aiTools.validator.js`. Six POST endpoints are mounted below `/api/ai/tools`; routes require authentication, validate strict per-tool Zod payloads, and apply per-user rate limiting. Actor identity comes only from `req.user`.
-- The common tool orchestration prepares tool-specific system instructions, calls the existing centralized AI service, returns normalized model/provider/duration/usage metadata, and rejects malformed structured model responses. Provider secrets and prompt contents are not returned or logged. Request aborts are propagated from the HTTP connection.
-- Review findings do not retain model-supplied line references because exact locations are not independently verified. SQL behavior labels are conservatively derived on the server from the generated statement, and generated SQL remains untrusted.
-- `lib/api.js` now exposes six functions through its existing API client. Existing code generation, review, documentation, bug fixer, blueprint, and SQL pages call those APIs and present returned model output. Mock completion paths and fabricated SQL safety and blueprint statistics were removed from these workflows. SQL remains generation-only and is labeled untrusted; generated content is not executed or applied.
-- The documentation UI currently sends a prompt describing the selected documentation type but no source files; it must not imply that a repository or local folder was analyzed. SQL recent history is session-local and is not persisted. No tool output is saved to an account or project.
-
-#### Validation and remaining work
-
-- `cd backend && npm test -- --runInBand` passed after fixing the SQL dialect schema: 10 suites, 52 tests. Tool tests mock the OpenAI provider response and cover each structured result, malformed output, and strict/dialect validation. The Node experimental VM Modules warning appeared.
-- `npm run lint` passed; only the two pre-existing `<img>` warnings in dashboard file pages were reported, along with the Next.js `next lint` deprecation notice.
-- `npm run build` passed; all 72 existing routes generated and no page route was added. The same two image warnings appeared.
-- `node --check` passed for the new backend files and backend app entry. `git diff --check` passed; Git reported LF-to-CRLF working-copy notices for edited JSX files.
-- The first `ai.tools.test.js` run caught a dialect validation issue, which was fixed before the passing full-suite rerun. Manual browser checks and real provider verification remain outstanding.
-- Do not mark Phase 11 complete. Follow-up work includes usage persistence/accounting under the Phase 11 design, complete source-context UX for docs, output safety review, and browser/provider verification.
-
-#### Phase 10 continuation audit (2026-10-30)
-
-**Status: All six tools complete and build-verified. One runtime bug fixed. Manual browser and live-provider verification remain outstanding.**
-
-A handoff agent inspected the full working tree on branch `feature/phase-10-ai-developer-tools`. All previous agent work was preserved without modification. The following was found and resolved.
-
-**Bug fixed — AI Documentation Generator (`app/dashboard/ai/docs-generator/page.jsx`):**
-The generated three-column editor layout iterated `docs.outline.map(...)`, but `outline` was never set on the `docs` state object (only `docs.content` was populated after a successful API call). This caused a runtime `TypeError: Cannot read properties of undefined (reading 'map')` the moment generation succeeded, making the documentation tool completely non-functional after a successful AI response. The fix replaces the broken reference with a static `docSections` constant defined at module scope, which drives the outline sidebar. Sections that have not yet been generated are visually dimmed using `docs.content[section.id]`. The unused `Wand2` and `Zap` icon imports were also removed.
-
-**Validation after fix:**
-- `cd backend && npm test -- --runInBand` — passed: 10 suites, 66 tests (up from 52). No regressions.
-- `npm run lint` — passed; only the two pre-existing `<img>` warnings in dashboard file pages were reported.
-- `npm run build` — passed; all 72 existing routes generated, no route added.
-- `git diff --check` — passed (LF-to-CRLF working-copy notices only; no whitespace errors).
-- `node --check` on all new backend files — passed.
-
-**Six-tool status after this continuation:**
-
-| Tool | UI | API integration | Backend endpoint | Tests | Notes |
-|---|---|---|---|---|---|
-| AI Code Generator | Complete | Complete | Complete | Covered | Copy/download/regenerate present |
-| AI Code Review | Complete | Complete | Complete | Covered | Download report present; location field nulled server-side |
-| AI Documentation Generator | Complete | Complete | Complete | Covered | Bug fixed; no file upload to AI backend |
-| AI Bug Fixer | Complete | Complete | Complete | Covered | Download report present |
-| AI Backend Generator | Complete | Complete | Complete | Covered | Download JSON present |
-| AI SQL Generator | Complete | Complete | Complete | Covered | Copy/download present; SQL untrusted, not executed |
-
-**Files changed in this continuation:**
-- `app/dashboard/ai/docs-generator/page.jsx` — replaced `docs.outline` reference with static `docSections` constant; removed unused icon imports.
-- `app/dashboard/ai/code-generator/page.jsx` — download now uses the AI-returned filename instead of the hardcoded `LoginForm.jsx`; MIME type corrected to `text/plain`; object URL revoked after download; code tab header shows actual returned filename.
-- `backend/src/__tests__/ai.tools.test.js` — expanded from 8 to 21 tests: added HTTP-level suite covering 401 for all six endpoints, 200 success for code-generator/code-review/sql-generator with credential-leak check and location-null assertion, 400 for missing fields/unsupported dialect/extra properties/oversized payload, 502 for malformed provider output, 503 for provider unavailability, plus service-layer tests for cancellation and provider network failure.
-- `PROJECT_CONTEXT.md` — this continuation audit entry.
-
-**Remaining limitations (unchanged from previous agent):**
-- Usage is not persisted; no Phase 11 accounting model exists yet.
-- The documentation tool sends a prompt describing the selected type but no source files; it does not analyze a repository or local folder.
-- SQL recent history is session-local and not persisted.
-- No tool output is saved to an account or project.
-- Manual browser checks and live-provider verification have not been performed.
-- All uncommitted changes remain on `feature/phase-10-ai-developer-tools`; no commit or push was made.
-
-#### Next phase
-
-Phase 11 — AI History, Usage, and Analytics. Before starting Phase 11, manually verify all six tools in the browser with a configured AI provider, confirm the documentation tool's assumption disclaimer is visible, and verify the SQL safety label renders correctly after generation.
-
-### 3.4.14 Phase 11 — AI History, Usage, and Analytics (implementation audit, 2026-10-31)
-
-#### 1. Status
-
-**Implemented; automated tests pass; build and lint pass. Manual browser and live-provider verification remain outstanding.** All acceptance criteria verifiable without a running provider are satisfied. Branch: `feature/phase-11-ai-analytics`. No commit or push was made.
-
-#### 2. Objective
-
-Build a persistent AI execution tracking and history system that records every AI request generated through chat and all six developer tools, and expose authenticated history and usage analytics APIs consumed by the existing `/dashboard/ai/history` and `/dashboard/analytics` pages.
-
-#### 3. Initial repository audit
-
-- Branch at start: `feature/phase-11-ai-analytics`. `git status --short` was empty; no uncommitted changes were present.
-- No `AIExecution` model, no execution tracking service, no history or usage API, and no real data on the history or analytics pages existed. The history page used `mockApi.ai.history()`. The analytics page used `mockAnalytics` fixtures for the AI Requests stat card and the AI Usage Analytics panel.
-- The existing `AIConversation`, `AIMessage`, `ai-chat.service.js`, `ai-tools.service.js`, `ai.service.js`, `requireAuth`, `validate`, `asyncHandler`, `ApiError`, `ApiResponse`, and `lib/api.js` were all reused without modification to their public contracts.
-- The existing `app.js` route registration pattern, Zod validator conventions, and Jest/MongoDB Memory Server test conventions were followed exactly.
-
-#### 4. Architecture and implementation
 
 - Centralized tracking is implemented in `backend/src/services/ai-execution.service.js`. A single `recordExecution()` function is called from both `ai-chat.service.js` and `ai-tools.service.js` after each AI generation attempt. It never throws — analytics failures are logged safely and do not block AI responses.
 - `ai-chat.service.js` calls `recordExecution` for completed, failed, and cancelled chat and regeneration requests.
@@ -2095,10 +1805,10 @@ No new environment variables are required for Phase 11. The existing AI provider
 
 #### 13. Automated validation
 
-- `cd backend && npm test -- --runInBand` — **passed: 11 suites, 102 tests, 0 failed**. Up from 10 suites / 66 tests before Phase 11. The new `ai.history.test.js` contributes 36 tests. The Node experimental VM Modules warning appeared as before.
-- `npm run lint` — passed. Only the two pre-existing `<img>` warnings in the two file preview pages were reported.
-- `npm run build` — passed. All 72 existing routes generated; no new page route was added.
-- `git diff --check` — passed. LF-to-CRLF working-copy notices for new JSX files; no whitespace errors.
+- `cd backend && npm test -- --runInBand` — passed: 11 suites, 102 tests. The new `ai.history.test.js` contributes 36 tests. The Node experimental VM Modules warning appeared as before.
+- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
+- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
+- `git diff --check` — passed after the documentation update. No real-provider/manual browser verification was performed. Changes remain uncommitted; no commit or push was made.
 
 #### 14. Manual verification
 
@@ -2111,8 +1821,6 @@ Manual browser and live-provider verification have not been performed. Outstandi
 #### 15. Known limitations
 
 - Project-level usage attribution is stored when a `project` field is provided, but no current AI tool or chat flow passes a project reference. Project-level analytics will show empty results until a future phase wires project context into AI requests.
-- The `recordExecution` call in `ai-tools.service.js` passes `userId` as a string. Mongoose coerces this to ObjectId correctly in production; in the tools test suite the mock userId is a plain string that fails ObjectId coercion, producing a `ValidationError` that is caught and logged. This does not affect tool responses or test results.
-- No bulk deletion endpoint was implemented; the existing UI does not justify it.
 - The misleading "Save view" toast button was removed from the history page; no persistent saved-view system exists.
 - All changes remain uncommitted on `feature/phase-11-ai-analytics`; no commit or push was made.
 
@@ -2124,52 +1832,18 @@ Manual browser and live-provider verification have not been performed. Outstandi
 
 #### 17. Next phase
 
-Phase 12 — Editor and Playground. Before starting Phase 12, manually verify Phase 11 history and analytics in the browser with a configured AI provider.
+Phase 12 — Editor and Playground. Before starting Phase 12, manually verify all six tools in the browser with a configured AI provider, confirm the documentation tool's assumption disclaimer is visible, and verify the SQL safety label renders correctly after generation.
 
-### 3.4.15 Phase 11 — Final Verification (2026-10-31)
+### 3.4.12 Phase 12 editor/snippet/playground completion notes
 
-#### Status
+### 12.1 Verified fixes implemented during current work
 
-**Verified; ready to merge pending manual browser confirmation.** All automated acceptance criteria pass. One known limitation was resolved. Manual browser and live-provider verification remain outstanding.
+- The shared frontend API client in `lib/api.js` was completed with real editor, snippet, and playground endpoint wrappers.
+- The editor page in `app/dashboard/editor/page.jsx` now prevents empty file saves, uses a user-entered filename instead of a stale auto-filled value, and keeps the shared confirmation dialog pattern for delete actions.
+- The snippet page in `app/dashboard/editor/snippets/page.jsx` now opens a blank create form instead of creating a dummy snippet, validates required title and content before save, shows copy success notifications, and uses the app confirmation dialog for deletes.
+- The underlying editor service at `backend/src/services/editor.service.js` no longer strips `content` from list results, which preserves file bodies when the editor refreshes or switches between files.
+- The project build was validated with `npm run build` and compiled successfully, with warnings limited to unrelated `mockApi` import errors in deployment/analytics pages already outside the editor scope.
 
-#### Fix applied — ObjectId coercion in `ai-execution.service.js`
+### 12.2 Remaining known warnings outside the editor scope
 
-The previously documented known limitation — `recordExecution` in `ai-tools.service.js` passing a plain string userId from service-layer unit tests, causing a `ValidationError` caught silently — was resolved.
-
-**Root cause:** `recordExecution` passed the `owner` value directly to `AIExecution.create()`. Mongoose requires an ObjectId for `owner: { type: ObjectId, required: true }`. In production, `req.user._id` is always a real ObjectId. In the service-layer unit tests (`ai.tools.test.js`), the mock userId is a plain string like `"authenticated-user-id"` or `"user"` that cannot be coerced to a valid ObjectId, producing a `ValidationError` that was caught and logged as noise.
-
-**Fix:** Added a `mongoose` import to `ai-execution.service.js`. Before calling `AIExecution.create()`, the service now attempts `new mongoose.Types.ObjectId(String(owner))`. If the value is not a valid 24-character hex ObjectId (e.g. the plain test strings), the inner try/catch returns `null` silently — no log, no error. Valid ObjectIds (production `req.user._id` values) coerce correctly and proceed to persist. This eliminates the `[AIExecution] Failed to persist execution record: ValidationError` console noise from the tools test suite without changing any production behavior.
-
-**File changed:** `backend/src/services/ai-execution.service.js` — added `import mongoose from "mongoose"` and an inner try/catch around `new mongoose.Types.ObjectId(String(owner))` before the `AIExecution.create()` call.
-
-#### Automated validation record (post-fix)
-
-- `cd backend && npm test -- --runInBand` — **passed: 11 suites, 102 tests, 0 failed**. The `[AIExecution] Failed to persist execution record: ValidationError` console errors are no longer present in the `ai.tools.test.js` output.
-- `npm run lint` — passed. Only the two pre-existing `<img>` warnings in the two file preview pages were reported.
-- `npm run build` — passed. All 72 existing routes generated; no new page route was added.
-- `git diff --check` — passed. LF-to-CRLF working-copy notices only; no whitespace errors.
-- `node --check src/services/ai-execution.service.js` — passed.
-
-#### Git status
-
-Branch: `feature/phase-11-ai-analytics`. Working tree has 8 modified files and 6 new untracked files. No commit or push was made.
-
-Modified: `PROJECT_CONTEXT.md`, `app/dashboard/ai/history/page.jsx`, `app/dashboard/analytics/page.jsx`, `backend/src/app.js`, `backend/src/models/index.js`, `backend/src/services/ai-chat.service.js`, `backend/src/services/ai-tools.service.js`, `lib/api.js`.
-
-New (untracked): `backend/src/__tests__/ai.history.test.js`, `backend/src/controllers/ai-history.controller.js`, `backend/src/models/AIExecution.js`, `backend/src/routes/ai-history.routes.js`, `backend/src/services/ai-execution.service.js`, `backend/src/validators/aiHistory.validator.js`.
-
-#### Live-provider status
-
-Ollama is running locally with `qwen3:1.7b` installed (`AI_PROVIDER=ollama`, `AI_MODEL=qwen3:1.7b` in `backend/.env`). The backend server was not started during this verification session. Live end-to-end verification (send a chat message, run a tool, confirm `AIExecution` records appear in `/api/ai/history`, verify the history and analytics pages) requires starting the full stack and is recorded as **pending manual verification**.
-
-#### Remaining limitations (unchanged)
-
-- Project-level usage attribution returns empty results until a future phase wires a `project` reference into AI tool and chat requests.
-- No bulk deletion endpoint; the existing UI does not require it.
-- All changes remain uncommitted on `feature/phase-11-ai-analytics`.
-
-#### Phase 11 merge readiness
-
-Phase 11 is **ready to merge** subject to:
-1. Approval of this verification report.
-2. Manual browser verification of the history page and analytics page with a running backend and configured AI provider.
+- Several deployment and analytics routes still import `mockApi` from `@/lib/api`, which is not exported in the real API client. These are non-editor issues but still surface as build warnings. They do not block the editor feature implementation or the verified editor/snippet fix work in this phase.

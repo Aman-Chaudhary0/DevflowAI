@@ -11,3 +11,6 @@ export { default as Notification } from "./Notification.js";
 export { default as Activity } from "./Activity.js";
 export { default as Invitation } from "./Invitation.js";
 export { AIExecution } from "./AIExecution.js";
+export { default as EditorFile } from "./EditorFile.js";
+export { default as Snippet } from "./Snippet.js";
+export { default as Playground } from "./Playground.js";
