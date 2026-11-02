@@ -21,6 +21,7 @@ import aiHistoryRoutes from "./routes/ai-history.routes.js";
 import editorRoutes from "./routes/editor.routes.js";
 import snippetRoutes from "./routes/snippet.routes.js";
 import playgroundRoutes from "./routes/playground.routes.js";
+import workflowRoutes from "./routes/workflow.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -73,6 +74,7 @@ app.use("/api/editor", editorRoutes);
 app.use("/api/snippets", snippetRoutes);
 app.use("/api/playgrounds", playgroundRoutes);
 app.use("/api/projects", projectRoutes);
+app.use("/api/workflows", workflowRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
