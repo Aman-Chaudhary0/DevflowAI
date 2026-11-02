@@ -43,6 +43,7 @@ const globalNav = [
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/ai", label: "AI Assistant", icon: Bot },
   { href: "/dashboard/tasks", label: "Tasks", icon: Workflow, badge: 8 },
+  { href: "/dashboard/workflows", label: "Workflows", icon: Workflow, badge: 2 },
   { href: "/dashboard/files", label: "Files", icon: FileText },
   { href: "/dashboard/github", label: "GitHub", icon: Github },
   { href: "/dashboard/notifications", label: "Notifications", icon: Bell, badge: 3 }
