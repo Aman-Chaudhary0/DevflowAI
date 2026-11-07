@@ -49,7 +49,7 @@ export const triggerWorkflow = asyncHandler(async (req, res) => {
     payload: req.body?.payload || {},
     triggerType: req.body?.triggerType || "manual"
   });
-  res.status(200).json(new ApiResponse(200, result, "Workflow triggered successfully"));
+  res.status(202).json(new ApiResponse(202, result, "Workflow execution queued successfully"));
 });
 
 export const listWorkflowRuns = asyncHandler(async (req, res) => {
@@ -64,5 +64,5 @@ export const getWorkflowRun = asyncHandler(async (req, res) => {
 
 export const retryWorkflowRun = asyncHandler(async (req, res) => {
   const result = await retryWorkflowRunForUser(req.user, req.params.workflowId, req.params.runId);
-  res.status(200).json(new ApiResponse(200, result, "Workflow run retried successfully"));
+  res.status(202).json(new ApiResponse(202, result, "Workflow execution queued successfully"));
 });

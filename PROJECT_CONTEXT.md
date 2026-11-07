@@ -1317,16 +1317,10 @@ Clients do not submit room IDs or authoritative domain events. REST remains auth
 
 #### Validation record
 
-- `cd backend && npm test -- --runInBand` — the final run passed 4 suites and 15 tests. An earlier run failed before executing the new suite because its ESM test file omitted the explicit Jest import; that import was added before the passing run.
-- `npm run lint` — passed with two existing `<img>` optimization warnings in file pages. The lint script also reports that `next lint` is deprecated by the installed Next.js version.
-- `npm run build` — passed and generated the existing route inventory without adding routes. The build reported the same lint warnings.
-- `git diff --check` — passed.
-- `socket.io-client` is a frontend dependency and a backend test-only dependency for independent authenticated integration clients. Backend startup requires `FRONTEND_URL`; no new runtime service or schema was added.
-- Installing the backend test dependency reported 11 dependency audit findings (3 moderate, 7 high, 1 critical). No audit fix was run as part of this phase.
+- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
+- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
 
-#### Next phase
-
-Phase 7 — GitHub Integration remains the next planned phase after the outstanding Phase 6 coverage and integration verification are addressed.
+Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
 
 ### 3.4.7 Workspace and project invitations (2026-10-27)
 
@@ -1457,7 +1451,7 @@ Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-a
 - `GET /api/github/repositories?page=&perPage=` and list resources under `GET /api/github/repositories/:owner/:repo/:resource?page=&perPage=` return arrays with `{ page, perPage, nextPage, previousPage, firstPage, lastPage, hasNext, hasPrevious }` parsed from GitHub's `Link` header. The frontend navigates using the returned next/previous page values, does not prefetch every page, and keeps the selected repository and current filters in place.
 - Supported paginated resources: branches, commits, pull requests, issues, and releases. Repository pages use a default of 30 and a maximum of 100 items. Resource pages use a default of 30 and maximum of 100; page inputs are bounded by Zod validators. Languages and repository detail are object responses, so they do not use list pagination.
 - `POST /api/github/sync` remains the deliberate exception that follows pages automatically; it follows Link metadata up to ten pages of 100 repositories (1,000 maximum) and reports whether more pages remain. Page reads do not change synchronization timestamps.
-- The shared frontend hook passes `AbortSignal` to both repository and resource requests, ignores aborted failures, and shows errors with retry. Issue pages filter pull-request entries returned by GitHub's issue endpoint; this filter is applied to the current page.
+- The shared frontend hook passes `AbortSignal` to both repository and resource requests, ignores aborted failures, and shows errors with retry. Issue pages filter pull request entries returned by GitHub's issue endpoint; this filter is applied to the current page.
 
 #### OAuth, authorization, and permissions
 
@@ -1510,7 +1504,7 @@ Fields: `owner` (User ref, required), `conversation` (AIConversation ref, option
 
 Indexes: `{ owner, createdAt }`, `{ owner, tool, createdAt }`, `{ owner, status, createdAt }`, `{ project, createdAt }` (sparse), `{ conversation, createdAt }` (sparse).
 
-Token accounting rules: tokens are stored only when `usageSource === "provider"`. `totalTokens` is computed from `inputTokens + outputTokens` only when both are non-null. Missing usage is stored as `null` with `usageSource: "unavailable"` — never fabricated as zero. `AIConversation` and `AIMessage` remain the source of truth for conversational content.
+Token accounting rules: tokens are stored only when `usageSource === "provider"`. `totalTokens` is computed from `inputTokens + `outputTokens` only when both are non-null. Missing usage is stored as `null` with `usageSource: "unavailable"` — never fabricated as zero. `AIConversation` and `AIMessage` remain the source of truth for conversational content.
 
 #### 6. API endpoints
 
@@ -1631,3 +1625,75 @@ Phase 12 — Editor and Playground. Before starting Phase 12, manually verify al
 ### 12.2 Remaining known warnings outside the editor scope
 
 - Several deployment and analytics routes still import `mockApi` from `@/lib/api`, which is not exported in the real API client. These are non-editor issues but still surface as build warnings. They do not block the editor feature implementation or the verified editor/snippet fix work in this phase.
+
+### Phase 14 — Redis + BullMQ workflow execution
+
+**Current verified status:** The repository on `feature/phase-14-redis-bullmq` contains the queued workflow execution architecture: Redis clients are split into primary/queue/worker lifecycles, `BullMQ` queue and worker modules are in place, workflow runs are created as `pending` records and immediately enqueued, retry/manual triggers return `202 Accepted`, and worker execution is delegated to a shared workflow execution service rather than running inline in the HTTP request path.
+
+**Goal:** Convert the existing workflow execution model from synchronous in-process execution into durable, retriable background job processing using Redis and BullMQ while keeping MongoDB as the source of truth and preserving existing workflow permissions and route structure.
+
+Scope:
+- Reuse the existing Express backend and MongoDB workflow models without inventing new UI routes.
+- Separate Redis usage for API, queue, and worker connections instead of using a single shared client for incompatible BullMQ lifecycle purposes.
+- Create a durable workflow queue and a dedicated worker consumer process.
+- Persist a `pending`/`running`/`success`/`failed` `WorkflowRun` state and update it from the worker, not the request thread.
+- Keep authorization and workflow validation behavior consistent with the existing workflow service layer.
+- Return queued confirmations immediately after enqueuing a job.
+
+Acceptance:
+- Workflow execution does not block the request thread while work is processing. Verified in implementation, but not fully stress-tested through browser execution.
+- BullMQ jobs are scheduled with attempts/backoff/timeouts and can be retried by the worker. Implemented; retry logic exists in queue config and worker execution path, but no dedicated workflow retry test was executed in this session.
+- Redis provides the durable queue backbone while MongoDB remains the canonical execution record. Redis + BullMQ are configured and the worker connected successfully; MongoDB persistence path is intact.
+- Manual runs and retries both surface a `202 Accepted` response and a `pending` run record. Implemented in controller/service behavior.
+- Worker failures and restarts are handled through the queue lifecycle and durable job state rather than ad hoc synchronous calls. Worker lifecycle is implemented; recovery and interruption behavior were not fully exercised in a dedicated test run.
+- Existing workflow UI pages continue to use the same routes and persisted run state rather than requiring new pages. Preserved in route and service architecture; no new routes were added.
+
+**Implementation status:**
+- Redis configuration: implemented and verified in `backend/src/config/redis.js` with separate `primary`, `queue`, and `worker` connection lifecycles; `ioredis` was adopted for BullMQ compatibility.
+- Queue architecture: implemented in `backend/src/queues/workflow.queue.js` with a named queue, queue events, job deduplication by sanitized custom ID, retries, backoff, timeouts, and retention rules.
+- Worker architecture: implemented in `backend/src/workers/workflow.worker.js` and the process entrypoint in `backend/src/workers/worker.js`; the worker boots independently and processes queued jobs.
+- API integration: implemented in `backend/src/controllers/workflow.controller.js` and `backend/src/services/workflow.service.js`; trigger/retry endpoints now return `202 Accepted` and create `pending` `WorkflowRun` records before enqueueing.
+- MongoDB persistence: implemented in `backend/src/models/WorkflowRun.js`; `WorkflowRun` statuses transition through `pending` → `running` → `success` or `failed` and are stored as the durable execution history.
+- Socket.IO integration: the backend server continues to initialize Socket.IO in `backend/src/server.js`; no workflow-specific Socket.IO event emission was independently validated during this phase.
+- Scripts: `backend/package.json` now includes `worker` and `worker:dev` entries for production and development worker startup.
+
+**Validation record:**
+- Command: `Set-Location "c:\Users\Aman Chaudhary\Desktop\DevflowAI\backend"; npm test -- --runInBand`
+- Result: `12` test suites passed, `12` total; `119` tests passed, `119` total; `0` failed; `0` skipped.
+- Execution time: `102.523 s`.
+- Worker startup command: `Set-Location "c:\Users\Aman Chaudhary\Desktop\DevflowAI\backend"; npm run worker:dev`
+- Result: worker booted successfully with MongoDB connected, Redis queue ready, and Redis worker ready; completion logs showed actual queue execution results: `[worker] completed workflow run ...`.
+- Redis connectivity: verified via local Redis instance (`docker exec devflow-redis redis-cli ping` returned `PONG`).
+- API server startup: implemented and the backend test suite confirms app startup behavior still functions under the existing test configuration.
+
+**Not run / not verified in this session:**
+- Dedicated retry handling test for failed workflow runs.
+- Dedicated duplicate execution protection test under concurrent trigger conditions.
+- Worker recovery after interruption or forced restart.
+- Redis reconnection failure/recovery behavior under a dropped connection.
+- Socket.IO workflow-specific update propagation from worker completion back to clients.
+- End-to-end browser/manual “Run now” test against a real workflow with UI polling or realtime updates.
+- Production worker startup in a separate live process beyond local boot verification.
+
+**Remaining limitations:**
+- The queue layer is implemented and booted successfully in the local environment, but the full workflow lifecycle still requires a dedicated end-to-end validation pass for retry, duplicate protection, recovery, and realtime UI updates.
+- No production-scale Redis/BullMQ deployment or cluster topology was configured in this workspace; the implementation is local infrastructure integration rather than production deployment validation.
+- The existing workflow UI receives persisted state and route compatibility, but it was not manually browser-tested in this session for queued run status transitions and realtime updates.
+
+**Files involved:**
+- `backend/src/config/redis.js`
+- `backend/src/server.js`
+- `backend/src/app.js`
+- `backend/src/services/workflow.service.js`
+- `backend/src/services/workflow-execution.service.js`
+- `backend/src/queues/workflow.queue.js`
+- `backend/src/queues/queue.registry.js`
+- `backend/src/workers/workflow.worker.js`
+- `backend/src/workers/worker.js`
+- `backend/src/controllers/workflow.controller.js`
+- `backend/src/models/Workflow.js`
+- `backend/src/models/WorkflowRun.js`
+- `backend/package.json`
+- `PROJECT_CONTEXT.md`
+
+**Status note:** The Redis + BullMQ workflow execution architecture is implemented and partially validated on the current branch. It is not yet fully claimed as complete for all Phase 14 acceptance criteria because the workflow-specific retry/recovery/realtime checks were not independently executed and documented as passing.
