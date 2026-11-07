@@ -7,6 +7,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import passport from "passport";
 import { configurePassport } from "./config/passport.js";
+import { getRedisHealth } from "./config/redis.js";
 import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
 import projectRoutes, { dashboardRouter } from "./routes/project.routes.js";
@@ -58,7 +59,12 @@ const authLimiter = rateLimit({
 });
 
 app.get("/health", (_req, res) => {
-  res.status(200).json(new ApiResponse(200, { status: "ok" }, "Backend is healthy"));
+  const redis = getRedisHealth();
+  res.status(200).json(new ApiResponse(200, {
+    status: "ok",
+    redis,
+    queue: { available: redis.status === "connected" }
+  }, "Backend is healthy"));
 });
 
 app.use("/api/auth", authLimiter, authRoutes);

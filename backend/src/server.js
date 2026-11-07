@@ -3,7 +3,9 @@ import http from "http";
 import { Server } from "socket.io";
 import { app } from "./app.js";
 import { connectDB, disconnectDB } from "./config/db.js";
+import { connectRedis, closeRedis, getRedisHealth } from "./config/redis.js";
 import { configureSocketAuth } from "./realtime/socketAuth.js";
+import { closeWorkflowQueue } from "./queues/workflow.queue.js";
 
 const requiredEnvVars = ["MONGO_URI", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "FRONTEND_URL"];
 
@@ -18,6 +20,14 @@ async function bootstrap() {
   validateEnv();
   await connectDB();
 
+  let redisStatus = "disconnected";
+  try {
+    await connectRedis({ failOnError: false });
+    redisStatus = getRedisHealth().status;
+  } catch (error) {
+    console.warn(`Redis unavailable during startup: ${error.message}`);
+  }
+
   const server = http.createServer(app);
   const io = new Server(server, {
     cors: {
@@ -31,13 +41,18 @@ async function bootstrap() {
   });
 
   app.set("io", io);
+  app.set("redisStatus", redisStatus);
   configureSocketAuth(io);
 
   const port = process.env.PORT || 5000;
 
   const shutdown = async () => {
+    if (shutdown._closing) return;
+    shutdown._closing = true;
     io.close();
     server.close();
+    await closeWorkflowQueue();
+    await closeRedis();
     await disconnectDB();
     process.exit(0);
   };
@@ -47,6 +62,7 @@ async function bootstrap() {
 
   server.listen(port, () => {
     console.log(`Devflow AI backend running on port ${port}`);
+    console.log(`Redis status: ${redisStatus}`);
   });
 }
 
