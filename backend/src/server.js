@@ -6,6 +6,7 @@ import { connectDB, disconnectDB } from "./config/db.js";
 import { connectRedis, closeRedis, getRedisHealth } from "./config/redis.js";
 import { configureSocketAuth } from "./realtime/socketAuth.js";
 import { closeWorkflowQueue } from "./queues/workflow.queue.js";
+import { closeDeploymentQueue } from "./queues/deployment.queue.js";
 
 const requiredEnvVars = ["MONGO_URI", "JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "FRONTEND_URL"];
 
@@ -52,6 +53,7 @@ async function bootstrap() {
     io.close();
     server.close();
     await closeWorkflowQueue();
+    await closeDeploymentQueue();
     await closeRedis();
     await disconnectDB();
     process.exit(0);

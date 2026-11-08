@@ -14,3 +14,5 @@ export { AIExecution } from "./AIExecution.js";
 export { default as EditorFile } from "./EditorFile.js";
 export { default as Snippet } from "./Snippet.js";
 export { default as Playground } from "./Playground.js";
+export { default as Deployment } from "./Deployment.js";
+export { default as Domain } from "./Domain.js";

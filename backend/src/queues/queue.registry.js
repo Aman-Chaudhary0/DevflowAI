@@ -1,1 +1,2 @@
 export { WORKFLOW_QUEUE_NAME, WORKFLOW_JOB_ATTEMPTS, WORKFLOW_JOB_BACKOFF_MS, WORKFLOW_JOB_TIMEOUT_MS, WORKFLOW_WORKER_CONCURRENCY, getWorkflowQueue, getWorkflowQueueEvents, addWorkflowJob, closeWorkflowQueue } from "./workflow.queue.js";
+export { DEPLOYMENT_QUEUE_NAME, DEPLOYMENT_JOB_ATTEMPTS, DEPLOYMENT_JOB_BACKOFF_MS, DEPLOYMENT_JOB_TIMEOUT_MS, DEPLOYMENT_WORKER_CONCURRENCY, getDeploymentQueue, getDeploymentQueueEvents, addDeploymentJob, closeDeploymentQueue } from "./deployment.queue.js";
