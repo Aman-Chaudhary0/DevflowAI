@@ -1,9 +1,11 @@
 import "dotenv/config";
 import { startWorkflowWorker } from "./workflow.worker.js";
+import { startDeploymentWorker } from "./deployment.worker.js";
 import { closeRedis } from "../config/redis.js";
 import { disconnectDB } from "../config/db.js";
 
-let worker = null;
+let workflowWorker = null;
+let deploymentWorker = null;
 let shutdownInProgress = false;
 
 async function shutdown() {
@@ -11,8 +13,11 @@ async function shutdown() {
   shutdownInProgress = true;
 
   try {
-    if (worker) {
-      await worker.close();
+    if (workflowWorker) {
+      await workflowWorker.close();
+    }
+    if (deploymentWorker) {
+      await deploymentWorker.close();
     }
     await closeRedis();
     await disconnectDB();
@@ -25,8 +30,9 @@ async function shutdown() {
 }
 
 async function boot() {
-  worker = await startWorkflowWorker();
-  console.log("Workflow worker started");
+  workflowWorker = await startWorkflowWorker();
+  deploymentWorker = await startDeploymentWorker();
+  console.log("Workflow and deployment workers started");
 }
 
 process.on("SIGINT", shutdown);

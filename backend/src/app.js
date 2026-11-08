@@ -23,6 +23,8 @@ import editorRoutes from "./routes/editor.routes.js";
 import snippetRoutes from "./routes/snippet.routes.js";
 import playgroundRoutes from "./routes/playground.routes.js";
 import workflowRoutes from "./routes/workflow.routes.js";
+import deploymentRoutes from "./routes/deployment.routes.js";
+import domainRoutes from "./routes/domain.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -81,6 +83,8 @@ app.use("/api/snippets", snippetRoutes);
 app.use("/api/playgrounds", playgroundRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/workflows", workflowRoutes);
+app.use("/api/deployments", deploymentRoutes);
+app.use("/api/domains", domainRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
