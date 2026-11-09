@@ -25,6 +25,8 @@ import playgroundRoutes from "./routes/playground.routes.js";
 import workflowRoutes from "./routes/workflow.routes.js";
 import deploymentRoutes from "./routes/deployment.routes.js";
 import domainRoutes from "./routes/domain.routes.js";
+import apiKeyRoutes from "./routes/api-key.routes.js";
+import integrationRoutes from "./routes/integration.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -85,6 +87,8 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/workflows", workflowRoutes);
 app.use("/api/deployments", deploymentRoutes);
 app.use("/api/domains", domainRoutes);
+app.use("/api/api-keys", apiKeyRoutes);
+app.use("/api/integrations", integrationRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);

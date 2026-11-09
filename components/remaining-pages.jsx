@@ -342,19 +342,72 @@ function BoxIcon(props) {
 }
 
 export function Integrations() {
-  const [items, setItems] = useState(integrationData);
+  const [catalog, setCatalog] = useState([]);
+  const [connected, setConnected] = useState({});
+  const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [open, setOpen] = useState(null);
   const [working, setWorking] = useState(false);
   const [disconnect, setDisconnect] = useState(false);
 
+  useEffect(() => {
+    loadIntegrations();
+  }, []);
+
+  async function loadIntegrations() {
+    try {
+      setLoading(true);
+      const catalogRes = await api.integrations.catalog();
+      setCatalog(catalogRes.data || []);
+      
+      const listRes = await api.integrations.list();
+      const connectedMap = {};
+      (listRes.data || []).forEach(int => {
+        connectedMap[int.provider] = int;
+      });
+      setConnected(connectedMap);
+    } catch (error) {
+      toast(error.message || "Failed to load integrations", "error");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function connectIntegration() {
+    if (!open) return;
+    try {
+      setWorking(true);
+      await api.integrations.connect(open.provider, {});
+      await loadIntegrations();
+      setOpen(null);
+      toast(`${open.name} connected successfully`);
+    } catch (error) {
+      toast(error.message || "Failed to connect integration", "error");
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  async function disconnectIntegration() {
+    if (!open) return;
+    try {
+      await api.integrations.disconnect(open.provider);
+      await loadIntegrations();
+      setDisconnect(false);
+      setOpen(null);
+      toast(`${open.name} disconnected successfully`);
+    } catch (error) {
+      toast(error.message || "Failed to disconnect integration", "error");
+    }
+  }
+
   const categories = [
     "All", "Development", "AI", "Deployment",
     "Communication", "Productivity", "Storage",
   ];
 
-  const filtered = items.filter(
+  const filtered = catalog.filter(
     x =>
       (category === "All" || x.category === category) &&
       `${x.name} ${x.category} ${x.description}`
@@ -362,17 +415,7 @@ export function Integrations() {
         .includes(query.toLowerCase())
   );
 
-  const connect = () => {
-    setWorking(true);
-    setTimeout(() => {
-      setItems(v =>
-        v.map(x => x.name === open.name ? { ...x, status: "Connected" } : x)
-      );
-      setWorking(false);
-      setOpen(null);
-      toast(`${open.name} connected.`);
-    }, 1000);
-  };
+  const connectedList = catalog.filter(x => connected[x.provider]);
 
   return (
     <div className="remaining-dashboard">
@@ -391,113 +434,90 @@ export function Integrations() {
         </label>
       </PageHeader>
 
-      <section className="connected-strip mt-6">
-        <strong>Connected</strong>
-        {items
-          .filter(x => x.status === "Connected")
-          .map(x => (
-            <button
-              className="connected-pill"
-              key={x.name}
-              onClick={() => setOpen(x)}
-              type="button"
-            >
-              <CheckCircle2 size={14} />
-              {x.name}
-              <span>
-                {x.name === "GitHub"
-                  ? "2 repositories"
-                  : x.name === "Vercel"
-                  ? "4 projects"
-                  : "Account"}
-              </span>
-            </button>
-          ))}
-      </section>
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "40px" }}>
+          <Loader2 size={32} className="spin" style={{ margin: "0 auto" }} />
+        </div>
+      ) : (
+        <>
+          {connectedList.length > 0 && (
+            <section className="connected-strip mt-6">
+              <strong>Connected</strong>
+              {connectedList.map(x => (
+                <button
+                  className="connected-pill"
+                  key={x.provider}
+                  onClick={() => setOpen(x)}
+                  type="button"
+                >
+                  <CheckCircle2 size={14} />
+                  {x.name}
+                  <span>Connected</span>
+                </button>
+              ))}
+            </section>
+          )}
 
-      <FilterBar
-        filters={categories.map(value => ({ label: value, value }))}
-        active={category}
-        onChange={setCategory}
-      />
+          <FilterBar
+            filters={categories.map(value => ({ label: value, value }))}
+            active={category}
+            onChange={setCategory}
+          />
 
-      <section className="integration-grid">
-        {filtered.map(item => {
-          const Icon = integrationIcons[item.name] || Plug;
-          return (
-            <article className="card card-pad integration-card" key={item.name}>
-              <div className="integration-icon">
-                <Icon size={21} />
-              </div>
-              <div className="flex justify-between gap-2">
-                <div>
-                  <span className="badge">{item.category}</span>
-                  <h2 className="tool-title mt-3">{item.name}</h2>
-                </div>
-                <StatusBadge
-                  status={
-                    item.status === "Connected"
-                      ? "success"
-                      : item.status === "Coming soon"
-                      ? "idle"
-                      : "active"
-                  }
-                />
-              </div>
-              <p className="muted text-sm">{item.description}</p>
-              <button
-                className="btn btn-outline mt-auto"
-                disabled={item.status === "Coming soon"}
-                onClick={() => setOpen(item)}
-                type="button"
-              >
-                {item.status === "Connected"
-                  ? "Manage"
-                  : item.status === "Coming soon"
-                  ? "Coming soon"
-                  : "Connect"}
-              </button>
-            </article>
-          );
-        })}
-      </section>
+          <section className="integration-grid">
+            {filtered.map(item => {
+              const Icon = integrationIcons[item.name] || Plug;
+              const isConnected = !!connected[item.provider];
+              return (
+                <article className="card card-pad integration-card" key={item.provider}>
+                  <div className="integration-icon">
+                    <Icon size={21} />
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <div>
+                      <span className="badge">{item.category}</span>
+                      <h2 className="tool-title mt-3">{item.name}</h2>
+                    </div>
+                    <StatusBadge
+                      status={isConnected ? "success" : "active"}
+                    />
+                  </div>
+                  <p className="muted text-sm">{item.description}</p>
+                  <button
+                    className="btn btn-outline mt-auto"
+                    onClick={() => setOpen(item)}
+                    type="button"
+                  >
+                    {isConnected ? "Manage" : "Connect"}
+                  </button>
+                </article>
+              );
+            })}
+          </section>
 
-      {!filtered.length && (
-        <EmptyState
-          icon={Search}
-          title="No integrations found."
-          description="Try a different term or category."
-        />
+          {!filtered.length && (
+            <EmptyState
+              icon={Search}
+              title="No integrations found."
+              description="Try a different term or category."
+            />
+          )}
+        </>
       )}
 
       <Drawer
         open={!!open}
-        title={open?.status === "Connected" ? `Manage ${open?.name}` : `Connect ${open?.name}`}
+        title={connected[open?.provider] ? `Manage ${open?.name}` : `Connect ${open?.name}`}
         onClose={() => setOpen(null)}
       >
-        {open && open.status === "Connected" ? (
+        {open && connected[open.provider] ? (
           <>
-            <p className="muted">Connected account · devflow-team</p>
+            <p className="muted">Connected account</p>
             <div className="drawer-section">
-              <strong>Permissions</strong>
-              <p>
-                Read workspace activity, synchronize resources, and send
-                configured notifications.
-              </p>
-              <strong>Last synchronized</strong>
-              <p>
-                2 minutes ago ·{" "}
-                {open?.name === "GitHub" ? "2 repositories" : "4 resources"}
-              </p>
+              <strong>Status</strong>
+              <p>This integration is active and ready to use.</p>
             </div>
             <div className="flex gap-2">
-              <button
-                className="btn btn-primary"
-                onClick={() => toast("Sync started.")}
-                type="button"
-              >
-                Sync now
-              </button>
               <button
                 className="btn btn-outline"
                 onClick={() => setDisconnect(true)}
@@ -514,13 +534,10 @@ export function Integrations() {
               workflow.
             </p>
             <ul className="benefit-list">
-              <li>Repository and workspace synchronization</li>
-              <li>Relevant activity and deployment context</li>
-              <li>Configurable team notifications</li>
+              <li>Workspace synchronization</li>
+              <li>Relevant activity and context</li>
+              <li>Configurable notifications</li>
             </ul>
-            <p className="muted text-sm">
-              Permissions are simulated in this frontend preview.
-            </p>
             <div className="flex gap-2">
               <button
                 className="btn btn-outline"
@@ -531,7 +548,7 @@ export function Integrations() {
               </button>
               <button
                 className="btn btn-primary"
-                onClick={connect}
+                onClick={connectIntegration}
                 disabled={working}
                 type="button"
               >
@@ -549,18 +566,11 @@ export function Integrations() {
       <ConfirmDialog
         open={disconnect}
         title={`Disconnect ${open?.name}?`}
-        description="This mock connection will be removed from the local screen state."
+        description="This integration will be removed from your workspace."
         danger
         confirmLabel="Disconnect"
         onCancel={() => setDisconnect(false)}
-        onConfirm={() => {
-          setItems(v =>
-            v.map(x => x.name === open.name ? { ...x, status: "Available" } : x)
-          );
-          setDisconnect(false);
-          setOpen(null);
-          toast("Integration disconnected.");
-        }}
+        onConfirm={disconnectIntegration}
       />
     </div>
   );
