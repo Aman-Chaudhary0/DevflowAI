@@ -27,6 +27,7 @@ import deploymentRoutes from "./routes/deployment.routes.js";
 import domainRoutes from "./routes/domain.routes.js";
 import apiKeyRoutes from "./routes/api-key.routes.js";
 import integrationRoutes from "./routes/integration.routes.js";
+import billingRoutes from "./routes/billing.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -89,6 +90,7 @@ app.use("/api/deployments", deploymentRoutes);
 app.use("/api/domains", domainRoutes);
 app.use("/api/api-keys", apiKeyRoutes);
 app.use("/api/integrations", integrationRoutes);
+app.use("/api/billing", billingRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
