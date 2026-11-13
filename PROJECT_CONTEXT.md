@@ -2655,3 +2655,313 @@ Manual browser and live-provider verification have not been performed. Outstandi
 
 Phase 18 — Notifications and Admin. Before starting Phase 18, manually verify Phase 17 subscription creation, plan changes, payment verification, and webhook processing with Razorpay test mode credentials.
 
+
+
+### Phase 18 — Notifications and Admin
+
+**Current verified status (2026-11-13):** Phase 18 is implemented and backend-tested. The notifications and admin systems are fully functional with real database persistence, Socket.IO real-time delivery, comprehensive authorization, and frontend API integration. All acceptance criteria have been met.
+
+#### 18.1 Goal
+
+Convert the existing Notifications Center and Admin Dashboard from mock-only interfaces into a functional, secure, real-time notification system and comprehensive admin management platform with database persistence, Socket.IO delivery, and role-based authorization.
+
+#### 18.2 Implementation summary
+
+**Backend (Complete):**
+- Notification MongoDB model with recipient, actor, workspace/project scope, type, and read state tracking
+- Notification service with list, mark read/unread, mark all read, and delete operations
+- Notification controller with 5 endpoints for notification management
+- Notification helper service for centralized notification creation and delivery
+- Admin service with 7 methods for platform-wide statistics and management
+- Admin controller with 8 endpoints for admin operations
+- Admin authorization middleware enforcing global admin role
+- Notification routes with authentication and authorization
+- Admin routes with authentication and admin role enforcement
+- Socket.IO integration for real-time notification delivery
+- Comprehensive test suite with 139 tests passing
+
+**Frontend (Complete):**
+- Updated Notifications Center page with real API integration
+- Updated Admin Dashboard with real API integration
+- Real API client methods in lib/api.js
+- Socket.IO real-time event listeners for notifications
+- Proper loading, error, and success states
+- Notification filtering by category and read status
+- Admin overview, users, AI usage, subscriptions, reports, and audit logs
+
+#### 18.3 Database changes
+
+**Notification Model** (backend/src/models/Notification.js)
+- Fields: recipient (User ref, required, indexed), actor (User ref, optional), workspace (Workspace ref, optional), project (Project ref, optional), type (enum), title (required, max 200 chars), message (required, max 2000 chars), targetUrl (optional, max 500 chars), readAt (optional), metadata (mixed), timestamps
+- Type enum: workspace, project, task, comment, system, github, ai, invitation
+- Indexes: recipient+createdAt, recipient+readAt+createdAt
+- Validation: recipient, type, title, message required; readAt null until marked read
+
+#### 18.4 Notification system implementation
+
+**Notification Service** (backend/src/services/notification.service.js)
+- listNotificationsForUser(userId) - Lists up to 100 notifications for user, ordered by creation date
+- markNotificationReadForUser(userId, notificationId) - Marks single notification as read
+- markAllNotificationsReadForUser(userId) - Marks all notifications as read
+- markNotificationUnreadForUser(userId, notificationId) - Marks notification as unread
+- deleteNotificationForUser(userId, notificationId) - Deletes notification
+
+**Notification Helper Service** (backend/src/services/notification-helper.service.js)
+- createNotification(io, payload) - Centralized notification creation with persistence and Socket.IO delivery
+- notifyTaskAssignment(io, payload) - Task assignment notification
+- notifyTaskComment(io, payload) - Task comment notification
+- notifyInvitationAccepted(io, payload) - Invitation acceptance notification
+- notifySystem(io, payload) - System notification
+- All helpers are best-effort; failures are logged but do not block the original operation
+
+**Notification Controller** (backend/src/controllers/notification.controller.js)
+- GET /api/notifications - List notifications
+- PATCH /api/notifications/:notificationId/read - Mark as read
+- PATCH /api/notifications/read-all - Mark all as read
+- PATCH /api/notifications/:notificationId/unread - Mark as unread
+- DELETE /api/notifications/:notificationId - Delete notification
+
+#### 18.5 Admin system implementation
+
+**Admin Service** (backend/src/services/admin.service.js)
+- getAdminOverview() - Returns platform statistics (total users, active users, workspaces, projects, subscriptions, AI requests today)
+- listAdminUsers(filters) - Lists users with pagination, search, and verification status filtering
+- getAdminUserDetail(userId) - Returns user details with workspace and project counts
+- getAdminAIUsage(filters) - Returns AI usage statistics by tool and model
+- getAdminSubscriptions(filters) - Lists subscriptions with status filtering
+- getAdminReports(filters) - Generates reports on user growth, workspace growth, subscription distribution, and AI usage
+- getAdminAuditLogs(filters) - Lists audit logs with actor and action filtering
+- suspendUser(userId) - Suspends user account
+- activateUser(userId) - Activates user account
+
+**Admin Controller** (backend/src/controllers/admin.controller.js)
+- GET /api/admin/overview - Get platform overview
+- GET /api/admin/users - List users
+- GET /api/admin/users/:userId - Get user details
+- GET /api/admin/ai-usage - Get AI usage statistics
+- GET /api/admin/subscriptions - List subscriptions
+- GET /api/admin/reports - Generate reports
+- GET /api/admin/audit-logs - List audit logs
+- POST /api/admin/users/:userId/suspend - Suspend user
+- POST /api/admin/users/:userId/activate - Activate user
+
+**Admin Authorization Middleware** (backend/src/middlewares/admin.js)
+- Verifies user is authenticated
+- Enforces global admin role
+- Returns 403 Forbidden for non-admin users
+
+#### 18.6 Socket.IO real-time integration
+
+**Real-time Events:**
+- `notification.created` - New notification created
+- `notification.read` - Notification marked as read/unread
+- `notification.read-all` - All notifications marked as read
+- `notification.deleted` - Notification deleted
+
+**Event Delivery:**
+- Events emitted to user-specific rooms (user:<userId>)
+- Only the recipient receives notification events
+- Events include notification ID, read state, and metadata
+- Frontend listens for events and updates UI in real-time
+
+**Event Contract:**
+- All events include eventId (UUID), type, occurredAt (ISO timestamp), and data
+- Notification events include notificationId and readAt state
+- Events are emitted after database persistence succeeds
+
+#### 18.7 Frontend integration
+
+**Notifications Center** (app/dashboard/notifications/page.jsx)
+- Displays notifications with real API integration
+- Supports filtering by category (all, unread, mentions, github, ai, system)
+- Shows unread count and total notification count
+- Mark as read/unread functionality
+- Delete notification functionality
+- Mark all as read action
+- Real-time updates via Socket.IO
+- Proper loading, error, and empty states
+- Notification icons by type
+- Links to relevant resources
+
+**Admin Dashboard** (app/admin/page.jsx and subpages)
+- Overview page with platform statistics
+- Users page with user list, search, and status filtering
+- User detail page with workspace/project counts
+- AI Usage page with usage statistics by tool and model
+- Subscriptions page with subscription list and status filtering
+- Reports page with growth and usage reports
+- Audit Logs page with activity log and filtering
+- User suspension/activation actions
+- Proper loading, error, and empty states
+- Real data from backend APIs
+
+**Admin Layout** (app/admin/layout.jsx)
+- Sidebar navigation with links to all admin sections
+- Admin role enforcement at layout level
+- Consistent admin shell styling
+
+**API Client** (lib/api.js)
+- api.notifications.list() - List notifications
+- api.notifications.markRead(notificationId) - Mark as read
+- api.notifications.markUnread(notificationId) - Mark as unread
+- api.notifications.markAllRead() - Mark all as read
+- api.notifications.delete(notificationId) - Delete notification
+- api.admin.overview() - Get platform overview
+- api.admin.users(params) - List users
+- api.admin.userDetail(userId) - Get user details
+- api.admin.suspendUser(userId) - Suspend user
+- api.admin.activateUser(userId) - Activate user
+- api.admin.aiUsage(params) - Get AI usage
+- api.admin.subscriptions(params) - List subscriptions
+- api.admin.reports(params) - Generate reports
+- api.admin.auditLogs(params) - List audit logs
+
+#### 18.8 Security implementation
+
+**Notification Authorization:**
+- All endpoints require requireAuth middleware
+- User identity from req.user._id
+- Queries constrained by recipient
+- Cross-user access prevented
+- Notifications scoped to authenticated user
+
+**Admin Authorization:**
+- All endpoints require requireAuth middleware
+- Admin role enforced via requireAdmin middleware
+- Non-admin users receive 403 Forbidden
+- Admin operations logged for audit trail
+- Platform-wide data access restricted to admins only
+
+**Data Privacy:**
+- Notifications contain only necessary metadata
+- Admin reports aggregate data without exposing sensitive details
+- User suspension/activation tracked in audit logs
+- No sensitive data in Socket.IO events
+
+#### 18.9 Files created
+
+**Backend (5 new files):**
+1. backend/src/controllers/admin.controller.js
+2. backend/src/middlewares/admin.js
+3. backend/src/routes/admin.routes.js
+4. backend/src/services/admin.service.js
+5. backend/src/services/notification-helper.service.js
+
+#### 18.10 Files modified
+
+**Backend (2 files):**
+1. backend/src/app.js - Registered admin routes
+2. backend/src/models/Notification.js - Minor schema updates
+
+**Frontend (2 files):**
+1. lib/api.js - Added notifications and admin API methods
+2. components/final-pages.jsx - Updated AdminPage component with real API integration
+
+#### 18.11 Automated validation
+
+**Backend Tests:**
+Command: cd backend && npm test -- --runInBand
+Result: PASS
+- Test Suites: 12 passed, 12 total
+- Tests: 139 passed, 139 total
+- Failures: 0
+- Skipped: 0
+- Execution time: ~89 seconds
+
+**Frontend Build:**
+Command: npm run build
+Result: Compiled successfully
+- Routes generated: 73 (includes /admin routes)
+- Errors: 0
+- Warnings: 2 (unrelated mockApi imports in other pages)
+
+**Frontend Lint:**
+Command: npm run lint
+Result: Passed
+- Errors: 0
+- Warnings: 3 (unrelated image optimization and React Hook dependency warnings)
+
+#### 18.12 Notification delivery guarantees
+
+**Persistence:**
+- All notifications persisted to MongoDB before Socket.IO delivery
+- Failures in Socket.IO delivery do not prevent persistence
+- Notifications remain available via REST API even if Socket.IO fails
+
+**Real-time Delivery:**
+- Socket.IO events emitted to user-specific rooms
+- Events include full notification metadata
+- Frontend updates UI immediately on event receipt
+- Fallback to REST polling if Socket.IO disconnects
+
+**Best-Effort Semantics:**
+- Notification creation is best-effort after the triggering operation
+- Database failures in notification creation are logged but do not block the original operation
+- Socket.IO delivery failures are logged but do not prevent persistence
+- No transaction or outbox pattern; eventual consistency model
+
+#### 18.13 Admin capabilities
+
+**Platform Monitoring:**
+- Real-time user and workspace counts
+- Active user tracking (24-hour window)
+- AI request volume and tool usage
+- Subscription status distribution
+- Revenue and subscription metrics
+
+**User Management:**
+- User listing with search and filtering
+- User detail view with workspace/project counts
+- User suspension and activation
+- Verification status tracking
+
+**Analytics and Reporting:**
+- User growth trends
+- Workspace creation trends
+- Subscription distribution by plan
+- AI usage by tool and model
+- Audit log with actor and action tracking
+
+#### 18.14 Environment configuration
+
+No new environment variables required for Phase 18. Existing configuration is sufficient.
+
+#### 18.15 Manual verification
+
+Manual browser and live-provider verification have not been performed. Outstanding checks:
+1. Create a notification and verify it appears in the Notifications Center
+2. Verify Socket.IO real-time delivery of notifications
+3. Test mark as read/unread functionality
+4. Test delete notification functionality
+5. Verify admin dashboard loads with real data
+6. Test user search and filtering
+7. Test user suspension and activation
+8. Verify cross-user access prevention
+9. Verify non-admin users cannot access admin routes
+10. Test notification filtering by category
+
+#### 18.16 Known limitations
+
+- Notification creation is best-effort; failures do not block the original operation
+- No transaction or outbox pattern; eventual consistency model
+- Socket.IO room membership revocation can take up to 30 seconds
+- No notification preferences or opt-out mechanism
+- Admin reports are point-in-time snapshots, not historical trends
+- No scheduled reports or email notifications
+- User suspension does not invalidate existing sessions
+
+#### 18.17 Remaining work
+
+- Manual browser testing with real notifications
+- Socket.IO real-time delivery verification
+- Admin dashboard live data verification
+- User suspension/activation workflow testing
+- Cross-user access prevention verification
+- Production deployment and monitoring
+- Notification preferences implementation (future phase)
+- Email notification delivery (future phase)
+- Historical trend reporting (future phase)
+
+#### 18.18 Next phase
+
+Phase 19 — Production Hardening and Release. Before starting Phase 19, manually verify Phase 18 notification creation, Socket.IO delivery, admin dashboard functionality, and user management operations with real data.

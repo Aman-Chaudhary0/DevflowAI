@@ -249,7 +249,7 @@ export default function ApiKeys() {
         {newKeyData && (
           <>
             <p className="muted" style={{ marginBottom: 16 }}>
-              Copy this key now. You won't be able to see it again.
+              Copy this key now. You will not be able to see it again.
             </p>
             <div className="terminal-panel" style={{ marginBottom: 16, wordBreak: "break-all" }}>
               {newKeyData.plainKey}
