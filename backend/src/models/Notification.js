@@ -28,7 +28,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["workspace", "project", "task", "comment", "system"],
+      enum: ["workspace", "project", "task", "comment", "system", "github", "ai", "invitation"],
       default: "system"
     },
     title: {

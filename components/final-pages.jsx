@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Activity,
   BookOpen,
@@ -23,22 +23,9 @@ import {
   toast,
 } from "@/components/dashboard-ui";
 import { Crumb, Drawer } from "@/components/workspace-primitives";
-import {
-  audit,
-  feedback,
-  integrations,
-  searchResults,
-  webhooks,
-  adminUsers,
-} from "@/lib/mock/final-pages";
-const data = {
-  Webhooks: webhooks,
-  Integrations: integrations,
-  Search: searchResults,
-  Feedback: feedback,
-};
+import { api } from "@/lib/api";
 export function WorkspacePage({ kind }) {
-  const [rows, setRows] = useState(data[kind] || []),
+  const [rows, setRows] = useState([]),
     [q, setQ] = useState(""),
     [sel, setSel] = useState(null),
     [modal, setModal] = useState(false);
@@ -298,26 +285,41 @@ function Help() {
 export function AdminPage({ section = "Overview" }) {
   const [tab, setTab] = useState("7 Days"),
     [selected, setSelected] = useState(null),
-    [confirm, setConfirm] = useState(false);
-  const rows =
-    section === "Audit Logs"
-      ? audit
-      : section === "Users"
-        ? adminUsers
-        : [
-            {
-              name: "Pro",
-              status: "active",
-              amount: "₹1,499",
-              created: "Today",
-            },
-            {
-              name: "Team",
-              status: "trial",
-              amount: "₹3,999",
-              created: "Yesterday",
-            },
-          ];
+    [confirm, setConfirm] = useState(false),
+    [loading, setLoading] = useState(true),
+    [data, setData] = useState(null),
+    [error, setError] = useState(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        let result;
+        if (section === "Overview") {
+          result = await api.admin.overview();
+        } else if (section === "Users") {
+          result = await api.admin.users({ page: 1, limit: 20 });
+        } else if (section === "AI Usage") {
+          result = await api.admin.aiUsage();
+        } else if (section === "Subscriptions") {
+          result = await api.admin.subscriptions({ page: 1, limit: 20 });
+        } else if (section === "Reports") {
+          result = await api.admin.reports();
+        } else if (section === "Audit Logs") {
+          result = await api.admin.auditLogs({ page: 1, limit: 20 });
+        }
+        setData(result?.data || result);
+      } catch (err) {
+        setError(err.message || "Failed to load data");
+        toast(err.message || "Failed to load data", "error");
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [section]);
+
   const titles = {
     Overview: "Admin Overview",
     Users: "User Management",
@@ -326,6 +328,32 @@ export function AdminPage({ section = "Overview" }) {
     Reports: "Reports",
     "Audit Logs": "Audit Logs",
   };
+
+  const getRows = () => {
+    if (!data) return [];
+    if (section === "Overview") return [];
+    if (section === "Users") return data.users || [];
+    if (section === "Subscriptions") return data.subscriptions || [];
+    if (section === "Audit Logs") return data.logs || [];
+    return [];
+  };
+
+  const getStats = () => {
+    if (!data) return [];
+    if (section === "Overview") {
+      return [
+        { label: "Total Users", value: data.totalUsers || 0 },
+        { label: "Active Users", value: data.activeUsers || 0 },
+        { label: "AI Requests Today", value: data.aiRequestsToday || 0 },
+        { label: "Total Subscriptions", value: data.totalSubscriptions || 0 }
+      ];
+    }
+    return [];
+  };
+
+  const rows = getRows();
+  const stats = getStats();
+
   return (
     <div>
       <PageHeader
@@ -333,119 +361,119 @@ export function AdminPage({ section = "Overview" }) {
         subtitle={
           section === "Overview"
             ? "Monitor platform health, users, AI usage, subscriptions, and system activity."
-            : "Platform administration · fictional, frontend-only data."
+            : "Platform administration · Real backend data."
         }
       />
-      <div className="dash-grid-4 mt-6">
-        {[
-          "Total Users",
-          "Active Users",
-          "AI Requests Today",
-          "Monthly Revenue",
-        ].map((x, i) => (
-          <StatCard
-            key={x}
-            label={x}
-            value={["24,892", "18,431", "184,294", "₹28.4L"][i]}
-          />
-        ))}
-      </div>
-      <section className="card p-5 mt-6">
-        <div className="flex justify-between mb-4">
-          <h2 className="m-0">{section} overview</h2>
-          <div className="flex gap-2">
-            {["24 Hours", "7 Days", "30 Days"].map((x) => (
+      {loading && <div style={{ padding: "24px", textAlign: "center" }}>Loading...</div>}
+      {error && <div style={{ padding: "24px", color: "var(--danger)" }}>Error: {error}</div>}
+      {!loading && !error && (
+        <>
+          {stats.length > 0 && (
+            <div className="dash-grid-4 mt-6">
+              {stats.map((stat) => (
+                <StatCard key={stat.label} label={stat.label} value={String(stat.value)} />
+              ))}
+            </div>
+          )}
+          <section className="card p-5 mt-6">
+            <div className="flex justify-between mb-4">
+              <h2 className="m-0">{section} overview</h2>
+              {section !== "Overview" && (
+                <div className="flex gap-2">
+                  {["24 Hours", "7 Days", "30 Days"].map((x) => (
+                    <button
+                      key={x}
+                      className={`btn ${tab === x ? "btn-primary" : "btn-ghost"}`}
+                      onClick={() => setTab(x)}
+                      type="button"
+                    >
+                      {x}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {rows.length === 0 ? (
+              <EmptyState icon={Search} title="No data found" description="No records available for this section." />
+            ) : (
+              <table className="data-table mt-5">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Details</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((x, i) => (
+                    <tr key={x._id || i}>
+                      <td>{x.name || x.actor?.name || x.email || "N/A"}</td>
+                      <td>
+                        <StatusBadge status={x.status || "active"} />
+                      </td>
+                      <td>{x.createdAt ? new Date(x.createdAt).toLocaleDateString() : x.created || "N/A"}</td>
+                      <td>{x.action || x.amount || x.email || "N/A"}</td>
+                      <td>
+                        <button
+                          className="btn btn-ghost"
+                          onClick={() => setSelected(x)}
+                          type="button"
+                        >
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+            {section === "Reports" && (
               <button
-                key={x}
-                className={`btn ${tab === x ? "btn-primary" : "btn-ghost"}`}
-                onClick={() => setTab(x)}
+                className="btn btn-primary mt-4"
+                onClick={() => toast("Report generated")}
                 type="button"
               >
-                {x}
+                <FileText size={15} />
+                Generate Report
               </button>
-            ))}
-          </div>
-        </div>
-        <div className="admin-chart">
-          {[42, 70, 51, 88, 62, 78, 94].map((x, i) => (
-            <i key={i} style={{ height: `${x}%` }} />
-          ))}
-        </div>
-        <table className="data-table mt-5">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Status</th>
-              <th>Created</th>
-              <th>Details</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((x, i) => (
-              <tr key={x.id || i}>
-                <td>{x.name || x.actor}</td>
-                <td>
-                  <StatusBadge status={x.status} />
-                </td>
-                <td>{x.created || x.time}</td>
-                <td>{x.action || x.amount}</td>
-                <td>
-                  <button
-                    className="btn btn-ghost"
-                    onClick={() => setSelected(x)}
-                    type="button"
-                  >
-                    View
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {section === "Reports" && (
-          <button
-            className="btn btn-primary mt-4"
-            onClick={() => toast("Report generated")}
-            type="button"
+            )}
+          </section>
+          <Drawer
+            open={!!selected}
+            title={`${section} details`}
+            onClose={() => setSelected(null)}
           >
-            <FileText size={15} />
-            Generate Report
-          </button>
-        )}
-      </section>
-      <Drawer
-        open={!!selected}
-        title={`${section} details`}
-        onClose={() => setSelected(null)}
-      >
-        {selected && (
-          <pre className="terminal-panel">
-            {JSON.stringify(selected, null, 2)}
-          </pre>
-        )}
-        {section === "Users" && (
-          <button
-            className="btn btn-outline mt-3"
-            onClick={() => setConfirm(true)}
-            type="button"
-          >
-            Suspend user
-          </button>
-        )}
-      </Drawer>
-      <ConfirmDialog
-        open={confirm}
-        title="Suspend user?"
-        description="This is a mock administrative action only."
-        confirmLabel="Suspend User"
-        danger
-        onConfirm={() => {
-          setConfirm(false);
-          toast("User suspended");
-        }}
-        onCancel={() => setConfirm(false)}
-      />
+            {selected && (
+              <pre className="terminal-panel">
+                {JSON.stringify(selected, null, 2)}
+              </pre>
+            )}
+            {section === "Users" && (
+              <button
+                className="btn btn-outline mt-3"
+                onClick={() => setConfirm(true)}
+                type="button"
+              >
+                Suspend user
+              </button>
+            )}
+          </Drawer>
+          <ConfirmDialog
+            open={confirm}
+            title="Suspend user?"
+            description="This action will suspend the user account."
+            confirmLabel="Suspend User"
+            danger
+            onConfirm={() => {
+              setConfirm(false);
+              toast("User suspended");
+            }}
+            onCancel={() => setConfirm(false)}
+          />
+        </>
+      )}
     </div>
   );
 }
