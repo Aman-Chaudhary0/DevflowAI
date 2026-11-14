@@ -7,7 +7,7 @@ import {
   ChevronDown, Clipboard, Code2, Copy, Database, Download, FileText,
   FolderKanban, Github, Heart, HelpCircle, KeyRound, Loader2,
   MessageSquare, Plug, Search, Send, Settings2, ShieldCheck, Sparkles,
-  Terminal, Users, X
+  Terminal, Users, X, Frown, Meh, Smile, ThumbsUp
 } from "lucide-react";
 import {
   ConfirmDialog, EmptyState, FilterBar, PageHeader, StatusBadge,
@@ -258,7 +258,7 @@ export function SQLGenerator() {
           <div className="safety-box">
             <strong>SQL Safety</strong>
             <span>{result?.safety.classification || "Not assessed"}</span>
-            <p>{(result?.safety.warnings || []).join(" · ") || "Generated SQL is untrusted and has not been executed."}</p>
+            <p>{(result?.safety.warnings || []).join(" · ") || "Generated SQL is untrusted and has not been executed"}</p>
           </div>
         </div>
       </section>
@@ -498,8 +498,8 @@ export function Integrations() {
           {!filtered.length && (
             <EmptyState
               icon={Search}
-              title="No integrations found."
-              description="Try a different term or category."
+              title="No integrations found"
+              description="Try a different term or category"
             />
           )}
         </>
@@ -625,7 +625,7 @@ export function HelpCenter() {
       <div className="public-help">
         <section className="help-hero">
           <span className="eyebrow">Devflow AI Help Center</span>
-          <h1 className="h2">How can we help?</h1>
+          <h1 className="h2">How can we help</h1>
           <p className="lead">
             Find answers, guides, and resources to get the most out of Devflow AI.
           </p>
@@ -635,9 +635,9 @@ export function HelpCenter() {
               id="help-search"
               value={query}
               onChange={e => setQuery(e.target.value)}
-              placeholder="Search help articles..."
+              placeholder="Search articles..."
             />
-            <kbd>/</kbd>
+            <kbd>Cmd K</kbd>
           </label>
         </section>
 
@@ -657,8 +657,8 @@ export function HelpCenter() {
             {!results.length && (
               <EmptyState
                 icon={Search}
-                title="No help articles found."
-                description="Try a broader search term."
+                title="No help articles found"
+                description="Try a broader search term"
               />
             )}
           </section>
@@ -824,7 +824,7 @@ export function FeedbackPage() {
       <main className="container section">
         <div className="feedback-success">
           <CheckCircle2 size={46} />
-          <h1 className="h2">Thanks for helping us improve Devflow AI.</h1>
+          <h1 className="h2">Thanks for helping us improve Devflow AI</h1>
           <p>
             Your feedback has been recorded as <strong>FDB-2048</strong>.
           </p>
@@ -879,7 +879,7 @@ export function FeedbackPage() {
             id="feedback-title"
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
-            placeholder="What would you like us to improve?"
+            placeholder="What would you like to improve?"
           />
 
           <label htmlFor="feedback-description">Description</label>
@@ -887,7 +887,7 @@ export function FeedbackPage() {
             id="feedback-description"
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
-            placeholder="Include enough detail for our team to understand the context."
+            placeholder="Include enough detail for context."
           />
 
           <div className="form-two">
@@ -925,12 +925,12 @@ export function FeedbackPage() {
             <legend>How satisfied are you with Devflow AI?</legend>
             <div className="rating-buttons">
               {[
-                ["Very dissatisfied", "😞"],
-                ["Dissatisfied", "😕"],
-                ["Neutral", "😐"],
-                ["Satisfied", "🙂"],
-                ["Very satisfied", "🤩"],
-              ].map(([label, emoji], i) => (
+                ["Very dissatisfied", Frown],
+                ["Dissatisfied", Meh],
+                ["Neutral", Smile],
+                ["Satisfied", Heart],
+                ["Very satisfied", ThumbsUp],
+              ].map(([label, Icon], i) => (
                 <button
                   aria-label={label}
                   title={label}
@@ -939,7 +939,7 @@ export function FeedbackPage() {
                   type="button"
                   key={label}
                 >
-                  {emoji}
+                  <Icon size={20} />
                 </button>
               ))}
             </div>
@@ -1028,9 +1028,9 @@ export function GlobalSearch() {
             autoFocus
             value={q}
             onChange={e => setQ(e.target.value)}
-            placeholder="Search projects, files, tasks, GitHub, AI sessions..."
+            placeholder="Search projects, files, tasks, GitHub, AI..."
           />
-          <kbd>Ctrl K</kbd>
+          <kbd>Cmd K</kbd>
         </label>
       </header>
 
@@ -1117,7 +1117,7 @@ export function GlobalSearch() {
         <EmptyState
           icon={Search}
           title={`No results for "${q}"`}
-          description="Check spelling, try a broader search, or search by category."
+          description="Check spelling, try a broader search, or search by category"
         />
       )}
 

@@ -102,9 +102,9 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5">
             <div className="logo-mark w-10 h-10"><Sparkles size={18} /></div>
-            <span className="eyebrow">Workspace Overview</span>
+            <span className="eyebrow">Dashboard</span>
           </div>
-          <h2 className="m-0 text-[26px] font-extrabold font-display">
+          <h2 className="m-0 text-[26px] font-semibold font-display">
             {getGreeting()}, {user?.name?.split(" ")[0] || "Developer"} 👋
           </h2>
           <p className="muted m-0 text-sm">
@@ -135,7 +135,7 @@ export default function DashboardPage() {
         ) : (
           <>
             <Link href="/dashboard/projects" className="no-underline text-inherit">
-              <StatCard label="Projects" value={totalProjects} delta={summary?.archivedProjects ? `${summary.archivedProjects} archived` : "No archived projects"} trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
+              <StatCard label="Projects" value={String(totalProjects).toLocaleString()} delta={summary?.archivedProjects ? `${String(summary.archivedProjects).toLocaleString()} archived` : "No archived projects"} trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
                 <MiniBarChart data={recentProjects.length ? recentProjects.slice(0,7).map((_, idx) => (idx % 2 === 0 ? 4 : 6)) : [0,0,0,0,0,0,0]} color="var(--primary)" height={36} />
               </StatCard>
             </Link>
@@ -144,19 +144,19 @@ export default function DashboardPage() {
                 <ProgressBar value={34} max={42} />
               </StatCard>
             </Link>
-            <StatCard label="AI Requests" value={138} delta="20 remaining" trend="neutral" icon={Bot} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)">
+            <StatCard label="AI Requests" value={String(138).toLocaleString()} delta="20 remaining" trend="neutral" icon={Bot} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)">
               <div className="flex items-center gap-2.5">
                 <ProgressRing value={118} max={138} size={40} color="var(--purple)" />
-                <span className="muted text-xs">118 / 138 used</span>
+                <span className="muted text-xs">{String(118).toLocaleString()} / {String(138).toLocaleString()} used</span>
               </div>
             </StatCard>
             <StatCard label="Storage" value="4.3" suffix="GB" delta="of 10 GB" trend="neutral" icon={Server} iconBg="color-mix(in srgb, var(--info) 15%, transparent)">
               <ProgressBar value={4.3} max={10} color="linear-gradient(90deg, var(--info), var(--primary))" />
             </StatCard>
-            <StatCard label="Deployments" value={12} delta="Last 2h ago" trend="up" icon={Rocket} iconBg="color-mix(in srgb, var(--success) 15%, transparent)">
+            <StatCard label="Deployments" value={String(12).toLocaleString()} delta="Last 2h ago" trend="up" icon={Rocket} iconBg="color-mix(in srgb, var(--success) 15%, transparent)">
               <MiniBarChart data={[2,4,3,6,4,8,5]} color="var(--success)" height={36} />
             </StatCard>
-            <StatCard label="Team Online" value={18} delta="3 active now" trend="up" icon={Users} iconBg="color-mix(in srgb, var(--pink) 15%, transparent)">
+            <StatCard label="Team Online" value={String(18).toLocaleString()} delta="3 active now" trend="up" icon={Users} iconBg="color-mix(in srgb, var(--pink) 15%, transparent)">
               <AvatarGroup members={recentProjects[0]?.owner ? [{ _id: recentProjects[0].owner?._id || "u1", name: recentProjects[0].owner?.name || user?.name || "You", color: "#3b82f6" }] : [{ _id: "u1", name: user?.name || "You", color: "#3b82f6" }]} max={4} size={28} />
             </StatCard>
           </>

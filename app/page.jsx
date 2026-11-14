@@ -34,7 +34,7 @@ export default function HomePage() {
       <section className="container hero-grid">
         <div className="stack-lg">
           <span className="eyebrow">AI Powered Developer Workspace</span>
-          <h1 className="h1">Build Smarter. Ship Faster. Powered by AI.</h1>
+          <h1 className="h1">Build Smarter. Ship Faster. Powered by AI</h1>
           <p className="lead">Devflow AI brings planning, coding, project tracking, docs, reviews, and analytics into one polished workspace for modern product teams.</p>
           <div className="row wrap" style={{ gap: 12 }}>
             <Link className="btn btn-primary" href="/pricing">Start Free <ArrowRight size={18} /></Link>
@@ -63,7 +63,7 @@ export default function HomePage() {
           <div className="row between wrap" style={{ gap: 24 }}>
             <div>
               <span className="eyebrow">Features</span>
-              <h2 className="h2">Everything developers need to keep flow.</h2>
+              <h2 className="h2">Everything developers need to keep flow</h2>
             </div>
             <Link className="btn btn-secondary" href="/features">Explore Features</Link>
           </div>
@@ -75,7 +75,7 @@ export default function HomePage() {
         <div className="container grid grid-2">
           <div className="dashboard-mock">
             <div className="row between">
-              <span className="badge"><MessageSquare size={16} /> AI Chat</span>
+              <span className="badge"><MessageSquare size={16} /> AI chat</span>
               <span className="badge">Streaming</span>
             </div>
             <div className="card card-pad">Explain the deploy risk for the payment refactor.</div>
@@ -85,7 +85,7 @@ export default function HomePage() {
           </div>
           <div className="stack-lg">
             <span className="eyebrow">AI Showcase</span>
-            <h2 className="h2">Chat, review, document, and plan with project context.</h2>
+            <h2 className="h2">Chat, review, document, and plan with project context</h2>
             {aiFeatures.map((item) => (
               <span className="row" key={item} style={{ gap: 12 }}>
                 <ShieldCheck color="var(--success)" size={20} /> {item}
@@ -112,7 +112,7 @@ export default function HomePage() {
       <section className="section-tight">
         <div className="container stack-lg center" style={{ textAlign: "center" }}>
           <span className="eyebrow">Workflow</span>
-          <h2 className="h2">From idea to deployment.</h2>
+          <h2 className="h2">From idea to deployment</h2>
           <div className="grid grid-4" style={{ width: "100%" }}>
             {workflow.map((step) => (
               <div className="card card-pad stack center" key={step}>
@@ -142,7 +142,7 @@ export default function HomePage() {
         <div className="container stack-lg">
           <div className="center stack" style={{ textAlign: "center" }}>
             <span className="eyebrow">Pricing</span>
-            <h2 className="h2">Start small, scale cleanly.</h2>
+            <h2 className="h2">Start small, scale cleanly</h2>
           </div>
           <PricingCards compact />
         </div>
