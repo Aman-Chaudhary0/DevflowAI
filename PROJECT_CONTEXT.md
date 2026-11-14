@@ -1,3242 +1,1003 @@
-﻿# DevFlow AI — Project Context, Architecture, Rules, and Roadmap
+# DevFlow AI — Project Context
 
-> **Purpose:** This is the central working reference for developers and AI coding agents working on DevFlow AI. Read it before planning or editing code. Keep it aligned with the repository, preserve valid history, and update it whenever a phase materially changes the system.
+> **Purpose:** This is the authoritative working guide for developers and AI coding agents. Read it before changing code. The repository source, tests, package manifests, and runtime configuration are the source of truth; this document explains how they fit together.
 >
-> **Truth rule:** Source code and tests are the authority for current implementation. A planned feature is not implemented merely because a route, model, UI, dependency, mock, or roadmap item exists. Clearly label verified, partial, mock-only, planned, and locally reported work.
+> **Accuracy rule:** A page, component, dependency, model, route, mock, or roadmap entry does not by itself prove that a feature is production-complete. Feature status is labelled as **integrated**, **partial**, **mock/demo**, or **unverified** where appropriate. Re-audit source before relying on a status claim.
 
-Last documentation audit: 2026-10-30
-
-Repository: \`Aman-Chaudhary0/DevflowAI\`  
-Audited remote branch: \`main\`  
-Primary product: AI-assisted developer workspace
+- Repository: [Aman-Chaudhary0/DevflowAI](https://github.com/Aman-Chaudhary0/DevflowAI)
+- Default branch: `main`
+- Product: DevFlow AI
+- Frontend: Next.js App Router, React, JavaScript/JSX
+- Backend: Express, Node.js, MongoDB/Mongoose
+- Last documentation rewrite: 2026-11-14
 
 ---
 
-## 1. Product overview
+## 1. Project Overview
 
-DevFlow AI is a dark-first developer workspace intended to bring project organization, AI-assisted development, repository workflows, team collaboration, documentation, tasks, deployments, analytics, and developer utilities into one product.
+### Product
 
-The repository contains:
-- A Next.js App Router frontend built with JavaScript and JSX.
-- An Express backend in the separate \`backend/\` directory.
-- MongoDB/Mongoose data models for users and workspace-scoped product entities.
-- Authentication and session handling using JWTs and HTTP-only cookies.
-- Existing public, authentication, dashboard, project, AI, GitHub, editor, workflow, deployment, billing, notification, settings, and admin routes.
-- Shared UI primitives and a substantial mock-data layer used by features not yet backed by production APIs.
+**DevFlow AI** is a developer workspace/SaaS application intended to bring project management, AI-assisted development, source-control workflows, team collaboration, documentation, developer tools, deployments, and account administration into one interface.
 
-### Product goal
+### Purpose and problem
 
-Turn the already-designed website into a coherent, secure, working SaaS product by connecting the existing UI to real persistence and external services in deliberate phases.
+Developers commonly switch between separate tools for projects, tasks, repository information, AI assistance, code snippets, documentation, deployments, and team coordination. DevFlow AI aims to provide a unified workspace for those workflows.
 
-The product should ultimately support a workflow such as:
+### Product goals
 
-1. A user registers, verifies their account, and signs in securely.
-2. The user works inside a workspace and creates or imports a project.
-3. The project can be connected to a source repository.
-4. Project files, documents, tasks, team membership, and activity are managed with real permissions.
-5. AI features can work against user-provided prompts and authorized project context.
-6. Developers can review changes, use editor/playground experiences, and automate repeatable workflows.
-7. Jobs, deployments, domains, usage, billing, notifications, and administration are integrated as their phases are delivered.
-8. The product is tested, secured, deployed, and presented as a credible portfolio-grade application.
+1. Provide a coherent workspace and project-management experience.
+2. Support secure account creation, authentication, and workspace membership.
+3. Connect project and developer workflows to real backend persistence.
+4. Provide AI chat and developer-assistance tools through controlled provider integrations.
+5. Bring GitHub repository information into the workspace.
+6. Support files, documents, tasks, activity, notifications, and collaboration.
+7. Provide editor/playground, workflow, deployment, domain, integration, and billing surfaces.
+8. Maintain a consistent, responsive, accessible product experience.
 
-This workflow is a long-term target, not a claim that every step currently works.
+These are product goals, not a claim that every surface is fully integrated. See **Section 8** for the implementation-status distinctions.
 
-## 2. Non-negotiable project rules
+### Target users
 
-These rules apply to every phase unless the project owner explicitly changes them.
+- Individual developers managing personal projects.
+- Students and independent developers organizing learning and portfolio work.
+- Small development teams coordinating projects and tasks.
+- Developers who want repository information and AI-assisted workflows in one workspace.
 
-1. **Freeze the existing information architecture.** Do not add pages, routes, route groups, or new navigation items without explicit approval.
-2. **Reuse the existing UI.** Prioritize functionality, data integration, reliability, accessibility, and small UI corrections over redesign.
-3. **Preserve the established design system.** Do not casually change the theme, palette, typography, spacing, component style, or layout.
-4. **Use JavaScript/JSX.** Do not migrate files to TypeScript or introduce TypeScript-only conventions.
-5. **Inspect before editing.** Read the target files, their imports/callers, relevant models/services, tests, and this document before implementation.
-6. **Make narrow, reviewable changes.** Do not refactor unrelated modules or replace established architecture to solve a local problem.
-7. **Reuse existing API clients, models, middleware, components, and utilities.** Do not create duplicates.
-8. **Never trust client-provided ownership or authorization identifiers.** Resolve user identity from authenticated server context and verify workspace/project access server-side.
-9. **Do not silently use mock data as a fallback for failed real API requests.** Report an error state instead. Mocks may remain only where the phase has not integrated the feature and the limitation is documented.
-10. **Do not claim external integrations work without a real configured and tested integration.** A UI toggle, mock response, or stored repository URL is not proof of a live GitHub, email, AI, or deployment connection.
-11. **Test the exact changed behavior.** Record the commands run and actual outcomes; never report tests as passing if they were not run.
-12. **Update this document.** Phase completion requires documentation of actual changes, tests, limitations, and the next step.
-13. **Do not commit, push, merge, force-push, reset, or discard work unless the current task explicitly authorizes that action.**
-14. **Preserve user changes.** Check Git status first. If unexpected uncommitted work exists, stop before any operation that could overwrite it.
-15. **No scope creep.** Implement only the phase's accepted scope and acceptance criteria.
+### Product principles
 
-## 3. Current repository audit and status
+- Existing information architecture is intentional.
+- Reliability and security take priority over adding more features.
+- Real data must not be silently replaced by mock data after an API failure.
+- Existing UI and interactions should be preserved unless the task explicitly requests a change.
+- Backend authorization must enforce ownership and membership; hiding a UI control is not authorization.
 
-### 3.1 Remote audit baseline
+---
 
-The remote \`main\` branch was inspected on 2026-10-23. Its tree contains the original frontend route set, Phase 1 authentication implementation, Phase 2 database models/tests, and mock-based project/dashboard pages. At the time of this audit, the remote \`main\` tree did **not** contain the Phase 3 project service/controller/routes or \`project.lifecycle.test.js\` described in the user's local implementation report.
+## 2. Tech Stack
 
-The user reported that Phase 3 was implemented locally with:
-- A live dashboard summary API.
-- Real project listing, creation, detail loading, archive, restore, and delete flows.
-- Duplicate-slug and access checks.
-- Backend tests passing 11/11, frontend lint passing, and production build passing.
-- Remaining project subviews still partly mock-only.
+### Frontend
 
-**Reconciliation requirement:** Treat those Phase 3 details as user-reported local status until the implementation is pushed to or otherwise made available in the audited repository branch. Do not falsely document them as verified on remote \`main\`. When Phase 3 code is present in the repository, re-audit the actual files and update this section.
+Verified from the root package manifest and frontend source:
 
-### 3.2 Status definitions
-
-- **Complete (verified):** The implementation exists and relevant tests or checks were actually run successfully.
-- **Implemented, verification incomplete:** Code exists but required validation is missing or not conclusive.
-- **Partial:** Only part of the intended behavior is implemented or integrated.
-- **Mock-only:** The UI uses local fixtures, simulated delays, or fake actions instead of a real backend/external service.
-- **Planned:** Not yet implemented.
-- **Reported locally:** Described by the developer but not present in the remote branch inspected for this document.
-
-### 3.3 High-level status snapshot
-
-| Area | Remote-main status at audit | Notes |
-|---|---|---|
-| Existing UI and route inventory | Present | Preserve routes and design; route existence does not mean backend integration. |
-| Authentication foundation | Complete according to existing context and tests | Includes email/password, session cookies, email flows, OAuth hooks, and TOTP 2FA code paths. Production provider configuration still needs environment verification. |
-| Database foundation | Complete according to Phase 2 model tests | Models exist for workspace/project and supporting entities; models alone do not provide CRUD APIs. |
-| Workspace/project API integration | Reported locally; not visible on audited remote main | Reconcile local Phase 3 implementation with GitHub before marking remote completion. |
-| Dashboard/project subviews | Partial/mock-only on audited remote main | Core project pages in remote main import mock project data. |
-| Files and documents | UI and models exist; end-to-end backend integration not verified | Planned Phase 4. |
-| Tasks and team collaboration | UI and models exist; end-to-end backend integration not verified | Planned Phase 5. |
-| Real-time collaboration | Socket.IO server bootstrap exists; product events/rooms not verified | Planned Phase 6. |
-| GitHub product integration | UI/mock layer exists; live OAuth/API integration not verified | Planned Phase 7. |
-| AI features | Phase 9 chat implemented; Phase 10 developer tools partial, verification incomplete on `feature/phase-10-ai-developer-tools` | Tool API and UI integrations are present and automated tests/build pass; manual browser checks and live provider verification remain outstanding. Phase 11 usage analytics remain planned. |
-| Editor/playground | UI exists; execution/security boundaries need implementation and verification | Planned Phase 12. |
-| Workflows and background jobs | UI and dependencies exist; production workflow execution not verified | Planned Phases 13–14. |
-| Deployments/domains | UI/mock flows exist; live provider integration not verified | Planned Phase 15. |
-| API keys/integrations | Some UI exists; secure lifecycle/API behavior not verified | Planned Phase 16. |
-| Billing, notifications, admin | UI and some supporting models exist; complete product flows not verified | Planned Phases 17–19. |
-| Production hardening and release | Not complete as a whole | Planned Phases 20–24. |
-
-## 4. Technology stack
-
-### 4.1 Frontend
-
-Verified from the root package manifest and repository files:
-
-- Next.js 15 App Router.
-- React 19.
-- JavaScript and JSX.
-- Tailwind CSS v4 plus CSS variables and existing global CSS.
-- Lucide React icons.
-- \`react-markdown\`, \`remark-gfm\`, and \`rehype-highlight\` for Markdown content.
-- \`react-syntax-highlighter\` for code presentation.
-- ESLint / Next.js lint tooling.
-
-Do not add a dependency just because it is popular. First determine whether the existing stack or an installed package already solves the requirement.
-
-### 4.2 Backend
-
-Verified from \`backend/package.json\`, backend source, and configuration:
-
-- Node.js using ES modules.
-- Express 4.
-- MongoDB and Mongoose.
-- JWT access/refresh token support.
-- bcryptjs password hashing.
-- Zod validation.
-- cookie-parser.
-- Helmet, CORS, express-rate-limit, compression, and Morgan.
-- Nodemailer email delivery.
-- Passport with Google and GitHub OAuth strategies.
-- Socket.IO server bootstrap.
-- Redis client and BullMQ dependencies.
-- ImageKit integration dependency.
-- Multer upload dependency.
-- OTPAuth and QR-code dependencies for two-factor authentication.
-- Jest and mongodb-memory-server for backend tests.
-
-A package dependency being installed does not prove the corresponding product feature is complete.
-
-### 4.3 Runtime boundaries
-
-- Frontend dev server defaults to \`http://localhost:3000\`.
-- Backend defaults to \`http://localhost:5000\`.
-- Backend health route is \`GET /health\`.
-- Frontend API base uses \`NEXT_PUBLIC_API_URL\`, falling back to \`http://localhost:5000\`.
-- Browser requests in \`lib/api.js\` include credentials for cookie-based auth.
-- Backend CORS is configured from \`FRONTEND_URL\` with credentials enabled.
-
-Keep frontend and backend environment variables separate and never commit real secrets.
-
-## 5. Design system and UI preservation
-
-### 5.1 Visual identity
-
-The established visual direction is premium, dark-first, minimal, and developer-focused. It uses dense but readable workspace layouts, restrained borders, rounded surfaces, and blue accent emphasis.
-
-Core tokens documented in the existing project context:
-
-- Background: \`#0B0F19\`
-- Secondary surface: \`#111827\`
-- Card surface: \`#1A2235\`
-- Border: \`#273244\`
-- Primary text: \`#F8FAFC\`
-- Primary accent: \`#3B82F6\`
-- Heading font: Space Grotesk
-- Body font: Inter
-- Code font: JetBrains Mono
-- Cards: approximately 18px radius
-- Buttons: approximately 14px radius
-- Inputs: approximately 12px radius
-
-Verify the actual CSS variables in \`app/globals.css\` before changing or duplicating tokens. The list above is a project-level reference, not permission to hard-code colors where tokens already exist.
-
-### 5.2 UX behavior standards
-
-- Preserve dark and light theme support.
-- Use responsive layouts; sidebars should collapse to an overlay/drawer on small screens.
-- Use existing skeleton components for asynchronous loading.
-- Show explicit empty states with useful next actions.
-- Show useful errors instead of leaving blank screens.
-- Use confirmation dialogs for destructive actions.
-- Forms need validation, pending, success, and error states.
-- Buttons must perform an action or be clearly disabled.
-- Tables must remain usable on narrow screens.
-- Maintain keyboard navigation, focus visibility, labels, and accessible dialogs.
-- Avoid adding new design primitives when an existing shared component is suitable.
-
-## 6. Frontend route inventory
-
-This is the route inventory visible in the audited remote-main tree. It describes route existence, not completion of the route's backend behavior. Before adding or removing a route, compare the current tree and get explicit approval.
-
-### 6.1 Public and content routes
-
-| Route | Purpose |
+| Technology | Purpose |
 |---|---|
-| \`/\` | Landing page |
-| \`/pricing\` | Pricing and plan comparison |
-| \`/features\` | Product feature overview |
-| \`/about\` | About page |
-| \`/blog\` | Blog index |
-| \`/blog/ai-workspaces\` | Blog article |
-| \`/docs\` | Public documentation landing |
-| \`/contact\` | Contact form |
-| \`/privacy\` | Privacy policy |
-| \`/terms\` | Terms and conditions |
-| \`/search\` | Public search surface |
-| \`/feedback\` | Public feedback surface |
-| \`/help\` | Public help center |
-| \`/not-found\` | Route/page convention if present; Next.js also has \`app/not-found.jsx\` |
+| Next.js 15 (App Router) | Routing, layouts, application framework |
+| React 19 | UI rendering and component model |
+| JavaScript / JSX | Application language |
+| Tailwind CSS v4 | Utility styling |
+| CSS variables / global CSS | Theme tokens and shared visual system |
+| Lucide React | Icons |
+| Socket.IO Client | Realtime client connection |
+| React Markdown | Markdown rendering |
+| remark-gfm | GitHub-flavoured Markdown |
+| rehype-highlight | Markdown code highlighting |
+| react-syntax-highlighter | Code presentation |
+| ESLint / eslint-config-next | Linting |
 
-### 6.2 Authentication routes
+### Backend
 
-| Route | Purpose |
+Verified from `backend/package.json` and backend source:
+
+| Technology | Purpose |
 |---|---|
-| \`/login\` | Sign in |
-| \`/register\` | Create account |
-| \`/verify-email\` | Email verification |
-| \`/forgot-password\` | Request password reset |
-| \`/reset-password/[token]\` | Token-based password reset |
-| \`/reset-password/demo-token\` | Demo/preview route |
-| \`/2fa\` | Two-factor challenge/setup UI surface |
+| Node.js (ES modules) | Backend runtime |
+| Express 4 | HTTP API |
+| MongoDB | Persistent database |
+| Mongoose 8 | ODM, schemas, indexes |
+| JSON Web Token | Access/refresh authentication |
+| bcryptjs | Password hashing |
+| Zod | Request validation |
+| cookie-parser | Cookie parsing |
+| Helmet | HTTP security headers |
+| CORS | Frontend/backend origin policy |
+| express-rate-limit | Request throttling |
+| compression | HTTP response compression |
+| Morgan | HTTP request logging |
+| Passport | OAuth authentication strategies |
+| Nodemailer | Email delivery |
+| Socket.IO | Realtime server |
+| ioredis / redis | Redis connectivity |
+| BullMQ | Background job queues |
+| ImageKit SDK | Image/file media integration |
+| Multer | Multipart upload handling |
+| OTPAuth / qrcode | TOTP two-factor authentication |
+| Jest / mongodb-memory-server | Automated backend tests |
 
-### 6.3 Dashboard and workspace routes
+### Important distinction
 
-| Route | Purpose |
+An installed package is not proof of a complete product integration. Verify the actual route, controller, service, provider configuration, persistence, authorization, tests, and manual runtime behavior before describing an integration as production-ready.
+
+### Runtime boundaries
+
+| Service | Default local address |
 |---|---|
-| \`/dashboard\` | Workspace dashboard |
-| \`/dashboard/projects\` | Project list |
-| \`/dashboard/projects/create\` | Project creation wizard |
-| \`/dashboard/projects/[projectId]\` | Project overview |
-| \`/dashboard/projects/[projectId]/files\` | Project files |
-| \`/dashboard/projects/[projectId]/docs\` | Project documentation |
-| \`/dashboard/projects/[projectId]/tasks\` | Project tasks |
-| \`/dashboard/projects/[projectId]/team\` | Project team |
-| \`/dashboard/projects/[projectId]/activity\` | Project activity |
-| \`/dashboard/projects/[projectId]/analytics\` | Project analytics |
-| \`/dashboard/projects/[projectId]/settings\` | Project settings |
-| \`/dashboard/files\` | Workspace file manager |
-| \`/dashboard/tasks\` | Workspace task board |
-| \`/dashboard/notifications\` | Notification center |
-| \`/dashboard/profile\` | User profile |
-| \`/dashboard/settings\` | Workspace/user settings surface |
-| \`/dashboard/team\` | Team overview |
-| \`/dashboard/team/members\` | Team member management |
-| \`/dashboard/team/activity\` | Team activity |
-| \`/dashboard/team/calendar\` | Team calendar |
-| \`/dashboard/analytics\` | Workspace analytics |
+| Frontend | `http://localhost:3000` |
+| Backend | `http://localhost:5000` |
+| Backend health | `GET /health` |
+| Local Ollama provider (when selected) | `http://127.0.0.1:11434` |
 
-### 6.4 AI routes
+The frontend API client uses `NEXT_PUBLIC_API_URL`, falling back to `http://localhost:5000`. The backend uses `FRONTEND_URL` for credentialed CORS and Socket.IO origin checks.
 
-| Route | Purpose |
-|---|---|
-| \`/dashboard/ai\` | AI hub |
-| \`/dashboard/ai/chat\` | AI conversation |
-| \`/dashboard/ai/code-generator\` | Code generation |
-| \`/dashboard/ai/code-review\` | Code review |
-| \`/dashboard/ai/docs-generator\` | Documentation generation |
-| \`/dashboard/ai/bug-fixer\` | Bug-fixing assistance |
-| \`/dashboard/ai/backend-generator\` | Backend blueprint generation |
-| \`/dashboard/ai/sql-generator\` | SQL generation route |
-| \`/dashboard/ai/history\` | AI history |
+---
 
-### 6.5 GitHub routes
+## 3. Project Structure
 
-| Route | Purpose |
-|---|---|
-| \`/dashboard/github\` | GitHub hub |
-| \`/dashboard/github/repositories\` | Repository list |
-| \`/dashboard/github/repositories/[repoId]\` | Repository detail |
-| \`/dashboard/github/pull-requests\` | Pull requests |
-| \`/dashboard/github/commits\` | Commit history |
-| \`/dashboard/github/branches\` | Branches |
-| \`/dashboard/github/releases\` | Releases |
-| \`/dashboard/github/issues\` | Issues |
+The repository is a split frontend/backend application.
 
-### 6.6 Editor, workflows, deployments, developer, and billing routes
+### Root
 
-| Route | Purpose |
-|---|---|
-| \`/dashboard/editor\` | Editor hub |
-| \`/dashboard/editor/snippets\` | Snippet library |
-| \`/dashboard/editor/playground\` | Code playground |
-| \`/dashboard/workflows\` | Workflow list |
-| \`/dashboard/workflows/create\` | Workflow builder |
-| \`/dashboard/workflows/[id]\` | Workflow detail |
-| \`/dashboard/deployments\` | Deployment list |
-| \`/dashboard/deployments/[id]\` | Deployment detail |
-| \`/dashboard/deployments/domains\` | Domain management |
-| \`/dashboard/developer/api-keys\` | API key manager |
-| \`/dashboard/developer/webhooks\` | Webhook manager |
-| \`/dashboard/integrations\` | Integration catalog/surface |
-| \`/dashboard/billing\` | Subscription dashboard |
-| \`/dashboard/billing/history\` | Billing history |
-| \`/dashboard/search\` | Dashboard search |
-| \`/dashboard/feedback\` | Dashboard feedback surface |
-| \`/dashboard/help\` | Dashboard help surface |
+```text
+DevflowAI/
+├── app/                    # Next.js App Router pages and layouts
+├── components/             # Shared UI and domain components
+├── lib/                    # API client, data, mocks, realtime helpers
+├── public/                 # Static public assets
+├── backend/                # Express API and background workers
+├── package.json            # Frontend scripts and dependencies
+├── package-lock.json
+├── PROJECT_CONTEXT.md      # This document
+└── ...
+```
 
-### 6.7 Admin routes
-
-| Route | Purpose |
-|---|---|
-| \`/admin\` | Admin overview |
-| \`/admin/users\` | User management |
-| \`/admin/ai-usage\` | AI usage administration |
-| \`/admin/subscriptions\` | Subscription administration |
-| \`/admin/reports\` | Reports |
-| \`/admin/audit-logs\` | Audit logs |
-
-### 6.8 Route preservation rules
-
-- Do not create new pages to solve an integration gap when an existing page is intended for that feature.
-- Use the existing dynamic route parameter conventions: \`projectId\` for project-scoped pages and \`id\` where the existing route family already uses it.
-- Keep public, auth, dashboard, and admin shells consistent with current routing behavior.
-- If a route is currently a small placeholder or a wrapper into a shared component, document it as such; do not infer that it is complete from the file's existence.
-- Any proposed route removal or addition requires explicit approval.
-
-## 7. Frontend architecture and important files
-
-### 7.1 Root and shell files
-
-- \`app/layout.jsx\`: root layout and global metadata.
-- \`app/globals.css\`: global styles, design tokens, and extensive UI styling.
-- \`components/site-shell.jsx\`: public-site shell behavior.
-- \`components/navbar.jsx\`: public navigation.
-- \`components/footer.jsx\`: public footer and related local interactions.
-- \`components/theme-toggle.jsx\`: theme toggle.
-- \`components/header-copy.jsx\`: shared page heading/subheading block.
-- \`components/ui-blocks.jsx\`: reusable public/marketing UI primitives.
-
-### 7.2 Dashboard UI primitives
-
-- \`components/dashboard-ui.jsx\`: shared dashboard components including skeletons, empty states, toasts, confirmation dialogs, stat cards, progress indicators, avatars, status badges, page headers, filter bars, and small charts.
-- \`components/workspace-primitives.jsx\`: breadcrumb and drawer primitives.
-- \`app/dashboard/layout.jsx\`: dashboard shell, navigation, auth check, top bar, menus, theme, and mobile sidebar behavior.
-- \`app/admin/layout.jsx\`: admin shell.
-
-Reuse these components where appropriate. Avoid parallel components with overlapping responsibility.
-
-### 7.3 Domain component modules
-
-- \`components/auth-ui.jsx\`: reusable auth presentation and form states.
-- \`components/ai-ui.jsx\`: AI-specific interactive UI.
-- \`app/dashboard/ai/chat/page.jsx\`: Phase 9 authenticated conversation list, message loading, send/retry/cancel state, copy, export, and honest unavailable-context UI using the shared AI components.
-- \`components/remaining-pages.jsx\`: shared frontend-only implementations for several later product surfaces.
-- \`components/final-pages.jsx\`: shared simulations for later workspace/integration surfaces.
-- \`components/contact-form.jsx\`: contact form component.
-
-These large shared page modules should be inspected before editing a route because a route file may delegate most of its implementation to one of them.
-
-### 7.4 Data and API modules
-
-- \`lib/data.js\`: public navigation, feature, pricing, post, stats, and footer data.
-- \`lib/dashboard-data.js\`: dashboard fixtures including mock user, projects, tasks, activity, notifications, team members, files, analytics, and docs.
-- \`lib/api.js\`: shared backend request wrapper and exported \`api\` methods, plus mock API helpers.
-- \`lib/mock/ai.js\`: AI fixtures.
-- \`lib/mock/analytics.js\`: analytics fixtures.
-- \`lib/mock/deployments.js\`: deployment fixtures.
-- \`lib/mock/domains.js\`: domain fixtures.
-- \`lib/mock/github.js\`: GitHub fixtures.
-- \`lib/mock/tasks.js\`: task fixtures.
-- \`lib/mock/workspace.js\`: workspace fixtures.
-- \`lib/mock/remaining-pages.js\` and \`lib/mock/final-pages.js\`: additional mock domain data.
-
-### 7.5 API client rules
-
-The existing \`lib/api.js\` wrapper:
-- Uses \`NEXT_PUBLIC_API_URL\` or localhost backend fallback.
-- Sends \`credentials: "include"\`.
-- Parses JSON responses defensively.
-- Throws an \`Error\` using the backend message or a generic fallback for non-success responses.
-- Exposes auth methods for registration, login, logout, current user, password reset, email verification, and resend verification.
-- Also exports mock helpers for AI, GitHub, project task/analytics fixtures, deployments, and domains.
-- Phase 9 adds \`api.ai\` methods for configured models, conversations, messages, send, regenerate, update, and delete. The AI Chat route uses these methods and does not fall back to mock AI data.
-
-When adding real APIs:
-- Extend this client rather than creating a second generic client.
-- Keep credentials and cookie behavior intact.
-- Follow the existing error conventions unless a deliberate, tested improvement is needed.
-- Do not turn failed network requests into successful mock responses.
-- Avoid hard-coded localhost URLs outside the existing configuration fallback.
-- Keep server-only secrets out of client bundles.
-
-## 8. Backend architecture
-
-### 8.1 Directory responsibilities
+### Frontend responsibilities
 
 | Path | Responsibility |
 |---|---|
-| \`backend/src/app.js\` | Express middleware and route registration, including authenticated \`/api/ai\` routes |
-| \`backend/src/server.js\` | Environment validation, database connection, HTTP/Socket.IO bootstrap, shutdown |
-| \`backend/src/config/db.js\` | MongoDB connection lifecycle |
-| \`backend/src/config/passport.js\` | OAuth strategy configuration |
-| \`backend/src/config/redis.js\` | Redis client configuration |
-| \`backend/src/config/imagekit.js\` | ImageKit configuration |
-| \`backend/src/routes/\` | HTTP route definitions |
-| \`backend/src/controllers/\` | Request/response handling |
-| \`backend/src/services/\` | Business logic |
-| \`backend/src/models/\` | Mongoose schemas/models |
-| \`backend/src/middlewares/\` | Auth, validation, errors |
-| \`backend/src/validators/\` | Zod request schemas |
-| \`backend/src/utils/\` | API errors/responses, tokens, email, encryption, 2FA helpers |
-| \`backend/src/__tests__/\` | Backend automated tests |
-
-Follow the existing route → middleware/validation → controller → service → model pattern as it is established for the feature. Keep controllers thin and business rules in services.
-
-### 8.2 Express middleware and security setup
-
-The audited \`backend/src/app.js\` configures:
-- Helmet.
-- CORS with the configured frontend origin and credentials.
-- Compression.
-- JSON and URL-encoded parsing with a 1 MB limit.
-- Cookie parsing.
-- Passport initialization.
-- Morgan request logging.
-- An auth API rate limiter.
-- \`GET /health\`.
-- Auth routes under \`/api/auth\`.
-- Not-found and centralized error handlers.
-
-The server validates \`MONGO_URI\`, \`JWT_ACCESS_SECRET\`, and \`JWT_REFRESH_SECRET\` before starting. It connects to MongoDB and creates a Socket.IO server. Socket.IO currently emits a basic connection event; do not treat that bootstrap as complete real-time product functionality.
-
-### 8.3 Existing auth API routes
-
-The audited backend route file defines:
-
-| Method | Path | Purpose |
-|---|---|---|
-| POST | \`/api/auth/register\` | Registration |
-| POST | \`/api/auth/login\` | Login |
-| POST | \`/api/auth/logout\` | Logout |
-| POST | \`/api/auth/refresh-token\` | Refresh session tokens |
-| GET | \`/api/auth/me\` | Authenticated current user |
-| POST | \`/api/auth/forgot-password\` | Password reset request |
-| POST | \`/api/auth/reset-password\` | Complete password reset |
-| POST | \`/api/auth/verify-email\` | Verify email |
-| POST | \`/api/auth/resend-verification\` | Resend verification |
-| POST | \`/api/auth/2fa/setup\` | Start TOTP setup |
-| POST | \`/api/auth/2fa/disable\` | Disable 2FA with verification |
-| POST | \`/api/auth/2fa/status\` | Check/update 2FA status flow |
-| POST | \`/api/auth/2fa/challenge\` | Complete 2FA challenge |
-| GET | \`/api/auth/google\` | Start Google OAuth |
-| GET | \`/api/auth/google/callback\` | Google OAuth callback |
-| GET | \`/api/auth/github\` | Start GitHub OAuth |
-| GET | \`/api/auth/github/callback\` | GitHub OAuth callback |
-| GET | \`/api/auth/oauth/failure\` | OAuth failure redirect |
-
-Confirm exact request/response contracts in validators, controllers, and services before changing an endpoint. The presence of OAuth routes does not prove that provider credentials are configured in a deployed environment.
-
-### 8.4 AI Chat API (Phase 9 local branch)
-
-All `/api/ai` endpoints require `requireAuth` and derive ownership from `req.user._id`. JSON responses use the existing `{ statusCode, data, message, success }` envelope.
-
-| Method | Path | Contract |
-|---|---|---|
-| GET | `/api/ai/models` | Returns `{ configured, models: [{ id, name, provider }], availabilityMessage }`; Ollama models are listed only after checking local `/api/tags`. |
-| GET | `/api/ai/conversations?search=` | Lists at most 100 owner conversations, ordered pinned first then most recently updated; optional title search. |
-| POST | `/api/ai/conversations` | Body `{ model? }`; creates an empty conversation with the authenticated owner and `New chat` title. |
-| GET | `/api/ai/conversations/:conversationId` | Reads owner conversation metadata. |
-| PATCH | `/api/ai/conversations/:conversationId` | Body may contain `title` (1-120 chars) and/or `pinned` (boolean). |
-| DELETE | `/api/ai/conversations/:conversationId` | Permanently deletes the owned conversation and its messages. |
-| GET | `/api/ai/conversations/:conversationId/messages?limit=50&before=` | Returns ascending `{ messages, hasMore, nextBefore }`; limit 1-100; `before` is an ISO datetime cursor. |
-| POST | `/api/ai/chat` | Body `{ conversationId, content, model, requestId }`; `requestId` is a UUID used for idempotent user-message retries. Returns persisted user/assistant messages, updated conversation, provider/model, and provider-reported usage only when available. |
-| POST | `/api/ai/conversations/:conversationId/messages/:messageId/regenerate` | Body `{ model }`; regenerates the assistant response for its preceding user message and replaces the old response after success. |
-
-Generation errors preserve the submitted user message for retry and do not persist a failed assistant completion. Common errors include 400 validation/model errors, 401 authentication, 404 for missing or non-owned conversations, 429 request/provider rate limits, 503 unconfigured/unavailable provider, and 504 provider timeout. Ollama and OpenAI use non-streaming JSON responses. Browser abort is passed to provider fetch; only completed assistant output is stored. The provider may continue work if upstream cancellation is not honored. The model-list endpoint checks the configured Ollama model against the local `/api/tags` response.
-
-## 9. Authentication and session behavior
-
-### 9.1 Principles
-
-- The backend is the source of truth for authentication.
-- Protected frontend routes must not silently fall back to a mock user.
-- Use the existing JWT access/refresh token and cookie model; do not replace the auth architecture as part of an unrelated phase.
-- Keep access and refresh secrets server-only.
-- Apply validation to untrusted request bodies.
-- Use generic, safe errors where detailed errors could leak sensitive account information.
-- Clear/invalidate session state on logout and relevant security events.
-- Ensure a 2FA-enabled account cannot bypass the challenge by calling a different login path.
-- Never expose passwords, token hashes, encrypted TOTP secrets, recovery-code hashes, or other sensitive fields in public user payloads.
-
-### 9.2 Existing implementation described by the project context
-
-Phase 1 is documented as implementing:
-- Registration and email/password login.
-- Logout and refresh-token flows.
-- Current-user endpoint and protected dashboard checks.
-- Email verification and password reset flows.
-- Google/GitHub Passport OAuth route hooks.
-- TOTP 2FA setup and verification.
-- Login challenge when 2FA is enabled.
-- Recovery codes and protected 2FA disablement.
-- Encrypted TOTP secret storage and filtering of sensitive user fields.
-- Hashed recovery codes and brute-force protections.
-
-The existing context reports the Phase 1 checks as passing: frontend lint/build, backend 2FA tests, and backend syntax checks. Treat those as recorded project history; rerun relevant checks after modifying auth.
-
-### 9.3 Security checks for every protected resource
-
-- Authenticate the request.
-- Load the target record by identifier and constrain the query by the authenticated user's workspace/project access.
-- Verify role/permission for the requested action.
-- Validate and allowlist editable fields.
-- Do not trust a client-supplied owner, workspace, or membership role.
-- Test both allowed and denied paths.
-- Avoid returning private records merely because an identifier is valid.
-- Use consistent 401/403/404 semantics according to the established API convention without leaking cross-tenant data.
-
-## 10. Database foundation and data relationships
-
-### 10.1 Existing model inventory
-
-The audited model index exports:
-- \`User\`
-- \`Workspace\`
-- \`WorkspaceMember\`
-- \`Project\`
-- \`ProjectMember\`
-- \`ProjectFile\`
-- \`Document\`
-- \`Task\`
-- \`TaskComment\`
-- \`Notification\`
-- \`Activity\`
-
-Phase 9 adds \`AIConversation\` and \`AIMessage\` (not workspace-scoped; private to their authenticated owner). Conversations store owner, title, selected model, pin state, and timestamps, with an owner/update ordering index. Messages reference a conversation and store \`user\`/\`assistant\` role, content, optional model, user retry UUID, optional parent user-message reference, and creation time. Indexes support ordered conversation history and unique per-conversation user request IDs. Conversation deletion explicitly deletes its messages first. No token costs or estimated usage are persisted.
-
-The presence of a schema means the data shape has been started; it does not mean CRUD endpoints, authorization, UI wiring, storage, notifications, or business workflows are complete.
-
-### 10.2 Core relationships
-
-- A \`User\` is the canonical identity for authentication.
-- A \`Workspace\` has an owner and is the tenant boundary for workspace-scoped product data.
-- \`WorkspaceMember\` associates users with workspaces and roles.
-- A \`Project\` belongs to a workspace and has an owner.
-- \`ProjectMember\` associates users with a project and a project-level role.
-- \`ProjectFile\` belongs to a project/workspace and records upload/storage metadata.
-- \`Document\` belongs to a project/workspace and records authored content.
-- \`Task\` belongs to a project/workspace and can reference its creator and assignee.
-- \`TaskComment\` associates comments with task/user context.
-- \`Notification\` targets a recipient and may include workspace/project references.
-- \`Activity\` records an actor, workspace/project context, entity, action, and metadata.
-
-Inspect each schema for the precise fields, enums, indexes, defaults, and validation before writing migrations or services.
-
-### 10.3 Model-level details verified in source
-
-**Workspace**
-- Name, slug, description, owner, avatar, settings, timestamps.
-- Slug is lowercase and constrained to a URL-friendly pattern.
-- Owner references \`User\`.
-- Workspace slug is unique.
-- An owner/update-time index exists.
-
-**Project**
-- Name, slug, description, workspace, owner, status, visibility, repository metadata, settings, timestamps.
-- Status enum includes \`active\`, \`planning\`, \`archived\`, and \`completed\`.
-- Visibility enum includes \`private\`, \`internal\`, and \`public\`.
-- Repository provider enum includes \`none\`, \`github\`, \`gitlab\`, and \`bitbucket\`.
-- Slug is unique per workspace through a compound index.
-- Workspace/status/update-time and owner/update-time indexes exist.
-
-**WorkspaceMember / ProjectMember**
-- These schemas model user membership and role within a workspace/project.
-- The Phase 2 test explicitly creates unique compound indexes for workspace+user and project+user. Verify whether indexes are also declared in the model definitions and how production index creation is managed before relying on them operationally.
-
-**Other supporting models**
-- Project files, documents, tasks, comments, notifications, and activities are defined in the model directory.
-- Consult each model file for full schema details; do not infer unlisted fields.
-
-### 10.4 Data and tenancy rules
-
-- Workspace scoping is a security boundary, not merely a UI filter.
-- Queries and mutations must enforce workspace/project access.
-- Validate all foreign-key references and role transitions.
-- Use database uniqueness constraints for invariants that must survive concurrent requests.
-- Handle duplicate-key errors and invalid ObjectIds cleanly.
-- Define whether deletes are soft deletes, archive transitions, or permanent deletes; follow existing behavior and product requirements.
-- Avoid cascading deletion until the data-retention policy is explicit and tested.
-- Do not create duplicate models to support a feature already represented by an existing schema.
-
-## 11. Mock-data inventory and integration policy
-
-### 11.1 Current mock areas in remote main
-
-The frontend includes:
-- \`lib/dashboard-data.js\` with mock users, projects, tasks, activity, notifications, members, files, analytics, and docs.
-- \`lib/mock/ai.js\`
-- \`lib/mock/analytics.js\`
-- \`lib/mock/deployments.js\`
-- \`lib/mock/domains.js\`
-- \`lib/mock/github.js\`
-- \`lib/mock/tasks.js\`
-- \`lib/mock/workspace.js\`
-- \`lib/mock/remaining-pages.js\`
-- \`lib/mock/final-pages.js\`
-- \`mockApi\` helpers in \`lib/api.js\` that return fixtures with simulated delays.
-
-Several remote-main project pages import \`mockProjects\`, \`getProjectByKey\`, \`mockActivity\`, \`mockFiles\`, or \`mockTasks\`. These imports are evidence that those specific page data flows are not yet fully integrated in that branch.
-
-### 11.2 Integration labels to maintain
-
-For each major page/widget, document its state using one of these labels:
-- **Live:** uses a real backend/external API and handles errors.
-- **Partial:** real data is used for some behavior while other widgets remain mocked.
-- **Mock-only:** fixtures/simulated actions drive the UI.
-- **Planned:** not implemented.
-- **Blocked:** implementation depends on credentials, provider access, infrastructure, or an unresolved decision.
-
-### 11.3 Migration process from mock to real data
-
-1. Identify the page's current data imports and event handlers.
-2. Identify the authoritative model, API contract, and authorization policy.
-3. Implement or reuse backend routes/services/validators.
-4. Extend the existing API client.
-5. Replace mock reads/writes only for the approved feature scope.
-6. Add loading, empty, error, success, and permission-denied states.
-7. Test cross-user and cross-workspace access.
-8. Remove obsolete mock imports from the migrated flow.
-9. Keep unrelated mock areas unchanged and explicitly documented.
-10. Update the integration matrix and \`PROJECT_CONTEXT.md\`.
-
-Never mix a live API result with unrelated mock counts in a way that misrepresents the real product state.
-
-## 12. Error handling, state, and UX behavior
-
-### 12.1 Frontend states
-
-Every real async page should handle:
-- Initial loading.
-- Empty dataset.
-- Search/filter with zero matches.
-- API failure/network failure.
-- Unauthorized or expired session.
-- Forbidden action.
-- Missing/deleted record.
-- Form validation failure.
-- Successful mutation.
-- Pending mutation and duplicate-submit prevention.
-
-Use the existing dashboard UI components where they fit. Avoid inventing new error conventions in individual pages.
-
-### 12.2 Backend behavior
-
-- Use Zod validators for user-controlled input where consistent with the existing code.
-- Keep business rules in services.
-- Use the established API error/response utilities and centralized error handler.
-- Validate identifiers and enum values.
-- Return appropriate status codes.
-- Do not log secrets, tokens, password reset values, or sensitive personal data.
-- Handle database duplicate-key and validation errors explicitly.
-- Apply rate limiting to sensitive endpoints.
-- Ensure failure paths do not leave partial data mutations.
-
-## 13. Environment variables and local setup
-
-### 13.1 Frontend setup
-
-From repository root:
-
-\`\`\`bash
-npm install
-npm run dev
-\`\`\`
-
-The frontend development server normally runs at \`http://localhost:3000\`.
-
-Frontend scripts in the audited root package:
-- \`npm run dev\`
-- \`npm run build\`
-- \`npm run start\`
-- \`npm run lint\`
-
-Use the package scripts as the source of truth. If a script fails because of a framework-version change, inspect the current toolchain and make a narrowly scoped fix only when authorized.
-
-### 13.2 Backend setup
-
-\`\`\`bash
-cd backend
-npm install
-\`\`\`
-
-Create \`backend/.env\` from \`backend/.env.example\`, fill the required local values, then run:
-
-\`\`\`bash
-npm run dev
-\`\`\`
-
-The backend normally runs at \`http://localhost:5000\`.
-
-Health check:
-\`\`\`text
-GET http://localhost:5000/health
-\`\`\`
-
-Backend test command:
-\`\`\`bash
-npm test -- --runInBand
-\`\`\`
-
-The package script uses Jest through Node's experimental VM modules. If the command differs in a local environment, inspect the package script before changing it.
-
-### 13.3 Environment variable groups
-
-The backend example includes:
-- \`PORT\`, \`NODE_ENV\`
-- \`MONGO_URI\`
-- \`JWT_ACCESS_SECRET\`, \`JWT_REFRESH_SECRET\`
-- \`ACCESS_TOKEN_EXPIRY\`, \`REFRESH_TOKEN_EXPIRY\`
-- \`FRONTEND_URL\`
-- SMTP host, port, username, password, sender
-- Google OAuth client ID, secret, callback URL
-- GitHub OAuth client ID, secret, callback URL
-- ImageKit public/private keys and URL endpoint
-- \`REDIS_URL\`
-
-Phase 8/9 AI configuration is optional and server-only. \`AI_PROVIDER\` supports \`ollama\` (default) and \`openai\`; the default model is \`qwen3:1.7b\` for Ollama and \`gpt-4o-mini\` for OpenAI. \`AI_API_KEY\` is required only for OpenAI. \`AI_REQUEST_TIMEOUT_MS\`, \`AI_MAX_INPUT_LENGTH\`, \`AI_MAX_OUTPUT_LENGTH\`, and \`AI_MAX_OUTPUT_TOKENS\` remain bounded server settings. Missing/unavailable Ollama or a model that is not installed is reported by \`/api/ai/models\`; generation returns a safe service-unavailable error. Never expose these values through \`NEXT_PUBLIC_*\`.
-
-The 2FA implementation also uses an encryption key setting in test/runtime logic; inspect the current encryption utility and deployment config for its exact name and production requirements.
-
-Never add real credentials to this document, source control, logs, or client-side code. Use placeholders only.
-
-## 14. Coding conventions and safe implementation workflow
-
-### 14.1 Before coding
-
-1. Read this document.
-2. Confirm the current branch and Git status.
-3. Confirm the target phase and its acceptance criteria.
-4. Inspect target files and all relevant callers/imports.
-5. Inspect existing models, route conventions, auth middleware, validation, error utilities, and tests.
-6. Check whether the desired helper/API/model already exists.
-7. Identify exactly which files should change.
-8. If the scope conflicts with these rules or requires a new route/page, stop and ask for approval.
-
-### 14.2 While coding
-
-- Keep changes limited to the approved phase.
-- Follow JavaScript/JSX and existing module conventions.
-- Prefer small, reusable service functions over large controllers.
-- Validate input at the backend boundary.
-- Enforce authorization at the backend for every read and mutation.
-- Preserve cookies, refresh behavior, route conventions, and existing UI.
-- Do not add dependencies unless a real requirement cannot be met by existing tools and approval is obtained.
-- Do not introduce hard-coded secrets, fake success responses, silent mock fallbacks, or hidden destructive behavior.
-- Keep accessibility and responsive behavior intact.
-
-### 14.3 After coding
-
-1. Inspect \`git diff --check\`.
-2. Inspect \`git diff --stat\` and the full diff.
-3. Run relevant tests, lint, and production build.
-4. Manually verify the affected user journey and failure paths.
-5. Verify auth and cross-tenant access for protected APIs.
-6. Update this document with only verified outcomes.
-7. Report changed files, tests/commands, results, limitations, and any deferred items.
-8. Do not merge until the branch is reviewed and acceptance criteria pass.
-
-## 15. Git and change-control workflow
-
-- Use a dedicated feature branch for each phase.
-- Start the branch from the latest updated \`main\), after the preceding phase has been merged and verified.
-- Do not work on \`main\` for feature implementation.
-- Before switching branches, check for uncommitted work and preserve it.
-- Never force-push, reset hard, clean untracked files, or discard changes without explicit approval.
-- Stage only intended files; do not blindly use \`git add .\` when unrelated changes may exist.
-- Review the entire diff before committing.
-- Use a clear commit message describing the phase/feature.
-- Push the feature branch and open a pull request into \`main\`.
-- Merge only after tests, build/lint, diff review, and acceptance criteria pass.
-- After merge, update local \`main\) and create the next feature branch from it.
-- Do not automatically start the next phase before the previous phase is merged and tested.
-
-Suggested branch names:
-- \`feature/phase-0-frontend-cleanup\`
-- \`feature/phase-1-auth\`
-- \`feature/phase-2-database\`
-- \`feature/phase-3-workspace-projects\`
-- \`feature/phase-4-files-docs\`
-- Continue the same naming pattern for later phases.
-- Use \`docs/\` branches for documentation-only changes.
-
-## 16. Test strategy and acceptance standards
-
-### 16.1 Required validation categories
-
-- Unit tests for business rules.
-- Model validation and uniqueness tests.
-- API tests for success, invalid input, missing auth, insufficient permissions, and missing records.
-- Cross-user and cross-workspace authorization tests.
-- Frontend lint.
-- Production build.
-- Manual testing of the affected UI journey.
-- Regression checks for auth, routing, theme, and shared components when relevant.
-- Integration tests for external providers where credentials/test environments are available.
-
-### 16.2 Security cases
-
-For each protected resource, test:
-- No access token/cookie.
-- Expired or invalid session.
-- Authenticated user with no membership.
-- Member with read-only role attempting a write.
-- Valid member performing an allowed action.
-- User supplying another user's workspace/project ID.
-- Invalid ObjectId or malformed request.
-- Duplicate slug or uniqueness conflict.
-- Resource deleted/archived during an operation.
-- External provider failure or timeout, where relevant.
-
-### 16.3 Documentation of test results
-
-Record:
-- Exact command.
-- Test count and pass/fail result if available.
-- Any skipped tests.
-- Whether the test requires MongoDB, Redis, provider credentials, or another service.
-- Known failures and whether they predate the current change.
-
-Do not turn a successful build into a claim that the product flow has been fully tested.
-
-## 17. Feature status matrix
-
-Maintain this matrix as phases are delivered. Status values must be updated from source and test evidence.
-
-| Domain | Existing UI | Backend/data foundation | Integration status on audited remote main |
-|---|---|---|---|
-| Public/marketing | Present | Not central to backend | Mostly static/local interactions; verify forms individually |
-| Authentication | Present | Auth services/models/routes | Documented as Phase 1 complete; retest after auth changes |
-| Workspace/project core | Present | Models exist | Project pages still mock-based on audited remote main; Phase 3 reported locally |
-| Files | Present | ProjectFile model and upload dependency | Not verified end-to-end |
-| Documents | Project docs UI exists | Document model | Not verified end-to-end |
-| Tasks/comments | Task UI exists | Task and TaskComment models | Not verified end-to-end |
-| Team/membership | Team UI exists | WorkspaceMember/ProjectMember models | Not verified end-to-end |
-| Activity | UI exists | Activity model | Not verified end-to-end |
-| Notifications | UI exists | Notification model | Not verified end-to-end |
-| Real-time | Existing server bootstrap | Socket.IO dependency | Basic connection only; product events not verified |
-| GitHub | Pages and mock data | OAuth hooks exist for login, not necessarily repository authorization | Live repository integration not verified |
-| AI | Multiple UI surfaces | Phase 8 provider abstraction and Phase 9 chat models/routes exist on local feature branch | Chat persistence and mocked-provider flow tested; live provider/browser verification incomplete. Other AI tools remain mock/demo-only. |
-| Editor/playground | UI exists | Safe execution backend not confirmed | Not production-ready until sandbox/security design is verified |
-| Workflows/jobs | UI exists | BullMQ/Redis dependencies | Durable execution not verified |
-| Deployments/domains | UI exists | External provider integration not confirmed | Mock/demo behavior until proven otherwise |
-| API keys/webhooks | UI routes exist | Secure key lifecycle not confirmed | Not verified end-to-end |
-| Billing | UI exists | Payment provider integration not confirmed | Not verified end-to-end |
-| Admin | UI routes exist | Admin authorization/audit behavior not verified | Not verified end-to-end |
-| Production release | N/A | Deployment configuration needs review | Planned |
-
-## 18. Approved implementation roadmap: Phases 0–24
-
-The core UI/page count is frozen. This roadmap is about making existing pages and flows work; it is not permission to add new pages. Each phase must begin from the merged and tested result of the previous phase. Phase scope may be refined after inspecting the code, but a phase must not silently absorb unrelated future work.
-
-### Phase 0 — Frontend baseline and cleanup
-
-**Goal:** Establish a stable baseline for the already-designed UI.
-
-Scope:
-- Audit all existing routes and shared layouts.
-- Fix broken imports, runtime errors, route mismatches, responsive defects, and obvious accessibility issues.
-- Normalize loading, empty, error, and confirmation patterns where necessary.
-- Confirm theme behavior and design tokens.
-- Identify mock data and fake async actions.
-- Establish repeatable lint/build checks.
-- Keep the existing page inventory frozen.
-
-Acceptance:
-- Existing routes render without avoidable crashes.
-- Shared shell and navigation remain consistent.
-- Lint/build baseline is recorded.
-- A mock/integration inventory exists.
-- No new pages/routes are introduced.
-
-Status: The UI and route inventory are present. Do not assume every possible cleanup criterion has been re-run recently; validate before declaring the phase fully closed.
-
-### Phase 1 — Authentication and account security foundation
-
-**Goal:** Make existing auth pages use real server-backed identity and secure session behavior.
-
-Scope:
-- Registration and login.
-- Email verification and resend.
-- Forgot/reset password.
-- Logout and refresh-token lifecycle.
-- Current-user endpoint and protected dashboard access.
-- Google/GitHub OAuth hooks with real configuration checks.
-- TOTP 2FA setup, challenge, recovery codes, and secure disablement.
-- Safe public user payloads and auth rate limits.
-- Remove mock-user fallback from protected routes.
-
-Acceptance:
-- Auth state comes from the backend.
-- Protected pages redirect or show auth errors correctly.
-- Cookie/session lifecycle works.
-- 2FA cannot be bypassed.
-- Sensitive fields are never exposed.
-- Auth tests, lint, and build pass.
-
-Status: Existing project context records Phase 1 as verified complete, including a reported 5-test 2FA suite and frontend lint/build. Re-run after any auth changes and validate provider configuration in the target environment.
-
-### Phase 2 — Database foundation
-
-**Goal:** Establish schemas and relationships for workspace-scoped features.
-
-Scope:
-- User compatibility with existing auth.
-- Workspace and WorkspaceMember.
-- Project and ProjectMember.
-- ProjectFile and Document.
-- Task and TaskComment.
-- Notification and Activity.
-- Required field/enums/indexes/timestamps.
-- MongoDB connection lifecycle and model tests.
-
-Acceptance:
-- Schemas validate expected and invalid data.
-- References and uniqueness rules are tested.
-- Auth model remains compatible.
-- Test database lifecycle is clean.
-- No feature CRUD API is claimed merely because a model exists.
-
-Status: The model files and Phase 2 model tests are present on audited remote main. Existing project context records this phase as the database foundation.
-
-### Phase 3 — Workspace and project lifecycle
-
-**Goal:** Connect the existing dashboard/project core to authenticated, persisted data.
-
-Scope:
-- Workspace initialization/selection using the existing workspace models and auth context.
-- Dashboard summary from real data.
-- Project list with real pagination/search/filter/sort only where supported by the existing UI and approved requirements.
-- Create project through the existing creation wizard.
-- Load project overview using the real database ID.
-- Update project fields supported by the current UI.
-- Archive, restore, and delete according to explicit policy.
-- Workspace/project membership authorization.
-- Duplicate slug handling and safe error states.
-- Extend \`lib/api.js\`; do not create a second API client.
-- Keep existing page layout and UI.
-
-Explicit exclusions:
-- Do not build new pages.
-- Do not fully integrate every project subview in this phase.
-- Do not invent GitHub connection success or team invites.
-- Do not implement tasks, files, docs, AI, analytics pipelines, or deployment integrations ahead of their phases.
-
-Acceptance:
-- Create → list → detail uses a persisted record.
-- Mutations are authorized and persisted.
-- Dashboard counts are based on real data.
-- Duplicate slug/access cases are tested.
-- Unauthorized and cross-workspace access is denied.
-- Backend tests, lint, and production build pass.
-- \`PROJECT_CONTEXT.md\) is updated.
-
-Status: Reported locally complete by the developer with 11/11 backend tests, lint, and build passing. The implementation was not present in the remote \`main\` tree inspected for this document. Verify the branch/push/merge state and re-audit actual source before treating remote main as complete.
-
-### Phase 4 — Workspace/project files and documentation
-
-**Goal:** Turn existing file and document pages into real persisted workflows.
-
-Scope:
-- Project and workspace file listing.
-- Upload/download/delete with authorization.
-- Integrate the existing ImageKit configuration or another approved storage mechanism.
-- Validate file size, MIME type, names, and ownership.
-- Store storage metadata in ProjectFile.
-- Connect existing project files and docs pages.
-- Persist document content and metadata through Document.
-- Support Markdown safely and preserve existing editor/viewer UI.
-- Add file/document audit activity where appropriate.
-
-Acceptance:
-- Files and docs persist across reloads.
-- Users cannot read or delete another workspace's files.
-- Storage failures are handled.
-- Upload validation and limits are tested.
-- Existing mock file/document data is removed only from migrated flows.
-
-### Phase 5 — Tasks and team collaboration
-
-**Goal:** Connect existing task and team pages to real workspace/project data.
-
-Scope:
-- Task create/read/update/delete and status/priority transitions.
-- Task assignment, labels, due dates, and project/workspace scope as supported by existing UI/models.
-- Task comments and activity.
-- Workspace/project member listing and role-aware UI.
-- Invitations only when the backend email/token flow is actually implemented.
-- Permission rules for owner/admin/editor/viewer or the role vocabulary actually present in the models.
-- Synchronize task counts and dashboard summaries from persisted records.
-
-Acceptance:
-- Task and membership changes persist.
-- Roles are enforced server-side.
-- Invalid assignments and cross-workspace references are rejected.
-- Tests cover task transitions and permissions.
-- Existing task/team pages are reused.
-
-### Phase 6 — Real-time collaboration
-
-**Goal:** Upgrade the existing Socket.IO bootstrap into secure, scoped product events.
-
-Scope:
-- Authenticate socket connections using the established session model.
-- Authorize workspace/project room joins.
-- Define named events for approved task, activity, notification, and collaboration updates.
-- Join/leave rooms safely and clean up disconnects.
-- Avoid leaking events across tenants.
-- Provide reconnect and stale-data behavior on the frontend.
-- Use persisted database state as the source of truth; socket messages are notifications, not authorization.
-
-Acceptance:
-- Only authorized members receive scoped events.
-- Reconnect behavior is reliable.
-- Duplicate events do not create duplicate records.
-- Integration tests cover room authorization and tenant isolation.
-- No new page is needed to add real-time behavior to existing views.
-
-### Phase 7 — GitHub integration
-
-**Goal:** Connect existing GitHub pages to the actual GitHub API and user-authorized repositories.
-
-Scope:
-- Distinguish app login OAuth from GitHub repository authorization; do not assume auth OAuth grants required scopes for all product actions.
-- Secure provider connection/token storage and revocation.
-- Repository list/detail, branches, commits, pull requests, issues, and releases as supported by current pages.
-- Repository linking/import to an existing project.
-- Rate-limit, pagination, API error, and permission handling.
-- Store only the minimum necessary provider metadata.
-- Do not expose access tokens to the browser.
-
-Acceptance:
-- Lists/detail pages display real GitHub data for the connected account.
-- Token permissions and revoked connections are handled.
-- No mock data is shown as live data.
-- OAuth scopes and token storage are reviewed for security.
-
-### Phase 8 — AI infrastructure and provider abstraction
-
-**Goal:** Build a secure backend foundation for AI features without coupling the UI to one provider.
-
-Scope:
-- Define provider/service interfaces and server-side configuration.
-- Validate prompts and bound request sizes.
-- Establish model selection, timeout, retry, error, and cancellation behavior.
-- Protect provider keys on the server.
-- Define workspace/project context authorization.
-- Add usage/cost metadata and observability.
-- Add safe handling for provider outages and rate limits.
-
-Acceptance:
-- AI calls are server-side.
-- Secrets never enter client bundles or logs.
-- Provider errors and timeouts are handled.
-- Usage can be attributed to the authenticated user/workspace.
-- No fabricated output is returned as a successful live AI result.
-
-### Phase 9 — AI chat
-
-**Goal:** Connect the existing AI chat page to a real conversation service.
-
-**Current local branch status (2026-10-28):** Implemented; mocked tests pass and local Ollama/Qwen inference is verified. Manual browser verification remains incomplete; live OpenAI behavior is not tested.
-
-Scope:
-- Conversation creation/list/detail and message persistence if supported by the approved design.
-- Prompt submission and streamed or ordinary responses based on the chosen provider capabilities.
-- Context inclusion only for resources the user may access.
-- Conversation rename/delete and history behavior where already present in UI.
-- Error, retry, cancel, and loading states.
-- Safe rendering of Markdown/code output.
-
-Acceptance:
-- Conversation history persists as designed.
-- Access checks prevent reading another user's/workspace's chats.
-- Provider errors are visible and recoverable.
-- Streaming, if implemented, handles cancellation/disconnect correctly.
-
-### Phase 10 — AI developer tools
-
-**Goal:** Integrate existing AI tools with actual model-backed endpoints.
-
-Scope:
-- Code generator.
-- Code review.
-- Documentation generator.
-- Bug fixer.
-- Backend blueprint generator.
-- SQL generator.
-- Validate input and output formats per tool.
-- Keep user prompts and generated artifacts associated with the right user/project.
-- Require confirmation before applying destructive or repository-changing actions.
-- Do not claim a generated result is tested or executed unless that work actually occurred.
-
-Acceptance:
-- Each existing tool calls a real backend service.
-- Results, failures, and usage are recorded appropriately.
-- Generated content is presented safely.
-- Tool-specific validation and tests pass.
-- Existing AI pages are retained.
-
-**Local implementation status note (2026-10-30):** Phase 10 has a partial implementation audit in section 3.4.13. Preserve this original roadmap and acceptance list; usage persistence and remaining verification are outstanding.
-
-### Phase 11 — AI history, usage, and analytics
-
-**Goal:** Persist AI runs and provide truthful usage/history views.
-
-Scope:
-- AI run metadata and history.
-- User/workspace usage totals and filters.
-- Cost/token data only when returned or calculated from reliable provider metadata.
-- Failure states and retention policy.
-- Connect existing history and analytics surfaces.
-- Distinguish estimates from provider-reported values.
-
-Acceptance:
-- History reflects actual persisted runs.
-- Usage totals reconcile with stored events.
-- No fake metrics are presented as production analytics.
-- Access is scoped to the relevant user/workspace/admin permissions.
-
-### Phase 12 — Editor and playground
-
-**Goal:** Make existing editor/snippet/playground experiences useful without introducing unsafe execution.
-
-Scope:
-- Persist snippets and supported editor artifacts.
-- Connect existing editor and playground views to the required data services.
-- Define language/runtime support.
-- If code execution is offered, use an isolated, resource-limited sandbox/service.
-- Enforce execution timeout, memory/CPU limits, network restrictions, output limits, and cleanup.
-- Never execute arbitrary user code directly inside the main web server process.
-- Provide clear execution status and error output.
-
-Acceptance:
-- Snippets persist and respect permissions.
-- Code execution, if offered, is isolated and bounded.
-- Unsupported runtimes are clearly identified.
-- Abuse cases and resource exhaustion are tested.
-
-### Phase 13 — Workflows
-
-**Current verified status:** The workflow backend stack is implemented in the repository and is connected to the existing dashboard UI. This includes workflow models, validation, permissions, registry checks, route registration, create/list/detail support, status transitions, manual runs, and run-history retrieval. The workflow list page is now API-backed, and the workflow detail/create screens were updated to use the real backend instead of local mock data. Full Phase 13 acceptance is not yet claimed for all edge cases, but the core server-side workflow persistence and frontend integration are present and validated by the existing backend test suite.
-
-**Goal:** Connect the existing workflow list, builder, and detail routes to persisted workflow definitions.
-
-Scope:
-- Workflow CRUD and versioned definitions as appropriate.
-- Validate node/step types and transitions.
-- Define trigger and execution semantics.
-- Add run history, status, logs, retry, and cancellation where supported.
-- Restrict secrets and credentials from ordinary workflow payloads.
-- Keep the existing workflow UI and route structure.
-
-Acceptance:
-- Workflow definitions persist.
-- Invalid definitions cannot be executed.
-- Execution state is observable.
-- Access is authorized.
-- Failed runs can be diagnosed without exposing secrets.
-
-**Verification performed:** `cd "c:\Users\Aman Chaudhary\Desktop\DevflowAI\backend"; npm test -- --runInBand` completed successfully with 12/12 suites passing and 119/119 tests passing.
-
-**Known limitations:** Phase 14 Redis/BullMQ workers, durable background execution, and any full workflow-specific UI QA beyond the current implementation are not claimed as complete. The workflow feature is treated as implemented and validated at the backend/API level, with ongoing UI polish and additional workflow-focused tests left as future work if needed.
-
-## 19. Phase execution contract
-
-Every phase must have a short execution plan before coding:
-- Objective and user-visible outcome.
-- Files/routes/models/APIs likely involved.
-- Existing code to reuse.
-- Data and authorization rules.
-- Explicit in-scope and out-of-scope items.
-- Tests and manual verification.
-- Documentation updates.
-- Acceptance criteria.
-
-After a phase:
-- Mark only verified items complete.
-- Update feature integration statuses.
-- Record exact test/build/lint results.
-- List unresolved defects and deferred work.
-- Review the full diff.
-- Commit/push/open a PR only when authorized.
-- Merge only after the phase passes review and required validation.
-- Create the next branch from the newly updated main.
-
-## 20. Current next steps
-
-The ordered list below records the remote-main/Phase 3 reconciliation recommendation from an earlier audit. On the current `feature/phase-9-ai-chat` checkout, Phase 9 is implemented as recorded in section 3.4.12. First configure the backend AI provider and manually verify chat creation, persistence after refresh, model availability, provider failure, and cancellation. Then proceed to Phase 10 (AI developer tools) as defined above. Phase 9 does not complete Phase 10 or Phase 11.
-
-1. Reconcile the developer-reported Phase 3 local implementation with the remote repository. The audited remote \`main\) currently shows the earlier mock-based project pages and does not include the reported project API/service/test files.
-2. Ensure Phase 3 is pushed or merged through the agreed feature-branch workflow, not by silently editing main.
-3. Re-audit the actual Phase 3 service, controller, routes, API client, dashboard/list/create/detail pages, tests, and updated documentation.
-4. Confirm tests and build/lint results from the branch that actually contains those files.
-5. Once Phase 3 is merged and tested, create a fresh branch for Phase 4.
-6. Phase 4 should focus on existing file/document pages and their current models; do not add new pages.
-
-## 21. Documentation maintenance checklist
-
-When updating this file:
-- Preserve useful existing context and route inventory.
-- Correct outdated statements only after checking source code.
-- Separate source-verified facts, user-reported local work, and planned work.
-- Update the phase status and feature matrix.
-- Update API/model details when they change.
-- Record tests only if they were actually run.
-- Document any mock-only subviews and unresolved integration gaps.
-- Never include secrets or private credentials.
-- Avoid arbitrary line-count targets; optimize for correctness, navigability, and usefulness to the next developer/agent.
-- Keep the file detailed enough to prevent accidental architecture changes, but link to focused reference documents if it grows unwieldy.
+| `app/` | Route pages, nested layouts, route-level loading/error/not-found UI |
+| `app/layout.jsx` | Root document/layout and global setup |
+| `app/globals.css` | Theme tokens, typography, global styles, shared component styles |
+| `app/dashboard/` | Authenticated workspace pages and dashboard shell |
+| `app/admin/` | Admin shell and administration pages |
+| `components/` | Reusable UI, navigation, page shells, forms, dialogs, domain views |
+| `lib/api.js` | Shared HTTP client and domain API methods |
+| `lib/data.js` | Static marketing/content data |
+| `lib/dashboard-data.js` | Dashboard fixture data |
+| `lib/mock/` | Mock/demo fixtures for features not fully integrated |
+| `lib/realtime.js` | Frontend realtime/socket integration |
+
+### Backend responsibilities
+
+| Path | Responsibility |
+|---|---|
+| `backend/src/server.js` | Environment validation, DB/Redis startup, HTTP and Socket.IO lifecycle, graceful shutdown |
+| `backend/src/app.js` | Express middleware and API route mounting |
+| `backend/src/config/` | Database, Passport, Redis, and ImageKit configuration |
+| `backend/src/routes/` | HTTP route declarations |
+| `backend/src/controllers/` | HTTP request/response handling |
+| `backend/src/services/` | Business logic and external-service orchestration |
+| `backend/src/models/` | Mongoose schemas and indexes |
+| `backend/src/middlewares/` | Authentication, validation, error handling |
+| `backend/src/validators/` | Zod schemas |
+| `backend/src/realtime/` | Socket.IO authentication and event definitions |
+| `backend/src/queues/` | BullMQ queue setup |
+| `backend/src/workers/` | Background worker entry points |
+| `backend/src/utils/` | Shared response, token, email, encryption, and security helpers |
+| `backend/src/__tests__/` | Backend automated tests |
+
+### Architectural flow
+
+Typical backend request flow:
+
+```text
+Browser / Next.js page
+        |
+        v
+lib/api.js (shared request client)
+        |
+        v
+Express route
+        |
+        v
+Authentication / validation middleware
+        |
+        v
+Controller
+        |
+        v
+Service (business rules / provider calls)
+        |
+        v
+Mongoose model / MongoDB / external provider
+        |
+        v
+Standard API response or centralized error handler
+```
+
+Follow this separation. Do not move business logic into route files or duplicate API clients.
 
 ---
 
-## Appendix A — High-value files for a coding agent to inspect
+## 4. Design System
+
+### Visual identity
+
+The current visual direction is **Midnight Espresso + Amber Gold + Warm Ivory**. Dark mode is the default; light mode is supported. The actual source of truth is the CSS variables in `app/globals.css`.
+
+### Theme tokens
+
+| Token | Dark theme (default) | Light theme |
+|---|---|---|
+| Background | `#0F0E0C` | `#F7F4EC` |
+| Soft background | `#171613` | `#FFFDF8` |
+| Surface | `#1F1D19` | `#FFFFFF` |
+| Card | `#1F1D19` | `#FFFDF8` |
+| Border | `#4A4540` (neutral ramp) | `#E7E5E0` |
+| Primary text | `#FAFAF9` | `#1A1814` |
+| Muted text | `#C5C2B9` | `#6B6558` |
+| Accent | `#F2A93B` | `#F2A93B` |
+| Accent hover | `#E89A2A` | `#E89A2A` |
+| Success | `#5FD3A0` | `#1F7A53` |
+| Warning | `#F59E0B` | `#D97706` |
+| Error | `#EF6B57` | `#C23F2B` |
+| Info | `#06B6D4` | `#0891B2` |
+
+The neutral palette is also defined in `app/globals.css` as `--neutral-50` through `--neutral-950`. Use semantic tokens such as `--bg`, `--surface`, `--card`, `--border`, `--text`, `--muted`, `--accent`, `--success`, `--warning`, `--danger`, and `--info` rather than hard-coding colors.
+
+### Typography
+
+| Use | Font |
+|---|---|
+| Display/headings | DM Serif Display |
+| Body/UI | Inter |
+| Code/technical content | JetBrains Mono |
+
+### Spacing, shape, and depth
+
+- The CSS defines a spacing scale based on 4px increments: 4, 8, 12, 16, 20, 24, 28, 32px and larger multiples.
+- Standard cards use approximately 16px radius.
+- Buttons use approximately 12px radius through the shared spacing token.
+- Inputs and smaller controls use the established component styles; inspect the actual class before changing radii.
+- Borders are restrained and use the semantic border token.
+- Shadows and gradients should be subtle; avoid excessive glassmorphism or decorative effects.
+- Accent gold is the primary emphasis color, not a reason to make every element gold.
+
+### Theme implementation rules
+
+- Theme values are driven by CSS variables and the active theme attribute.
+- Preserve dark as the default.
+- Preserve the existing theme toggle and light theme.
+- Do not create a second theme implementation or scatter hard-coded color values across components.
+- Before changing a token, inspect all uses in `app/globals.css` and related component styles.
+
+---
+
+## 5. UI/UX Guidelines
+
+### Layout and navigation
+
+- Preserve the current public, authentication, dashboard, project, and admin shells.
+- Keep the desktop workspace navigation consistent with the existing dashboard layout.
+- On smaller screens, use the existing responsive sidebar/drawer behavior.
+- Respect the existing content width, grid, spacing, and page-header patterns.
+- Do not introduce a new navigation item or page unless explicitly requested.
+
+### Responsive behavior
+
+Maintain usable layouts across:
+- Large desktop: 1280px and wider.
+- Laptop: 1024px–1279px.
+- Tablet: 768px–1023px.
+- Mobile: 640px–767px.
+- Small mobile: below 640px.
+
+Avoid horizontal overflow. Tables, forms, sidebars, dialogs, charts, and menus must remain usable on touch devices.
+
+### Interaction states
+
+Every asynchronous or interactive feature should handle the relevant states:
+
+- Initial/loading state (use existing skeleton patterns where appropriate).
+- Empty state with a meaningful next action.
+- Success/updated state.
+- Validation and server error state.
+- Disabled/pending state to prevent accidental duplicate submissions.
+- Confirmation state for destructive actions.
+
+### Accessibility and motion
+
+- Use semantic buttons and links for their intended actions.
+- Inputs require labels and understandable validation messages.
+- Preserve keyboard navigation and visible focus styles.
+- Dialogs/drawers should support appropriate focus and dismissal behavior.
+- Respect reduced-motion preferences where animations are introduced.
+- Do not communicate status through color alone.
+
+### UI-only change rule
+
+When a task requests a visual redesign only:
+- Modify presentation/styling only.
+- Preserve all existing buttons, labels, links, components, routes, form fields, event handlers, API calls, state, validation, and business logic.
+- Do not add, remove, rename, or repurpose functionality.
+- Do not replace working components with decorative mockups.
+- Verify the diff contains no unintended logic changes.
+
+---
+
+## 6. Pages & Routes
+
+This section records the existing route families documented in the repository. Dynamic segments are shown in brackets. Route presence does not imply that the page is connected to a real API. Check the corresponding page and shared component before editing.
+
+### Public and content pages
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing page |
+| `/pricing` | Pricing and plans |
+| `/features` | Product features |
+| `/about` | About |
+| `/blog` | Blog index |
+| `/blog/ai-workspaces` | Blog article |
+| `/docs` | Public documentation |
+| `/contact` | Contact |
+| `/privacy` | Privacy policy |
+| `/terms` | Terms |
+| `/search` | Public search |
+| `/feedback` | Public feedback |
+| `/help` | Help center |
+
+### Authentication pages
+
+| Route | Purpose |
+|---|---|
+| `/login` | Sign in |
+| `/register` | Account registration |
+| `/verify-email` | Email verification |
+| `/forgot-password` | Password reset request |
+| `/reset-password/[token]` | Password reset |
+| `/reset-password/demo-token` | Demo/preview route |
+| `/2fa` | Two-factor challenge/setup surface |
+
+### Dashboard and workspace pages
+
+| Route | Purpose |
+|---|---|
+| `/dashboard` | Workspace dashboard |
+| `/dashboard/projects` | Project list |
+| `/dashboard/projects/create` | Project creation |
+| `/dashboard/projects/[projectId]` | Project overview |
+| `/dashboard/projects/[projectId]/files` | Project files |
+| `/dashboard/projects/[projectId]/docs` | Project documents |
+| `/dashboard/projects/[projectId]/tasks` | Project tasks |
+| `/dashboard/projects/[projectId]/team` | Project team |
+| `/dashboard/projects/[projectId]/activity` | Project activity |
+| `/dashboard/projects/[projectId]/analytics` | Project analytics |
+| `/dashboard/projects/[projectId]/settings` | Project settings |
+| `/dashboard/files` | Workspace files |
+| `/dashboard/tasks` | Workspace tasks |
+| `/dashboard/notifications` | Notifications |
+| `/dashboard/profile` | Profile |
+| `/dashboard/settings` | Settings |
+| `/dashboard/team` | Team overview |
+| `/dashboard/team/members` | Team members |
+| `/dashboard/team/activity` | Team activity |
+| `/dashboard/team/calendar` | Team calendar |
+| `/dashboard/analytics` | Workspace analytics |
+
+### AI pages
+
+| Route | Purpose |
+|---|---|
+| `/dashboard/ai` | AI hub |
+| `/dashboard/ai/chat` | AI chat |
+| `/dashboard/ai/code-generator` | Code generation |
+| `/dashboard/ai/code-review` | Code review |
+| `/dashboard/ai/docs-generator` | Documentation generation |
+| `/dashboard/ai/bug-fixer` | Bug-fixing assistance |
+| `/dashboard/ai/backend-generator` | Backend generation assistance |
+| `/dashboard/ai/sql-generator` | SQL generation |
+| `/dashboard/ai/history` | AI history |
+
+### GitHub pages
+
+| Route | Purpose |
+|---|---|
+| `/dashboard/github` | GitHub overview |
+| `/dashboard/github/repositories` | Repositories |
+| `/dashboard/github/repositories/[repoId]` | Repository details |
+| `/dashboard/github/pull-requests` | Pull requests |
+| `/dashboard/github/commits` | Commits |
+| `/dashboard/github/branches` | Branches |
+| `/dashboard/github/issues` | Issues |
+| `/dashboard/github/releases` | Releases |
+
+### Editor, workflow, deployment, developer, billing pages
+
+| Route | Purpose |
+|---|---|
+| `/dashboard/editor` | Editor |
+| `/dashboard/editor/snippets` | Snippet library |
+| `/dashboard/editor/playground` | Playground |
+| `/dashboard/workflows` | Workflow list |
+| `/dashboard/workflows/create` | Workflow builder |
+| `/dashboard/workflows/[id]` | Workflow details |
+| `/dashboard/deployments` | Deployments |
+| `/dashboard/deployments/[id]` | Deployment details |
+| `/dashboard/deployments/domains` | Domain management |
+| `/dashboard/developer/api-keys` | API keys |
+| `/dashboard/developer/webhooks` | Webhook surface |
+| `/dashboard/integrations` | Integrations |
+| `/dashboard/billing` | Subscription/billing |
+| `/dashboard/billing/history` | Billing history |
+| `/dashboard/search` | Dashboard search |
+| `/dashboard/feedback` | Dashboard feedback |
+| `/dashboard/help` | Dashboard help |
+
+### Admin pages
+
+| Route | Purpose |
+|---|---|
+| `/admin` | Admin overview |
+| `/admin/users` | User administration |
+| `/admin/ai-usage` | AI usage administration |
+| `/admin/subscriptions` | Subscription administration |
+| `/admin/reports` | Reports |
+| `/admin/audit-logs` | Audit logs |
+
+### Route rules
+
+- Do not add, remove, rename, or relocate routes without explicit approval.
+- Reuse existing dynamic route conventions (`projectId` and `id`) in their respective route families.
+- Inspect whether a route delegates to `components/remaining-pages.jsx`, `components/final-pages.jsx`, or another shared module before editing.
+- If a feature is not integrated, connect the existing page to the intended backend rather than creating a replacement page.
+
+---
+
+## 7. Components
+
+### Shared site and layout components
+
+| Component/file | Responsibility |
+|---|---|
+| `components/site-shell.jsx` | Public-site shell |
+| `components/navbar.jsx` | Public navigation |
+| `components/footer.jsx` | Public footer |
+| `components/theme-toggle.jsx` | Dark/light theme control |
+| `components/header-copy.jsx` | Shared page heading/subheading |
+| `components/ui-blocks.jsx` | Reusable marketing/public UI blocks |
+| `app/dashboard/layout.jsx` | Dashboard shell, navigation, auth check, top bar, mobile navigation |
+| `app/admin/layout.jsx` | Admin shell |
+
+### Dashboard primitives
+
+| Component/file | Responsibility |
+|---|---|
+| `components/dashboard-ui.jsx` | Shared dashboard primitives: skeletons, empty states, toasts, confirmation dialogs, stat cards, progress, avatars, status badges, page headers, filters, small charts |
+| `components/workspace-primitives.jsx` | Workspace breadcrumbs and drawer primitives |
+
+### Domain component modules
+
+| Component/file | Responsibility |
+|---|---|
+| `components/auth-ui.jsx` | Authentication UI and form presentation |
+| `components/ai-ui.jsx` | AI-specific UI |
+| `components/remaining-pages.jsx` | Shared implementations for several existing workspace surfaces |
+| `components/final-pages.jsx` | Shared implementations/simulations for later product surfaces |
+| `components/contact-form.jsx` | Contact form |
+
+These shared page modules can contain substantial page behavior. Inspect imports and callers before modifying a route component; a short route file may simply render a shared page implementation.
+
+### Reuse policy
+
+1. Search for an existing component before creating a new one.
+2. Keep components focused and follow their current prop contracts.
+3. Do not duplicate dialogs, toasts, skeletons, page headers, buttons, inputs, badges, or navigation patterns.
+4. Keep business logic in the appropriate hook/service/API layer rather than embedding it in purely presentational components.
+5. Do not change component APIs globally to solve a one-page styling issue unless all call sites are checked.
+
+---
+
+## 8. Features & Functionality
+
+### Feature status vocabulary
+
+- **Integrated:** A real backend/API or provider path exists. Still verify the specific behavior and production configuration before release.
+- **Partial:** Some real behavior exists, but one or more intended flows are incomplete.
+- **Mock/demo:** The UI uses local fixtures, simulated data, or placeholder actions instead of a complete real service.
+- **Unverified:** Source suggests an implementation, but automated/manual evidence is insufficient to claim reliable end-to-end behavior.
+
+### Domain status snapshot
+
+| Domain | Current understanding | Status |
+|---|---|---|
+| Public marketing/content | Public pages and static content data exist | Mostly static |
+| Authentication | Express auth routes, JWT cookies, email flows, OAuth hooks, and 2FA code paths exist | Integrated foundation; provider configuration must be verified |
+| Workspace/project lifecycle | Project routes and frontend API methods are mounted; inspect current project service/controllers and tests for exact supported actions | Integrated foundation; verify every lifecycle action |
+| Files | File route and ProjectFile model exist; upload provider configuration is required | Partial / verify provider |
+| Documents | Document model and docs surfaces exist | Partial / verify CRUD integration |
+| Tasks/comments | Task routes, task models, and task UI exist | Partial-to-integrated; verify route behavior and access checks |
+| Team/membership/invitations | Membership models and invitation route exist | Partial; verify invitation lifecycle and role enforcement |
+| Activity | Activity model and project/task activity surfaces exist | Partial; verify event coverage |
+| Notifications | Notification routes, service, model, and UI exist | Integrated foundation; verify delivery and real-time behavior |
+| Realtime | Socket.IO server, cookie auth, realtime helpers/events exist | Integrated foundation; verify each event/room and reconnect flow |
+| GitHub | Dedicated OAuth connection, encrypted credential storage, repository/resource endpoints exist | Integrated read-oriented API; verify live OAuth and scopes |
+| AI chat | Authenticated chat routes, conversation/message persistence, Ollama/OpenAI provider abstraction exist | Integrated foundation; live provider/manual verification required |
+| AI developer tools/history | Separate AI tools/history route groups and execution model exist | Partial; verify each tool and usage persistence |
+| Editor/snippets/playground | Routes, models, and API client methods exist | Partial; validate save/load and safe execution boundaries |
+| Workflows | Workflow routes, Redis/BullMQ queue/worker infrastructure exist | Partial; verify job execution and failure/retry behavior |
+| Deployments/domains | Route groups, models, queues, and provider integration code exist | Partial; live provider/DNS verification required |
+| API keys/integrations | Route groups and models exist | Partial; verify secret hashing, scopes, revocation, and real connector behavior |
+| Billing | Billing routes and subscription/invoice/payment/webhook models exist | Partial; payment provider and webhook verification required |
+| Admin | Admin route group, pages, and audit-related models/surfaces exist | Partial; verify server-side admin authorization for every endpoint |
+| Production readiness | Requires deployment, secrets, provider, security, monitoring, and end-to-end verification | Not yet established by this document |
+
+### Mock-data policy
+
+The frontend contains fixture data in `lib/dashboard-data.js` and `lib/mock/`. Some pages and helpers remain intentionally mock/demo-backed. A mock must be clearly identified in code/documentation.
+
+- Do not treat fixture data as a successful API response.
+- Do not silently fall back to mocks when a real request fails.
+- When integrating a feature, remove mock usage only from the intended flow and preserve unrelated mock-backed areas.
+- Add explicit loading, empty, error, and success states.
+- Update this matrix when integration status changes and cite the tests/manual verification in the implementation change.
+
+---
+
+## 9. Authentication
+
+### Authentication model
+
+The backend is the source of truth for user identity. The documented implementation uses JWT access/refresh tokens delivered through HTTP-only cookies. The frontend API client sends requests with `credentials: "include"` and attempts one refresh-token request after an eligible 401 response before surfacing the error.
+
+### Auth endpoints
+
+The following routes are mounted under `/api/auth`:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/register` | Register account |
+| POST | `/login` | Sign in |
+| POST | `/logout` | Clear session |
+| POST | `/refresh-token` | Refresh tokens |
+| GET | `/me` | Current authenticated user |
+| POST | `/forgot-password` | Start password reset |
+| POST | `/reset-password` | Complete password reset |
+| POST | `/verify-email` | Verify email |
+| POST | `/resend-verification` | Resend verification email |
+| POST | `/2fa/setup` | Start TOTP setup |
+| POST | `/2fa/disable` | Disable two-factor authentication |
+| POST | `/2fa/status` | Two-factor status operation |
+| POST | `/2fa/challenge` | Complete 2FA challenge |
+| GET | `/google` | Start Google OAuth |
+| GET | `/google/callback` | Google OAuth callback |
+| GET | `/github` | Start GitHub sign-in OAuth |
+| GET | `/github/callback` | GitHub sign-in callback |
+| GET | `/oauth/failure` | OAuth failure redirect |
+
+OAuth sign-in (Passport) and GitHub repository integration are separate features with separate credentials and scopes.
+
+### Session and security rules
+
+- Do not store access tokens or refresh tokens in localStorage/sessionStorage.
+- Keep JWT secrets and OAuth secrets on the backend only.
+- Keep HTTP-only cookie, credentialed CORS, and refresh behavior consistent.
+- Hash passwords with the existing password-hashing implementation.
+- Never expose password hashes, refresh-token hashes, encrypted TOTP secrets, recovery-code hashes, or provider access tokens in user responses.
+- Enforce 2FA challenge for accounts that have 2FA enabled; do not introduce an alternate login bypass.
+- Protect account-sensitive flows with validation, rate limits, expiry, and single-use tokens where implemented.
+- Never trust a user ID or role supplied by the browser when the authenticated request already identifies the user.
+
+### Authorization
+
+For every protected resource:
+1. Authenticate the request.
+2. Derive the actor from the authenticated request context.
+3. Query the resource with the correct owner/workspace/project scope.
+4. Check membership and role for the requested operation.
+5. Validate and allowlist writable fields.
+6. Test both permitted and denied access, including cross-user and cross-workspace attempts.
+
+A protected frontend layout is not a substitute for backend authorization.
+
+---
+
+## 10. API Documentation
+
+### API conventions
+
+- Backend route prefixes are mounted in `backend/src/app.js`.
+- Route files declare HTTP methods and validation middleware.
+- Controllers handle HTTP concerns; services contain business rules and provider orchestration.
+- Most API responses use the shared `ApiResponse` envelope: `{ statusCode, data, message, success }`.
+- Validation uses Zod where defined.
+- Errors flow through the not-found and centralized error handlers.
+- The frontend uses `lib/api.js`; extend it instead of creating another generic fetch wrapper.
+- For exact request schemas and response payloads, inspect the corresponding validator, controller, service, and test. Do not infer a payload from a route name.
+
+### Mounted API groups
+
+| Prefix | Route module | Domain |
+|---|---|---|
+| `/api/auth` | `auth.routes.js` | Authentication and account security |
+| `/api/projects` | `project.routes.js` | Projects and dashboard router |
+| `/api/files` | `files.routes.js` | File operations |
+| `/api/tasks` | `task.routes.js` | Tasks, comments, task activity |
+| `/api/notifications` | `notification.routes.js` | Notifications |
+| `/api/invitations` | `invitation.routes.js` | Workspace/project invitations |
+| `/api/github` | `github.routes.js` | GitHub connection and repository resources |
+| `/api/ai` | `ai-chat.routes.js`, `ai-history.routes.js` | AI chat and history |
+| `/api/ai/tools` | `ai-tools.routes.js` | AI developer tools |
+| `/api/editor` | `editor.routes.js` | Editor files |
+| `/api/snippets` | `snippet.routes.js` | Code snippets |
+| `/api/playgrounds` | `playground.routes.js` | Playgrounds |
+| `/api/workflows` | `workflow.routes.js` | Workflow definitions/execution |
+| `/api/deployments` | `deployment.routes.js` | Deployment operations |
+| `/api/domains` | `domain.routes.js` | Domain management |
+| `/api/api-keys` | `api-key.routes.js` | API key lifecycle |
+| `/api/integrations` | `integration.routes.js` | Integrations |
+| `/api/billing` | `billing.routes.js` | Plans, subscriptions, payments, invoices |
+| `/api/admin` | `admin.routes.js` | Admin operations |
+| `/api/dashboard` | dashboard router exported by `project.routes.js` | Dashboard summaries |
+
+### Verified endpoint details
+
+#### Health
+
+| Method | Path | Response purpose |
+|---|---|---|
+| GET | `/health` | Returns backend health plus Redis/queue availability information |
+
+#### GitHub integration
+
+All routes below are mounted under `/api/github` and the router applies `requireAuth`.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/connect` | Begin GitHub repository OAuth connection |
+| GET | `/callback` | OAuth callback |
+| GET | `/status` | Connection status |
+| DELETE | `/connection` | Disconnect stored integration |
+| GET | `/repositories` | List repositories (validated pagination) |
+| GET | `/repositories/by-id/:repositoryId` | Repository lookup |
+| POST | `/sync` | Synchronize repository list |
+| GET | `/repositories/:owner/:repo/:resource` | Read detail, branches, commits, pulls, issues, releases, contributors, or languages |
+
+The GitHub integration uses a dedicated OAuth configuration, single-use short-lived state, PKCE S256, and AES-256-GCM encrypted token storage as documented by the backend. The UI must never receive the stored provider token. The integration currently exposes read operations; do not add write operations without explicit product/security approval. Pagination parameters are `page` and `perPage`; verify the validator for limits and defaults.
+
+#### AI chat
+
+The following routes are mounted under `/api/ai`. Chat endpoints require authentication and derive ownership from the authenticated user.
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/models` | List configured/available models |
+| GET | `/conversations` | List conversations; optional search |
+| POST | `/conversations` | Create conversation |
+| GET | `/conversations/:conversationId` | Read conversation |
+| PATCH | `/conversations/:conversationId` | Update title/pin state |
+| DELETE | `/conversations/:conversationId` | Delete conversation and its messages |
+| GET | `/conversations/:conversationId/messages` | Read paginated messages |
+| POST | `/chat` | Submit user message and generate assistant response |
+| POST | `/conversations/:conversationId/messages/:messageId/regenerate` | Regenerate assistant response |
+
+Documented request shapes include:
+- Create conversation: optional `{ model }`.
+- Update conversation: `{ title }` and/or `{ pinned }`.
+- Send chat: `{ conversationId, content, model, requestId }`; requestId is a UUID for idempotent retries.
+- Regenerate: `{ model }`.
+- Message history supports `limit` and `before` query parameters.
+
+AI chat supports the configured Ollama or OpenAI provider path. Local Ollama defaults are documented in `backend/README.md`. Provider availability is runtime-dependent; mocked-provider tests do not prove that a live model service or OpenAI credential works.
+
+### Frontend API client
+
+`lib/api.js`:
+- Defines the API base from `NEXT_PUBLIC_API_URL` or the local backend fallback.
+- Sends cookie credentials.
+- Parses JSON responses defensively.
+- Retries an eligible non-auth 401 once after calling the refresh endpoint.
+- Converts non-success responses into errors using backend messages/validation errors.
+- Exposes grouped API methods for domains such as auth, projects, tasks, files, GitHub, AI, editor, snippets, workflows, deployments, billing, and other implemented API groups.
+
+**Do not invent or document exact endpoint payloads from frontend method names.** For any endpoint not described in the verified tables above, inspect its route, validator, controller, service, and tests before changing or documenting the contract.
+
+---
+
+## 11. Database Schema
+
+### Database
+
+MongoDB is connected through Mongoose. Connection lifecycle and strict query configuration are handled in `backend/src/config/db.js`. The backend startup validates required environment variables before connecting.
+
+### Model inventory
+
+The current model index exports the following models:
+
+| Model | Domain / purpose |
+|---|---|
+| `User` | Account identity and authentication data |
+| `Workspace` | Workspace tenant and settings |
+| `WorkspaceMember` | Workspace membership and role |
+| `Project` | Workspace project |
+| `ProjectMember` | Project membership and role |
+| `ProjectFile` | Project file metadata |
+| `Document` | Project/workspace documentation |
+| `Task` | Work item/task |
+| `TaskComment` | Task discussion |
+| `Notification` | User notification |
+| `Activity` | Activity/audit-style event |
+| `Invitation` | Workspace/project invitation |
+| `AIExecution` | AI execution record |
+| `EditorFile` | Saved editor file |
+| `Snippet` | Reusable code snippet |
+| `Playground` | Code playground record |
+| `Deployment` | Deployment record |
+| `Domain` | Custom domain record |
+| `APIKey` | API key metadata/credential lifecycle |
+| `Integration` | External integration metadata |
+| `Subscription` | Subscription record |
+| `Invoice` | Invoice record |
+| `Payment` | Payment record |
+| `WebhookEvent` | Webhook event/idempotency record |
+
+Use `backend/src/models/index.js` as the current export inventory. Inspect each individual model file for the exact fields, enums, defaults, indexes, references, and validation. This table deliberately describes domain purpose rather than guessing every schema property.
+
+### Core relationships and tenancy
+
+- A user is the canonical identity.
+- A workspace has an owner and is the primary tenant boundary for workspace-scoped records.
+- WorkspaceMember associates a user with a workspace and role.
+- A project belongs to a workspace and has an owner.
+- ProjectMember associates a user with a project and project role.
+- Files, documents, tasks, comments, and activity are associated with their relevant workspace/project/task context.
+- Notifications are associated with a recipient and may reference a related entity.
+- Invitations represent a pending membership flow.
+- AI conversation/history records must be scoped to their authenticated owner.
+- Billing records must be associated with the correct customer/account/subscription.
+
+### Data integrity rules
+
+- Enforce tenant scope in every read, update, and delete query.
+- Never authorize based solely on a client-provided owner/workspace/project ID.
+- Use unique indexes for invariants that must survive concurrent requests.
+- Handle duplicate-key errors and invalid ObjectIds safely.
+- Avoid accidental cross-tenant population or response serialization.
+- Define archive, soft-delete, permanent-delete, and cascade behavior explicitly.
+- Do not add duplicate models when an existing model already represents the domain.
+- Treat secrets and provider credentials as sensitive: hash or encrypt according to the existing design and never return raw secrets.
+
+---
+
+## 12. State Management
+
+### Current approach
+
+The frontend is a React/Next.js application. The repository's shared API/data modules and page/component implementations are the primary integration points. The project manifests do not declare Redux or Zustand; do not introduce either simply to add a small piece of state.
+
+Use the existing state pattern in the target feature:
+- Component state for local UI concerns (dialogs, tabs, form values, filters).
+- Existing shared layout/context mechanisms where the app already uses them.
+- `lib/api.js` for server data and mutations.
+- `lib/realtime.js` for realtime client behavior where integrated.
+- Local fixture modules only for documented mock/demo areas.
+
+### State rules
+
+- Do not create parallel sources of truth for the same server resource.
+- Keep server data separate from transient presentation state.
+- Refresh or update affected data after successful mutations.
+- Show pending/error states and prevent duplicate submissions.
+- Clean up event listeners and socket subscriptions when components unmount.
+- Do not treat stale mock fixtures as current authenticated user data.
+- Do not persist sensitive authentication material in browser storage.
+- Before adding a global store, inspect the existing provider/layout structure and demonstrate why local state or the current shared pattern is insufficient.
+
+---
+
+## 13. Coding Conventions
+
+### General
+
+- Use JavaScript and JSX. Do not introduce TypeScript or convert files to `.ts`/`.tsx`.
+- Follow the existing Next.js App Router conventions.
+- Use ES modules in the backend.
+- Preserve the current import style and naming patterns.
+- Prefer small, focused, reviewable changes.
+- Reuse existing dependencies and shared utilities.
+- Avoid unnecessary abstractions and dependencies.
 
 ### Frontend
-- \`app/layout.jsx\`
-- \`app/globals.css\`
-- \`app/dashboard/layout.jsx\`
-- \`app/dashboard/page.jsx\`
-- \`app/dashboard/projects/page.jsx\`
-- \`app/dashboard/projects/create/page.jsx\`
-- \`app/dashboard/projects/[projectId]/page.jsx\`
-- \`components/dashboard-ui.jsx\`
-- \`components/workspace-primitives.jsx\`
-- \`components/auth-ui.jsx\`
-- \`components/ai-ui.jsx\`
-- \`lib/api.js\`
-- \`lib/dashboard-data.js\`
-- \`lib/mock/\`
+
+- Use lowercase/kebab-case filenames where that is the existing convention.
+- Use PascalCase for React component names and camelCase for variables/functions.
+- Keep route-specific composition in the route or its established shared page module.
+- Use `lib/api.js` rather than raw duplicated fetch logic for backend requests.
+- Use semantic HTML and accessible controls.
+- Reuse existing design tokens and UI primitives.
+- Keep secrets and server-only code out of client components.
 
 ### Backend
-- \`backend/src/app.js\`
-- \`backend/src/server.js\`
-- \`backend/src/config/db.js\`
-- \`backend/src/config/passport.js\`
-- \`backend/src/config/redis.js\`
-- \`backend/src/config/imagekit.js\`
-- \`backend/src/routes/auth.routes.js\`
-- \`backend/src/controllers/auth/auth.controller.js\`
-- \`backend/src/services/auth/auth.service.js\`
-- \`backend/src/middlewares/auth.js\`
-- \`backend/src/middlewares/validate.js\`
-- \`backend/src/middlewares/errorHandler.js\`
-- \`backend/src/validators/auth.validator.js\`
-- \`backend/src/models/\`
-- \`backend/src/utils/\`
-- \`backend/src/__tests__/\`
 
-## Appendix B — Important implementation reminders
+- Use ES module imports/exports.
+- Follow route → middleware/validator → controller → service → model.
+- Keep route declarations declarative and controllers thin.
+- Put business rules and provider orchestration in services.
+- Validate untrusted input with existing Zod patterns.
+- Use shared response/error utilities.
+- Enforce auth and tenant scope at the backend.
+- Keep provider credentials and encryption keys in server-side environment variables.
 
-- A route is not a feature completion signal.
-- A model is not a CRUD API.
-- An OAuth login provider is not automatically a GitHub repository integration.
-- Socket.IO bootstrap is not full realtime collaboration.
-- Installed Redis/BullMQ dependencies are not a running job system.
-- An AI UI is not a model-backed AI service.
-- A deployment mock is not a real deployment.
-- A billing page is not a billing integration.
-- A green build does not prove authorization correctness.
-- A mock fallback must not disguise API failure.
-- Existing pages are the product surface; integrate them instead of growing the route count.
-- Update this context after every phase so the next implementation begins from an accurate baseline.
+### Error handling and logging
 
-### 3.4.5 Phase 6 — Real-Time Collaboration (local branch audit, 2026-10-26)
+- Return useful, safe errors without leaking secrets, stack traces, tokens, or cross-tenant data.
+- Do not swallow errors and pretend an operation succeeded.
+- Keep logs useful but do not log passwords, cookies, bearer tokens, OAuth credentials, or private user content.
+- Use the established centralized error handler.
 
-**Status: Partial — core task, project activity, and notification flows are implemented; team membership and workspace activity integration remain incomplete.** This audit describes the local branch `feature/phase-6-realtime-system`. It does not revise the historical remote-main audit above.
+---
 
-#### Verified implementation
+## 14. Development Setup
 
-- Socket.IO is attached to the existing Express HTTP server in `backend/src/server.js`; the `/health` endpoint and existing MongoDB lifecycle remain on the same server.
-- `FRONTEND_URL` is now required at backend startup and is used for CORS and Socket.IO origin checks. The browser client uses existing `NEXT_PUBLIC_API_URL` and the HTTP-only access-token cookie; no token is placed in a URL or socket payload.
-- Handshakes verify the access JWT with the existing verifier and load the user from MongoDB. The server joins the user room and only those workspace/project rooms found from that user's ownership or membership records. Room access is reconciled every 30 seconds; revocation can therefore take up to that interval to remove an already-connected socket.
-- Access-token expiry disconnects the socket. The shared client reconnects and invokes the existing authenticated `/me` API path, which can refresh through the existing HTTP-only refresh cookie.
-- Task create, update, delete, and comment controller flows publish after the service has completed persistence. Task activity uses the existing `Activity` model and is emitted to authorized workspace/project rooms. Notifications reuse the existing `Notification` model and are persisted before delivery to the recipient's user room for task assignment changes and comments to task participants.
-- `GET /api/projects/:projectId/activity` reads persisted activity after project authorization. The notification API supports listing, marking read/unread, marking all read, and deletion, with ownership scoped to the authenticated recipient.
-- Existing workspace and project task boards listen to task events and refetch from REST after events/reconnects. The project activity page loads persisted activity and reconciles on `activity.created`. The notification center and dashboard notification indicator load persisted records and listen for notification events. No route or navigation item was added.
+### Prerequisites
 
-#### Event contract
+- Node.js and npm compatible with the lockfiles.
+- MongoDB instance and connection URI.
+- Redis for queue-backed features (optional for some local API startup paths, required for queue execution).
+- Git.
+- Ollama and the configured model if using the local AI provider.
+- Provider credentials only for integrations being tested (email, OAuth, GitHub integration, ImageKit, AI, deployment, payment, etc.).
 
-Domain event names are centralized in `backend/src/realtime/events.js`. Events use an event ID, type, ISO timestamp, workspace/project scope, actor summary, resource summary, and minimum event data where applicable.
+### Frontend
 
-| Event | Delivery | Purpose/data |
-|---|---|---|
-| `connection.ready` | Connecting socket | Authenticated user ID and connection timestamp. |
-| `task.created`, `task.updated`, `task.deleted` | Authorized workspace and project rooms | Task ID and summary (title, status, priority, assignee summary, update timestamp); deletion is emitted only after deletion succeeds. |
-| `task.comment.created` | Authorized workspace and project rooms | Task resource and comment ID, text, author summary, and creation timestamp. |
-| `activity.created` | Authorized workspace and project rooms | Persisted activity record, actor, task resource, action, and timestamp. |
-| `notification.created` | Recipient's `user:<id>` room | Persisted notification record for the task participant. |
-| `notification.read`, `notification.read-all` | Authenticated recipient's user room | Persisted read-state change. |
-| `notification.deleted` | Authenticated recipient's user room | Persisted notification deletion. |
+From the repository root:
 
-Clients do not submit room IDs or authoritative domain events. REST remains authoritative; reconnecting clients refetch data because the implementation does not persist or replay missed socket events.
-
-#### Page coverage and limitations
-
-- Live-backed: `/dashboard/tasks`, `/dashboard/projects/[projectId]/tasks`, `/dashboard/projects/[projectId]/activity`, `/dashboard/notifications`, and the dashboard notification preview/count.
-- Partial or mock-only: `/dashboard/team` and `/dashboard/team/activity` still contain mock/hybrid surfaces. No current backend member add/remove workflow exists to publish member events. Project activity currently includes persisted activity records available from the existing task flows; AI, Git, deployment, and file activity remains outside this integration.
-- Notification triggers are limited to task assignment changes and task comments. Notification writes are best-effort after the task/activity mutation; without a transaction or outbox, a database failure in that follow-up can leave the mutation saved without a notification. There is no durable socket replay, and room membership revocation can take up to 30 seconds to reconcile.
-- No Mongoose model or schema changed. Existing `Activity`, `Notification`, membership, task, and comment models are reused.
-- Added the frontend dependency `socket.io-client`. No Redis adapter or new infrastructure was added.
-- The new Socket.IO tests cover missing, query-only, invalid, expired, and valid cookie credentials plus workspace/project room isolation. End-to-end event delivery, task notification persistence, and multi-browser UI behavior still need integration verification.
-
-#### Files changed
-
-- Backend: `backend/src/realtime/events.js`, `backend/src/realtime/socketAuth.js`, `backend/src/server.js`, `backend/src/app.js`, `backend/src/controllers/task.controller.js`, `backend/src/controllers/project.controller.js`, `backend/src/controllers/notification.controller.js`, `backend/src/routes/project.routes.js`, `backend/src/routes/notification.routes.js`, `backend/src/services/notification.service.js`, and `backend/src/__tests__/realtime.auth.test.js`.
-- Frontend: `lib/realtime.js`, `lib/api.js`, `package.json`, `package-lock.json`, `app/dashboard/layout.jsx`, `app/dashboard/tasks/page.jsx`, `app/dashboard/projects/[projectId]/tasks/page.jsx`, `app/dashboard/projects/[projectId]/activity/page.jsx`, and `app/dashboard/notifications/page.jsx`.
-- Configuration/docs: `backend/README.md` documents `FRONTEND_URL` and cookie-based sockets. No `.env` file was added or modified.
-
-#### Validation record
-
-- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
-- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
-
-Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
-
-### 3.4.7 Workspace and project invitations (2026-10-27)
-
-**Status: Implemented and backend-tested on `feature/invite-member`; real SMTP delivery and browser-based invitation flows were not manually verified.** This invitation work does not complete Phase 6. Phase 6 remains **PARTIAL** and Phase 7 remains blocked on the outstanding Phase 6 preflight and two-browser verification. `feature/invite-member` is the intentional working branch for this task; no branch switch or Git history operation was performed.
-
-#### Lifecycle and access behavior
-
-- Added the `Invitation` Mongoose model. Invitations store normalized recipient email, workspace and optional project references, scope, inviter, requested role, a SHA-256 token hash, status, expiry, optional message, and acceptance metadata. A partial unique index prevents duplicate pending invitations for the same workspace/project scope and recipient while allowing new invitations after a prior one is accepted, declined, revoked, or expired.
-- Workspace invitations grant `WorkspaceMember` access on explicit acceptance. Existing pending/invited workspace membership rows are activated; active or blocked membership is not duplicated or bypassed. Project invitations grant `ProjectMember` access only. This matches the existing project authorization model, where project membership independently grants access and does not require workspace membership.
-- Workspace roles are `admin`, `member`, and `viewer`; project roles are `admin`, `editor`, and `viewer`. The existing project form maps Admin → `admin`, Developer → `editor`, and Viewer → `viewer`. Neither invitation API permits assigning `owner`.
-- Workspace owners and active workspace owners/admins can manage workspace invitations. Project owners and project owners/admins can manage project invitations. Project/workspace relationships are resolved from MongoDB; the client cannot choose an alternate workspace for a project invitation.
-- Invitation tokens use 32 random bytes, are single use, expire after seven days by default (`INVITATION_EXPIRY_DAYS` can override the duration), and are only stored as hashes. Acceptance checks authenticated email equality and requires verified local accounts. Details, accept, and decline require authentication; recipient actions use POST bodies. Pending invitations can be revoked by an authorized manager.
-- Invitation email links carry the token in the URL fragment so browsers do not include it in HTTP requests or referrers. Existing login, registration, and email verification pages carry the token in memory, remove the fragment from the address bar, then send it to authenticated details/accept/decline APIs. No acceptance route/page was added. A persisted notification is created for the inviter after acceptance on a best-effort basis; membership and invitation state remain authoritative if notification persistence fails.
-- SMTP absence returns a delivery failure for invitations; failed delivery removes the pending invitation, and the UI reports success only after a successful email send and API response. Existing auth email callers remain compatible with the helper's `{ sent: false }` result when SMTP is unconfigured. SMTP delivery was not tested against a live provider.
-
-#### API surface and files
-
-- `POST` / `GET` `/api/invitations/workspaces/:workspaceId` — create/list workspace invitations.
-- `POST` / `GET` `/api/invitations/projects/:projectId` — create/list project invitations.
-- `DELETE` `/api/invitations/:invitationId` — revoke a pending invitation.
-- `POST` `/api/invitations/details`, `/accept`, and `/decline` — fetch recipient context or complete an explicit recipient decision.
-- Added `backend/src/models/Invitation.js`, invitation controller/service/router/validator, and focused lifecycle tests. Mounted the router in `backend/src/app.js` and exported the model from `backend/src/models/index.js`.
-- Connected `lib/api.js`, `/dashboard/team/members`, `/dashboard/team`, and `/dashboard/projects/[projectId]/team` to real invitation/member APIs. Project member role changes and removals remain explicitly unsupported. Workspace selection still follows the existing page behavior of resolving the first project workspace; users without an accessible project still have no workspace selector. OAuth provider redirects do not currently carry invitation context; password login and the local registration/email-verification flow do.
-- Updated existing auth registration and verification handling to preserve invitation context without adding a page. The verification email link carries the fragment invitation token so registration followed by email verification can continue to login and acceptance.
-- Environment variable names involved: `FRONTEND_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and optional `INVITATION_EXPIRY_DAYS`. No secret values were recorded here.
-
-#### Validation record
-
-- `cd backend && npm test -- --runInBand` -> passed: 3 test suites, 11 tests total.
-- `npm run lint` -> no blocking errors; one non-blocking warning remains about using a plain `<img>` element in the file preview modal.
-
-Current limitation: the preview modal still uses a plain HTML image element, which triggers a Next.js optimization warning but does not block the real files/documents functionality or the test suite.
-
-### 3.4.8 Phase 6 manual verification update (2026-10-27)
-
-The user confirmed that the previously required two-browser verification was completed and directed work to proceed with Phase 7. Detailed browser observations or a separate verification artifact were not supplied in this audit, so this is recorded as user-confirmed rather than independently reproduced. This update satisfies the stated Phase 7 preflight gate; it does not change the historical Phase 6 audit or claim the unsupported Phase 6 team workflows are complete. Phase 6 remains **PARTIAL** for those documented limitations.
-
-### 3.4.9 Phase 7 — GitHub Integration (implementation audit, 2026-10-27)
-
-**Status: Partial.** The current branch is `feature/phase-7-github-integration`; the working tree changes are uncommitted. GitHub behavior below was validated with service tests using a mocked provider, not with configured GitHub credentials or live GitHub API requests.
-
-#### 1. Status and audit scope
-
-- Replaced mock data on the existing GitHub dashboard, repository list/detail, branches, commits, pull requests, issues, and releases surfaces with the shared authenticated frontend API and Express integration.
-- No route, page, navigation item, dependency, or database infrastructure was added beyond the existing route family. Unsupported create/delete/write actions from the mock screens were removed.
-- The integration is user-scoped: every data route uses the authenticated DevFlow user and their own GitHub connection. It does not accept workspace/project IDs or link repositories to `Project.repository`; no workspace/project GitHub operation is exposed.
-
-#### 2. Branch and implementation baseline
-
-- Branch: `feature/phase-7-github-integration`.
-- The Phase 6 two-browser check is user-confirmed complete (see 3.4.8); its detailed results were not independently available in this audit.
-- Existing GitHub Passport login remains a separate sign-in mechanism and is not used for repository API credentials.
-
-#### 3. Verified connection architecture
-
-- Selected a separate GitHub OAuth App web authorization flow because the backend already uses OAuth App credentials and this integration is user-account based. Authorization uses a random single-use state record tied to the authenticated DevFlow user, a ten-minute expiry, and PKCE S256. Callback errors are checked and OAuth denial consumes and validates state.
-- GitHub OAuth Apps require the broad `repo` scope to read private repositories; this permission also allows writes at GitHub's grant level. DevFlow exposes read operations only. A GitHub App with read-only repository permissions is the narrower production option.
-- Access tokens (and optional refresh tokens) are encrypted with AES-256-GCM using `GITHUB_TOKEN_ENCRYPTION_KEY`; token fields are excluded from default Mongoose selection and never sent to the browser. Expiring tokens are refreshed when possible; revoked/expired credentials are removed and require reconnection.
-- Disconnect deletes local credentials and pending state. It does not revoke the remote GitHub OAuth grant; users can revoke that in GitHub settings.
-
-#### 4. Backend API implementation
-
-- `GET /api/github/connect` — authenticated OAuth start.
-- `GET /api/github/callback` — state/PKCE authorization callback, account lookup, encrypted connection persistence, and redirect to the existing dashboard.
-- `GET /api/github/status` and `DELETE /api/github/connection` — connection status and local disconnect.
-- `GET /api/github/repositories?page=&perPage=` — accessible repository listing from GitHub, capped at 100 per page.
-- `POST /api/github/sync` — fetches up to 1,000 accessible repositories from GitHub, stores repository metadata and reports count, timestamp, and whether the cap was reached.
-- `GET /api/github/repositories/:owner/:repo/:resource` — live repository detail, branches, commits, pull requests, issues, or releases. Issue results filter out GitHub pull request entries in the frontend.
-- All API data routes require existing `requireAuth`; query and resource parameters use Zod validation. API failures are returned as errors, with expired credentials removed on 401 responses.
-
-#### 5. Database and credential storage
-
-- Added `GitHubIntegration` for one integration per user, encrypted access/refresh token fields, GitHub account summary, synchronization time, and cached repository metadata.
-- Added `GitHubOAuthState` with unique hashed state, user, PKCE verifier, and TTL expiry.
-- No changes were made to User, Workspace, Project, or their membership schemas. No workspace/project repository association was implemented.
-
-#### 6. Frontend page integration
-
-- Existing `/dashboard/github` includes connect, status, sync, and disconnect controls plus repository summary.
-- Existing repositories list and numeric detail route load actual GitHub metadata. Branches, commits, pull requests, issues, and releases use a shared resource view and select from the user's accessible repositories.
-- Loading, disconnected, empty, and request error states are present. Repository pagination is available; resource responses currently use GitHub's first page and do not expose full resource pagination controls.
-- Mock imports and fake success actions were removed from the connected GitHub screens. Styling/layout was replaced with simpler existing primitives in the feature route components; visual equivalence to the former screens was not manually checked.
-
-#### 7. Authorization and security
-
-- Authenticated user identity comes from existing access-cookie/bearer `requireAuth`; client-supplied user IDs are not accepted.
-- Connections and repository metadata are keyed to that user, and tokens are never returned to the frontend. GitHub OAuth login remains separate.
-- Workspace/project permission checks are not applicable to the user-owned GitHub browsing endpoints as currently designed; no project-scoped read/write endpoints exist. Adding project linking or sharing requires explicit project/workspace authorization checks.
-- GitHub API 401 responses clear the local integration; 403 responses are reported as an upstream permission/rate-limit failure. Token encryption key rotation requires users to reconnect because no key-version/key-ring migration was added.
-
-#### 8. Files changed in this continuation
-
-- Backend: `backend/src/app.js`, `backend/src/controllers/github.controller.js`, `backend/src/models/GitHubIntegration.js`, `backend/src/models/GitHubOAuthState.js`, `backend/src/routes/github.routes.js`, `backend/src/services/github.service.js`, `backend/src/validators/github.validator.js`.
-- Frontend: `lib/api.js`, `components/github-resource-page.jsx`, `app/dashboard/github/page.jsx`, `app/dashboard/github/repositories/page.jsx`, `app/dashboard/github/repositories/[repoId]/page.jsx`, `app/dashboard/github/branches/page.jsx`, `app/dashboard/github/commits/page.jsx`, `app/dashboard/github/pull-requests/page.jsx`, `app/dashboard/github/issues/page.jsx`, and `app/dashboard/github/releases/page.jsx`.
-- Tests: `backend/src/__tests__/github.integration.test.js`.
-- Configuration/documentation: `backend/.env.example`, `backend/README.md`, and this context record.
-
-#### 9. Environment configuration
-
-- Added `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY` to `backend/.env.example` and documented setup in `backend/README.md`. No secret values were recorded here.
-- OAuth callback default is `http://localhost:5000/api/github/callback`; it must exactly match the GitHub OAuth App callback URL. The encryption key must be 32 random bytes encoded as 64 hexadecimal characters.
-
-#### 10. Automated validation record
-
-- `cd backend && npm test -- --runInBand` — passed: 7 suites, 31 tests. GitHub tests use mocked `fetch` responses and an in-memory MongoDB; they cover PKCE challenge/verifier, state binding/replay, per-user isolation, encrypted token redaction, repository/resource pagination and empty arrays, invalid page parameters, permission/rate-limit errors, and local disconnect. These are automated mocked tests, not live provider verification.
-- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 4 tests.
-- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
-- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
-- `git diff --check` — passed after the documentation update. Git printed informational LF-to-CRLF working-copy warnings for newly patched files; no whitespace errors were reported.
-
-#### Remaining work
-
-Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-account authorization/API behavior is verified. Resource pagination, original page layout restoration, and local automated checks are implemented and pass. Consider a GitHub App migration before production to reduce grant permissions. No Phase 8 work was started.
-
-### 3.4.10 Phase 7 progress update (2026-10-27)
-
-**Status: Implemented; live provider verification remains incomplete.** This entry supersedes the earlier Phase 7 statements about simplified layouts and missing resource pagination. The earlier entries remain as historical audit records.
-
-#### Layout restoration and frontend behavior
-
-- Recovered the original GitHub page components from the current branch's Git history, then wired them back to the authenticated API while preserving their page hierarchy, visual styles, cards, tabs, and resource views. Updated existing screens: `/dashboard/github`, repositories list/detail, branches, commits, pull requests, issues, and releases.
-- Added a shared repository picker and data hook to the existing resource pages. The hook aborts stale requests on unmount or context changes; selecting a repository resets its resource page. The screens retain their search/filter behavior and now show loading, error/retry, empty, and page navigation states.
-- Removed the unused simplified `components/github-resource-page.jsx` replacement. No routes, pages, navigation items, or TypeScript files were added.
-- Read-only integration actions are presented as disabled where the original mock UI offered writes. GitHub links remain available for supported actions. Branch author and timestamp are shown as unavailable because the branch-list response does not include those fields.
-
-#### Pagination behavior
-
-- `GET /api/github/repositories?page=&perPage=` and list resources under `GET /api/github/repositories/:owner/:repo/:resource?page=&perPage=` return arrays with `{ page, perPage, nextPage, previousPage, firstPage, lastPage, hasNext, hasPrevious }` parsed from GitHub's `Link` header. The frontend navigates using the returned next/previous page values, does not prefetch every page, and keeps the selected repository and current filters in place.
-- Supported paginated resources: branches, commits, pull requests, issues, and releases. Repository pages use a default of 30 and a maximum of 100 items. Resource pages use a default of 30 and maximum of 100; page inputs are bounded by Zod validators. Languages and repository detail are object responses, so they do not use list pagination.
-- `POST /api/github/sync` remains the deliberate exception that follows pages automatically; it follows Link metadata up to ten pages of 100 repositories (1,000 maximum) and reports whether more pages remain. Page reads do not change synchronization timestamps.
-- The shared frontend hook passes `AbortSignal` to both repository and resource requests, ignores aborted failures, and shows errors with retry. Issue pages filter pull request entries returned by GitHub's issue endpoint; this filter is applied to the current page.
-
-#### OAuth, authorization, and permissions
-
-- The dedicated integration OAuth flow requests `repo` only. The GitHub user profile endpoint used here is available without `read:user`. OAuth App `repo` permission still grants broad write authority at GitHub even though DevFlow exposes read-only repository/resource operations. A GitHub App with read-only Contents, Metadata, and relevant Issues/Pull requests permissions is the recommended production direction; migration is a separate product/configuration change and was not performed.
-- Connection initiation generates random state and a PKCE S256 verifier/challenge, stores only a hash of the single-use state with the authenticated DevFlow user and a ten-minute expiry, and binds the callback to that same authenticated user. Token exchange uses the stored verifier and fixed configured callback URL. Production callback URLs must use HTTPS; query strings and fragments are rejected.
-- Access and refresh tokens are AES-256-GCM encrypted in MongoDB, token fields are excluded from normal model selection, and status responses contain account metadata only. Callback logs emit only a generic error name; no token or secret is logged. A provider 401 clears the local integration; rate-limited 403 maps to 429; other 403 responses report permission failure. Local disconnect clears the credential and pending OAuth states but does not revoke the GitHub grant.
-- Authenticated routes resolve the integration only by `req.user._id`; cross-user repository access is not authorized by client identifiers. GitHub endpoint owner/repository paths are syntax validated, while GitHub itself authorizes the connected account's requested resource.
-- Encryption-key rotation still makes existing records unreadable and currently requires users to disconnect/reconnect; no key-version/key-ring migration exists. The production OAuth App scope remains broader than the read-only feature needs.
-
-#### Configuration and live verification
-
-- Required backend configuration names: `GITHUB_INTEGRATION_CLIENT_ID`, `GITHUB_INTEGRATION_CLIENT_SECRET`, `GITHUB_INTEGRATION_CALLBACK_URL`, and `GITHUB_TOKEN_ENCRYPTION_KEY`. The callback must exactly match the GitHub OAuth App setting. The encryption key must be 32 random bytes encoded as 64 hex characters. No secret values are recorded here.
-- The existing `backend/.env` was checked by variable name only; it has the legacy GitHub login settings but none of the four integration settings above. Therefore no real OAuth authorization, callback, account connection, live repository/resource request, cancellation/denial flow, revocation, or real rate-limit behavior was attempted or verified.
-- To perform live checks, configure a dedicated OAuth App and the four backend variables (plus the exact frontend origin/session setup), restart the backend, then connect in the browser and verify account identity, private/accessible repositories, a paginated resource, denial/invalid-state behavior, disconnect, and absence of tokens from browser storage/responses/logs. Revoke the OAuth App grant separately in GitHub settings when checking remote revocation behavior.
-
-#### Validation record
-
-- `cd backend && npm test -- --runInBand` — passed: 7 suites, 31 tests. GitHub tests use mocked `fetch` responses and an in-memory MongoDB; they cover PKCE challenge/verifier, state binding/replay, per-user isolation, encrypted token redaction, repository/resource pagination and empty arrays, invalid page parameters, permission/rate-limit errors, and local disconnect. These are automated mocked tests, not live provider verification.
-- `cd backend && npm test -- --runInBand src/__tests__/github.integration.test.js` — passed: 1 suite, 4 tests.
-- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
-- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
-- `git diff --check` — passed after the documentation update. Git printed informational LF-to-CRLF working-copy warnings for newly patched files; no whitespace errors were reported.
-
-#### Remaining work
-
-Phase 7 remains **Partial** until a dedicated OAuth App is configured and real-account authorization/API behavior is verified. Resource pagination, original page layout restoration, and local automated checks are implemented and pass. Consider a GitHub App migration before production to reduce grant permissions. No Phase 8 work was started.
-
-### 3.4.11 Phase 8 — Centralized AI Infrastructure (2026-10-28)
-
-**Status: Implemented; live provider verification and usage persistence remain incomplete.** This entry records the local `feature/phase-8-ai-infrastructure` checkout. No commit or push was made.
-
-#### Initial audit and scope
-
-- Branch at start: `feature/phase-8-ai-infrastructure`. `git status --short` was empty; no uncommitted changes were present.
-- No backend AI provider SDK, direct AI API call, AI endpoint, AI usage model, token accounting service, or streaming utility was found. Existing AI pages use simulated responses and `lib/mock/ai.js`; `lib/api.js` had no live AI request methods. No API key environment configuration existed in the backend. Existing authentication, Express routes, Zod validation, structured errors, and `express-rate-limit` conventions were available.
-- The scope was a server-side reusable service and one provider adapter. AI Chat and the other individual AI tools, public routes, streaming, persistence, billing, quotas, and background processing remain outside this phase.
-
-#### Architecture and implementation
-
-- Centralized tracking is implemented in `backend/src/services/ai-execution.service.js`. A single `recordExecution()` function is called from both `ai-chat.service.js` and `ai-tools.service.js` after each AI generation attempt. It never throws — analytics failures are logged safely and do not block AI responses.
-- `ai-chat.service.js` calls `recordExecution` for completed, failed, and cancelled chat and regeneration requests.
-- `ai-tools.service.js` calls `recordExecution` for all six tools for completed, failed, and cancelled outcomes.
-- History and usage routes are mounted at `/api/ai` alongside the existing chat routes via a new `ai-history.routes.js`. No existing route was changed.
-
-#### 5. Database models and indexes
-
-**New model: `AIExecution`** (`backend/src/models/AIExecution.js`)
-
-Fields: `owner` (User ref, required), `conversation` (AIConversation ref, optional), `message` (AIMessage ref, optional), `project` (Project ref, optional), `tool` (enum: chat/code-generator/code-review/documentation/bug-fixer/backend-generator/sql-generator), `provider`, `model`, `status` (enum: pending/processing/completed/failed/cancelled), `inputTokens` (nullable, min 0), `outputTokens` (nullable, min 0), `totalTokens` (nullable, min 0), `usageSource` (enum: provider/unavailable), `requestDurationMs` (nullable, min 0), `errorCode`, `startedAt`, `completedAt`, timestamps.
-
-Indexes: `{ owner, createdAt }`, `{ owner, tool, createdAt }`, `{ owner, status, createdAt }`, `{ project, createdAt }` (sparse), `{ conversation, createdAt }` (sparse).
-
-Token accounting rules: tokens are stored only when `usageSource === "provider"`. `totalTokens` is computed from `inputTokens + `outputTokens` only when both are non-null. Missing usage is stored as `null` with `usageSource: "unavailable"` — never fabricated as zero. `AIConversation` and `AIMessage` remain the source of truth for conversational content.
-
-#### 6. API endpoints
-
-All endpoints require `requireAuth`. User identity is derived from `req.user._id`. All query parameters are validated with Zod.
-
-| Method | Path | Description |
-|---|---|---|
-| GET | `/api/ai/history` | Paginated execution history. Supports: `page`, `limit` (max 100), `search`, `tool`, `provider`, `model`, `status`, `projectId`, `from`, `to`, `sort`. |
-| GET | `/api/ai/history/:id` | Single execution record. Returns 404 if not owned by authenticated user. |
-| DELETE | `/api/ai/history/:id` | Deletes execution record only. Does NOT delete associated conversations or messages. |
-| GET | `/api/ai/usage/summary` | Aggregated totals: total, completed, failed, cancelled, inputTokens, outputTokens, totalTokens (null when unavailable), tokensAvailable, avgRequestDurationMs, mostUsedTool, mostUsedModel. Supports `from`, `to`, `projectId`. |
-| GET | `/api/ai/usage/timeseries` | Daily/weekly/monthly aggregated counts. Supports `from`, `to`, `interval`, `projectId`. |
-| GET | `/api/ai/usage/by-tool` | Grouped by tool: total, completed, failed, totalTokens, avgDurationMs. |
-| GET | `/api/ai/usage/by-model` | Grouped by provider+model. |
-| GET | `/api/ai/usage/by-project` | Grouped by project (sparse — only records with a project reference). |
-
-#### 7. Frontend integrations
-
-**`app/dashboard/ai/history/page.jsx`** — fully replaced mock data with real API:
-- Loads execution history from `api.ai.history.list()` with pagination, tool filter, and debounced search.
-- Loads usage summary from `api.ai.usage.summary()` for four stat cards (Total Requests, Completed, Failed, Avg Duration). Fabricated "This week", "Openable", and "Time saved" stats replaced with real values.
-- Open: navigates to the existing AI Chat page with the conversation query parameter when a conversation reference exists; shows an honest unavailable message for tool executions (no output is persisted).
-- Duplicate: navigates to the appropriate existing tool page without auto-executing.
-- Delete: inline confirmation, calls `api.ai.history.delete()`, refreshes list and summary.
-- New session: navigates to `/dashboard/ai/chat`.
-- Loading skeleton, empty state, error state with retry, and pagination controls present.
-
-**`app/dashboard/analytics/page.jsx`** — integrated real AI usage data:
-- Added `useCallback`/`useEffect` to load `api.ai.usage.summary()` and `api.ai.usage.byTool()` on mount and on time filter change.
-- AI Requests stat card shows real `aiSummary.total` and `aiSummary.completed` for the selected period.
-- AI Usage Analytics panel shows real Most Used Model, Total Tokens (honest "unavailable" when no provider-reported tokens exist), Avg Response Time, Success Rate, and By Tool breakdown.
-- All non-AI sections (Tasks Completed, Total Commits, Deployments, Languages Used, Coding Activity heatmap, Deployment Stats, Team Leaderboard) remain unchanged and continue to use their existing mock data — not claimed as live.
-
-**`lib/api.js`** — added under the existing `api.ai` object:
-- `api.ai.history.list(params)`, `api.ai.history.get(id)`, `api.ai.history.delete(id)`
-- `api.ai.usage.summary(params)`, `api.ai.usage.timeseries(params)`, `api.ai.usage.byTool(params)`, `api.ai.usage.byModel(params)`, `api.ai.usage.byProject(params)`
-
-#### 8. Usage accounting and cost limitations
-
-- Token counts stored only when the provider reports them (`usageSource: "provider"`).
-- Missing usage represented as `null` and `usageSource: "unavailable"` — never as zero.
-- `totalTokens` computed from `inputTokens + outputTokens` only when both are non-null.
-- No monetary cost calculation implemented. No model pricing configuration added. Ollama local inference is not represented as a provider API charge.
-- Failed and cancelled requests tracked separately; not counted as successful generations.
-
-#### 9. Security and authorization
-
-- All endpoints require `requireAuth`; user identity comes only from `req.user._id`.
-- Every history query and aggregation is scoped to `{ owner: req.user._id }` — cross-user access is impossible.
-- Delete verifies ownership via `findOneAndDelete({ _id, owner })`.
-- No prompts, generated content, API keys, or provider secrets are stored in `AIExecution` records.
-- Analytics failures in `recordExecution` are caught and logged with only the error name.
-
-#### 10. Files created
-
-- `backend/src/models/AIExecution.js`
-- `backend/src/services/ai-execution.service.js`
-- `backend/src/controllers/ai-history.controller.js`
-- `backend/src/routes/ai-history.routes.js`
-- `backend/src/validators/aiHistory.validator.js`
-- `backend/src/__tests__/ai.history.test.js`
-
-#### 11. Files modified
-
-- `backend/src/services/ai-chat.service.js` — added `recordExecution` calls for completed/failed/cancelled chat and regeneration flows.
-- `backend/src/services/ai-tools.service.js` — added `recordExecution` calls for all six tools.
-- `backend/src/app.js` — imported and mounted `ai-history.routes.js` at `/api/ai`.
-- `backend/src/models/index.js` — exported `AIExecution`.
-- `lib/api.js` — added `api.ai.history` and `api.ai.usage` method groups.
-- `app/dashboard/ai/history/page.jsx` — replaced mock API with real backend integration.
-- `app/dashboard/analytics/page.jsx` — integrated real AI usage data; preserved all existing non-AI content.
-
-#### 12. Environment configuration
-
-No new environment variables are required for Phase 11. The existing AI provider variables are sufficient. `backend/.env.example` was not changed.
-
-#### 13. Automated validation
-
-- `cd backend && npm test -- --runInBand` — passed: 11 suites, 102 tests. The new `ai.history.test.js` contributes 36 tests. The Node experimental VM Modules warning appeared as before.
-- `npm run lint` — passed. Existing warnings: two `<img>` optimization warnings in file preview pages. Next.js reports that `next lint` is deprecated.
-- `npm run build` — passed; 72 existing frontend routes generated, with no new route. Same two existing image warnings.
-- `git diff --check` — passed after the documentation update. No real-provider/manual browser verification was performed. Changes remain uncommitted; no commit or push was made.
-
-#### 14. Manual verification
-
-Manual browser and live-provider verification have not been performed. Outstanding checks:
-1. Start backend with a configured AI provider; send a chat message and a tool request; confirm `AIExecution` records appear in `/api/ai/history`.
-2. Verify the history page loads real records, filters work, pagination works, Open navigates to the correct conversation, Duplicate navigates to the tool page without auto-executing, and Delete removes the record with confirmation.
-3. Verify the analytics page AI Requests stat card and AI Usage Analytics panel update when the time filter changes.
-4. Verify that a second user cannot access the first user's history or usage data.
-
-#### 15. Known limitations
-
-- Project-level usage attribution is stored when a `project` field is provided, but no current AI tool or chat flow passes a project reference. Project-level analytics will show empty results until a future phase wires project context into AI requests.
-- The misleading "Save view" toast button was removed from the history page; no persistent saved-view system exists.
-- All changes remain uncommitted on `feature/phase-11-ai-analytics`; no commit or push was made.
-
-#### 16. Remaining work
-
-- Wire a `project` reference into AI tool and chat requests when a project context is selected (future phase).
-- Manual browser and live-provider verification.
-- Consider adding project membership authorization to `/api/ai/usage/by-project` when project-scoped AI requests are implemented.
-
-#### 17. Next phase
-
-Phase 12 — Editor and Playground. Before starting Phase 12, manually verify all six tools in the browser with a configured AI provider, confirm the documentation tool's assumption disclaimer is visible, and verify the SQL safety label renders correctly after generation.
-
-### 3.4.12 Phase 12 editor/snippet/playground completion notes
-
-### 12.1 Verified fixes implemented during current work
-
-- The shared frontend API client in `lib/api.js` was completed with real editor, snippet, and playground endpoint wrappers.
-- The editor page in `app/dashboard/editor/page.jsx` now prevents empty file saves, uses a user-entered filename instead of a stale auto-filled value, and keeps the shared confirmation dialog pattern for delete actions.
-- The snippet page in `app/dashboard/editor/snippets/page.jsx` now opens a blank create form instead of creating a dummy snippet, validates required title and content before save, shows copy success notifications, and uses the app confirmation dialog for deletes.
-- The underlying editor service at `backend/src/services/editor.service.js` no longer strips `content` from list results, which preserves file bodies when the editor refreshes or switches between files.
-- The project build was validated with `npm run build` and compiled successfully, with warnings limited to unrelated `mockApi` import errors in deployment/analytics pages already outside the editor scope.
-
-### 12.2 Remaining known warnings outside the editor scope
-
-- Several deployment and analytics routes still import `mockApi` from `@/lib/api`, which is not exported in the real API client. These are non-editor issues but still surface as build warnings. They do not block the editor feature implementation or the verified editor/snippet fix work in this phase.
-
-### Phase 14 — Redis + BullMQ workflow execution
-
-**Current verified status:** The repository on `feature/phase-14-redis-bullmq` contains the queued workflow execution architecture: Redis clients are split into primary/queue/worker lifecycles, `BullMQ` queue and worker modules are in place, workflow runs are created as `pending` records and immediately enqueued, retry/manual triggers return `202 Accepted`, and worker execution is delegated to a shared workflow execution service rather than running inline in the HTTP request path.
-
-**Goal:** Convert the existing workflow execution model from synchronous in-process execution into durable, retriable background job processing using Redis and BullMQ while keeping MongoDB as the source of truth and preserving existing workflow permissions and route structure.
-
-Scope:
-- Reuse the existing Express backend and MongoDB workflow models without inventing new UI routes.
-- Separate Redis usage for API, queue, and worker connections instead of using a single shared client for incompatible BullMQ lifecycle purposes.
-- Create a durable workflow queue and a dedicated worker consumer process.
-- Persist a `pending`/`running`/`success`/`failed` `WorkflowRun` state and update it from the worker, not the request thread.
-- Keep authorization and workflow validation behavior consistent with the existing workflow service layer.
-- Return queued confirmations immediately after enqueuing a job.
-
-Acceptance:
-- Workflow execution does not block the request thread while work is processing. Verified in implementation, but not fully stress-tested through browser execution.
-- BullMQ jobs are scheduled with attempts/backoff/timeouts and can be retried by the worker. Implemented; retry logic exists in queue config and worker execution path, but no dedicated workflow retry test was executed in this session.
-- Redis provides the durable queue backbone while MongoDB remains the canonical execution record. Redis + BullMQ are configured and the worker connected successfully; MongoDB persistence path is intact.
-- Manual runs and retries both surface a `202 Accepted` response and a `pending` run record. Implemented in controller/service behavior.
-- Worker failures and restarts are handled through the queue lifecycle and durable job state rather than ad hoc synchronous calls. Worker lifecycle is implemented; recovery and interruption behavior were not fully exercised in a dedicated test run.
-- Existing workflow UI pages continue to use the same routes and persisted run state rather than requiring new pages. Preserved in route and service architecture; no new routes were added.
-
-**Implementation status:**
-- Redis configuration: implemented and verified in `backend/src/config/redis.js` with separate `primary`, `queue`, and `worker` connection lifecycles; `ioredis` was adopted for BullMQ compatibility.
-- Queue architecture: implemented in `backend/src/queues/workflow.queue.js` with a named queue, queue events, job deduplication by sanitized custom ID, retries, backoff, timeouts, and retention rules.
-- Worker architecture: implemented in `backend/src/workers/workflow.worker.js` and the process entrypoint in `backend/src/workers/worker.js`; the worker boots independently and processes queued jobs.
-- API integration: implemented in `backend/src/controllers/workflow.controller.js` and `backend/src/services/workflow.service.js`; trigger/retry endpoints now return `202 Accepted` and create `pending` `WorkflowRun` records before enqueueing.
-- MongoDB persistence: implemented in `backend/src/models/WorkflowRun.js`; `WorkflowRun` statuses transition through `pending` → `running` → `success` or `failed` and are stored as the durable execution history.
-- Socket.IO integration: the backend server continues to initialize Socket.IO in `backend/src/server.js`; no workflow-specific Socket.IO event emission was independently validated during this phase.
-- Scripts: `backend/package.json` now includes `worker` and `worker:dev` entries for production and development worker startup.
-
-**Validation record:**
-- Command: `Set-Location "c:\Users\Aman Chaudhary\Desktop\DevflowAI\backend"; npm test -- --runInBand`
-- Result: `12` test suites passed, `12` total; `119` tests passed, `119` total; `0` failed; `0` skipped.
-- Execution time: `102.523 s`.
-- Worker startup command: `Set-Location "c:\Users\Aman Chaudhary\Desktop\DevflowAI\backend"; npm run worker:dev`
-- Result: worker booted successfully with MongoDB connected, Redis queue ready, and Redis worker ready; completion logs showed actual queue execution results: `[worker] completed workflow run ...`.
-- Redis connectivity: verified via local Redis instance (`docker exec devflow-redis redis-cli ping` returned `PONG`).
-- API server startup: implemented and the backend test suite confirms app startup behavior still functions under the existing test configuration.
-
-**Not run / not verified in this session:**
-- Dedicated retry handling test for failed workflow runs.
-- Dedicated duplicate execution protection test under concurrent trigger conditions.
-- Worker recovery after interruption or forced restart.
-- Redis reconnection failure/recovery behavior under a dropped connection.
-- Socket.IO workflow-specific update propagation from worker completion back to clients.
-- End-to-end browser/manual “Run now” test against a real workflow with UI polling or realtime updates.
-- Production worker startup in a separate live process beyond local boot verification.
-
-**Remaining limitations:**
-- The queue layer is implemented and booted successfully in the local environment, but the full workflow lifecycle still requires a dedicated end-to-end validation pass for retry, duplicate protection, recovery, and realtime UI updates.
-- No production-scale Redis/BullMQ deployment or cluster topology was configured in this workspace; the implementation is local infrastructure integration rather than production deployment validation.
-- The existing workflow UI receives persisted state and route compatibility, but it was not manually browser-tested in this session for queued run status transitions and realtime updates.
-
-**Files involved:**
-- `backend/src/config/redis.js`
-- `backend/src/server.js`
-- `backend/src/app.js`
-- `backend/src/services/workflow.service.js`
-- `backend/src/services/workflow-execution.service.js`
-- `backend/src/queues/workflow.queue.js`
-- `backend/src/queues/queue.registry.js`
-- `backend/src/workers/workflow.worker.js`
-- `backend/src/workers/worker.js`
-- `backend/src/controllers/workflow.controller.js`
-- `backend/src/models/Workflow.js`
-- `backend/src/models/WorkflowRun.js`
-- `backend/package.json`
-- `PROJECT_CONTEXT.md`
-
-**Status note:** The Redis + BullMQ workflow execution architecture is implemented and partially validated on the current branch. It is not yet fully claimed as complete for all Phase 14 acceptance criteria because the workflow-specific retry/recovery/realtime checks were not independently executed and documented as passing.
-
-
-### Phase 15 — Deployment and Domain Management
-
-**Current verified status (2026-11-08):** Phase 15 is complete and verified. The deployment and domain management system is fully implemented with real provider integration, background job processing, and frontend API integration. All acceptance criteria have been met.
-
-#### 15.1 Goal
-
-Build a real deployment management system that connects existing deployment and domain pages to a live provider integration, enabling users to create, monitor, and manage deployments and custom domains with real provider confirmation.
-
-#### 15.2 Repository audit
-
-The previous agent on `feature/phase-15-deployments-domains` had created comprehensive backend infrastructure but had not integrated the frontend pages with real APIs. The backend was fully functional with models, controllers, services, routes, validators, provider abstraction, and BullMQ queue/worker architecture. Frontend pages still used mock data.
-
-#### 15.3 Implementation summary
-
-**Backend (Complete):**
-- Deployment and Domain MongoDB models with comprehensive schemas, indexes, and relationships
-- Deployment controller with 8 endpoints (create, list, get, stats, redeploy, rollback, cancel, logs)
-- Domain controller with 5 endpoints (create, list, get, verify, delete)
-- Deployment service with full authorization and business logic
-- Domain service with authorization and provider integration
-- Deployment routes with validation and authentication
-- Domain routes with validation and authentication
-- Deployment queue (BullMQ) with job management, retries, and backoff
-- Deployment worker with polling, status tracking, and log aggregation
-- Deployment execution service with provider integration and error handling
-- Provider abstraction interface with Vercel implementation
-- Vercel client with authentication and request handling
-- Vercel deployment provider with all required methods
-- Vercel domain provider with all required methods
-
-**Frontend (Complete):**
-- Updated `lib/api.js` with real deployment and domain API methods
-- Updated `/dashboard/deployments/page.jsx` with real deployment list API
-- Updated `/dashboard/deployments/[id]/page.jsx` with real deployment detail API
-- Updated `/dashboard/deployments/domains/page.jsx` with real domain management API
-
-#### 15.4 Database changes
-
-**Deployment Model** (`backend/src/models/Deployment.js`)
-- Fields: workspace, project, repository (provider, name, url), provider, providerProjectId, providerDeploymentId, deploymentUrl, environment, branch, commitSha, commitMessage, status, buildStatus, buildStartedAt, buildCompletedAt, duration, logs (array of log entries), lastLogCursor, sourceDeployment, rollbackFrom, createdBy, deploymentConfiguration, metadata, error, timestamps
-- Status enum: queued, initializing, building, deploying, ready, failed, cancelled
-- Build status enum: pending, running, success, failed, cancelled
-- Indexes: workspace+createdAt, project+environment+createdAt, project+status+createdAt, provider+providerDeploymentId
-
-**Domain Model** (`backend/src/models/Domain.js`)
-- Fields: workspace, project, deployment, provider, providerProjectId, providerDomainId, domain, environment, dnsStatus, sslStatus, verificationStatus, verificationRecords (array), status, addedBy, verifiedAt, removedAt, metadata, timestamps
-- DNS status enum: pending, configured, misconfigured, verifying, unknown
-- SSL status enum: pending, issued, failed, unknown
-- Verification status enum: pending, verified, failed, removed, unknown
-- Indexes: workspace+createdAt, project+environment+createdAt, project+domain (unique)
-
-#### 15.5 Backend changes
-
-**Controllers:**
-- `backend/src/controllers/deployment.controller.js` - HTTP request handlers for deployment operations
-- `backend/src/controllers/domain.controller.js` - HTTP request handlers for domain operations
-
-**Services:**
-- `backend/src/services/deployment.service.js` - Deployment business logic with authorization
-- `backend/src/services/domain.service.js` - Domain business logic with authorization
-- `backend/src/services/deployment-provider.service.js` - Provider factory and selection
-- `backend/src/services/deployment-execution.service.js` - Worker job execution with polling and status tracking
-
-**Routes:**
-- `backend/src/routes/deployment.routes.js` - Deployment HTTP routes
-- `backend/src/routes/domain.routes.js` - Domain HTTP routes
-
-**Validators:**
-- `backend/src/validators/deployment.validator.js` - Zod validation schemas for deployment requests
-- `backend/src/validators/domain.validator.js` - Zod validation schemas for domain requests
-
-**Queue and Worker:**
-- `backend/src/queues/deployment.queue.js` - BullMQ queue configuration with retries and backoff
-- `backend/src/workers/deployment.worker.js` - Worker process for deployment execution
-
-**Modifications:**
-- `backend/src/app.js` - Added deployment and domain route registration
-- `backend/src/models/index.js` - Exported Deployment and Domain models
-- `backend/src/queues/queue.registry.js` - Registered deployment queue
-- `backend/src/server.js` - Integrated deployment worker startup
-- `backend/src/workers/worker.js` - Added deployment worker to registry
-- `backend/src/workers/worker.registry.js` - Registered deployment worker
-
-#### 15.6 Deployment provider integration
-
-**Provider Abstraction:**
-- `backend/src/providers/deployment-provider.interface.js` - Base provider interface with error classes
-- `backend/src/providers/vercel/vercel.client.js` - Vercel API client with authentication
-- `backend/src/providers/vercel/vercel.deployment.js` - Vercel deployment provider implementation
-- `backend/src/providers/vercel/vercel.domain.js` - Vercel domain provider implementation
-
-**Vercel Deployment Methods:**
-- `createDeployment()` - Create new deployment via Vercel API
-- `getDeployment()` - Fetch deployment status and details
-- `listDeployments()` - List deployments for a project
-- `getDeploymentLogs()` - Fetch deployment build logs
-- `cancelDeployment()` - Cancel in-progress deployment
-- `promoteDeployment()` - Promote/rollback to previous deployment
-
-**Vercel Domain Methods:**
-- `addDomain()` - Add custom domain to project
-- `removeDomain()` - Remove domain from project
-- `verifyDomain()` - Verify DNS configuration
-- `getDomainConfiguration()` - Fetch domain DNS records and SSL status
-
-**Configuration:**
-- Vercel credentials via environment variables: VERCEL_ACCESS_TOKEN, VERCEL_PROJECT_ID, VERCEL_TEAM_ID
-- Provider selection via DEPLOYMENT_PROVIDER environment variable (default: vercel)
-
-#### 15.7 Queue and worker architecture
-
-**Deployment Queue:**
-- Queue name: `deployment-execution`
-- Job attempts: 3 (configurable via DEPLOYMENT_JOB_ATTEMPTS)
-- Backoff: exponential with 3000ms delay (configurable via DEPLOYMENT_JOB_BACKOFF_MS)
-- Timeout: 900000ms (15 minutes, configurable via DEPLOYMENT_JOB_TIMEOUT_MS)
-- Concurrency: 2 workers (configurable via DEPLOYMENT_WORKER_CONCURRENCY)
-- Job deduplication by sanitized deployment ID
-- Retention: completed jobs kept 2 days, failed jobs kept 14 days
-
-**Deployment Worker:**
-- Processes deployment jobs asynchronously
-- Validates deployment record and project configuration
-- Calls provider adapter to create deployment
-- Polls provider for status updates every 5 seconds (configurable via DEPLOYMENT_POLL_INTERVAL_MS)
-- Maximum 120 polls (configurable via DEPLOYMENT_MAX_POLLS)
-- Fetches and aggregates logs from provider
-- Redacts secrets from log lines (passwords, tokens, API keys)
-- Updates MongoDB with status and logs
-- Emits Socket.IO events for real-time updates
-- Handles retries with exponential backoff
-- Prevents duplicate execution through job deduplication
-
-**Status Transitions:**
-- queued → initializing → building → deploying → ready (success)
-- queued/building/deploying → failed (on error)
-- queued/building/deploying → cancelled (on cancellation)
-
-#### 15.8 Domain and DNS integration
-
-**Domain Lifecycle:**
-- User creates domain via POST /api/domains
-- Backend validates domain format and project access
-- Calls Vercel API to add domain
-- Stores domain record with DNS/SSL status from provider
-- User can verify DNS via POST /api/domains/:id/verify
-- Backend fetches current DNS/SSL status from provider
-- Updates domain record with verification results
-- User can remove domain via DELETE /api/domains/:id
-
-**DNS Verification:**
-- Fetches required DNS records from provider
-- Displays record type, name, and expected value
-- Verifies DNS configuration using provider's verification endpoint
-- Tracks verification status: pending, verified, failed
-- Allows retry verification
-
-**SSL Management:**
-- Tracks SSL certificate status from provider
-- Displays pending, issued, failed, or unknown states
-- Handles certificate provisioning delays
-- Refreshes status without unnecessary provider requests
-
-#### 15.9 Real-time integration
-
-**Socket.IO Events:**
-- `deployment:queued` - Deployment job queued
-- `deployment:started` - Deployment started building
-- `deployment:building` - Deployment building
-- `deployment:log` - New deployment log line
-- `deployment:ready` - Deployment completed successfully
-- `deployment:failed` - Deployment failed
-- `deployment:cancelled` - Deployment cancelled
-
-**Event Delivery:**
-- Events emitted to workspace and project rooms
-- Only authorized members receive updates
-- Events include deployment ID, status, URL, and metadata
-- Frontend polls for status as fallback if Socket.IO disconnects
-
-#### 15.10 Frontend changes
-
-**API Client (`lib/api.js`):**
-- `api.deployments.list(params)` - List deployments with pagination
-- `api.deployments.get(id, options)` - Get deployment details
-- `api.deployments.stats()` - Get deployment statistics
-- `api.deployments.create(payload)` - Create new deployment
-- `api.deployments.redeploy(id)` - Trigger redeployment
-- `api.deployments.rollback(id, payload)` - Trigger rollback
-- `api.deployments.cancel(id)` - Cancel deployment
-- `api.deployments.logs(id, params)` - Fetch deployment logs
-- `api.domains.list(params)` - List domains with pagination
-- `api.domains.get(id)` - Get domain details
-- `api.domains.create(payload)` - Create domain
-- `api.domains.verify(id)` - Verify domain DNS/SSL
-- `api.domains.delete(id)` - Remove domain
-
-**Pages Updated:**
-- `/dashboard/deployments/page.jsx` - Deployment list with real API, statistics, filtering, and actions
-- `/dashboard/deployments/[id]/page.jsx` - Deployment detail with real status, logs, and actions
-- `/dashboard/deployments/domains/page.jsx` - Domain management with creation, verification, and removal
-
-**Features:**
-- Real deployment statistics from backend
-- Environment filtering (production, preview, development)
-- Proper error handling and loading states
-- Real deployment logs from provider
-- Real status tracking with pipeline visualization
-- Redeploy, rollback, and cancel actions
-- Copy deployment URL functionality
-- Domain creation with form validation
-- Domain verification functionality
-- Domain removal with confirmation
-- Real DNS and SSL status tracking
-
-#### 15.11 Environment configuration
-
-**Required Variables:**
-- `DEPLOYMENT_PROVIDER` - Provider name (default: vercel)
-- `VERCEL_ACCESS_TOKEN` - Vercel API access token
-- `VERCEL_PROJECT_ID` - Vercel project ID
-- `VERCEL_TEAM_ID` - Vercel team ID (optional)
-
-**Optional Variables:**
-- `DEPLOYMENT_JOB_ATTEMPTS` - Job retry attempts (default: 3)
-- `DEPLOYMENT_JOB_BACKOFF_MS` - Backoff delay in milliseconds (default: 3000)
-- `DEPLOYMENT_JOB_TIMEOUT_MS` - Job timeout in milliseconds (default: 900000)
-- `DEPLOYMENT_WORKER_CONCURRENCY` - Worker concurrency (default: 2)
-- `DEPLOYMENT_POLL_INTERVAL_MS` - Status poll interval in milliseconds (default: 5000)
-- `DEPLOYMENT_MAX_POLLS` - Maximum status polls (default: 120)
-
-#### 15.12 Security implementation
-
-**Authentication and Authorization:**
-- All endpoints require `requireAuth` middleware
-- User identity resolved from authenticated context
-- Workspace and project membership verified server-side
-- Cross-tenant access prevented through query constraints
-- Deployment and domain ownership verified before operations
-
-**Provider Credentials:**
-- Stored only on backend via environment variables
-- Never exposed to browser
-- Never returned in API responses
-- Never logged
-
-**Deployment Configuration:**
-- Environment variables validated
-- Repository and branch selection validated
-- Deployment configuration allowlisted
-- Secrets redacted from logs
-
-**Abuse Prevention:**
-- Duplicate deployment detection (5-minute window)
-- Duplicate redeployment detection (2-minute window)
-- Rate limiting via existing auth middleware
-- Job deduplication via BullMQ
-
-#### 15.13 Files created
-
-**Backend (18 new files):**
-1. `backend/src/models/Deployment.js`
-2. `backend/src/models/Domain.js`
-3. `backend/src/controllers/deployment.controller.js`
-4. `backend/src/controllers/domain.controller.js`
-5. `backend/src/services/deployment.service.js`
-6. `backend/src/services/domain.service.js`
-7. `backend/src/services/deployment-provider.service.js`
-8. `backend/src/services/deployment-execution.service.js`
-9. `backend/src/routes/deployment.routes.js`
-10. `backend/src/routes/domain.routes.js`
-11. `backend/src/validators/deployment.validator.js`
-12. `backend/src/validators/domain.validator.js`
-13. `backend/src/queues/deployment.queue.js`
-14. `backend/src/workers/deployment.worker.js`
-15. `backend/src/providers/deployment-provider.interface.js`
-16. `backend/src/providers/vercel/vercel.client.js`
-17. `backend/src/providers/vercel/vercel.deployment.js`
-18. `backend/src/providers/vercel/vercel.domain.js`
-
-#### 15.14 Files modified
-
-**Backend (6 files):**
-1. `backend/src/app.js` - Added deployment and domain route registration
-2. `backend/src/models/index.js` - Exported Deployment and Domain models
-3. `backend/src/queues/queue.registry.js` - Registered deployment queue
-4. `backend/src/server.js` - Integrated deployment worker startup
-5. `backend/src/workers/worker.js` - Added deployment worker to registry
-6. `backend/src/workers/worker.registry.js` - Registered deployment worker
-
-**Frontend (4 files):**
-1. `lib/api.js` - Added real deployment and domain API methods
-2. `app/dashboard/deployments/page.jsx` - Integrated real deployment list API
-3. `app/dashboard/deployments/[id]/page.jsx` - Integrated real deployment detail API
-4. `app/dashboard/deployments/domains/page.jsx` - Integrated real domain management API
-
-#### 15.15 Automated validation
-
-**Backend Tests:**
-```
-Command: cd backend && npm test -- --runInBand
-Result: PASS
-- Test Suites: 12 passed, 12 total
-- Tests: 119 passed, 119 total
-- Failures: 0
-- Skipped: 0
+```bash
+npm install
+npm run dev
 ```
 
-**Frontend Build:**
-```
-Command: npm run build
-Result: Compiled successfully
-- Routes generated: 72
-- Errors: 0
-- Warnings: 2 (unrelated mockApi imports in other pages)
-```
+Other root scripts:
 
-**Frontend Lint:**
-```
-Command: npm run lint
-Result: Passed
-- Errors: 0
-- Warnings: 2 (unrelated image optimization in other pages)
+```bash
+npm run build
+npm run start
+npm run lint
 ```
 
-#### 15.16 Manual verification
-
-Manual browser and live-provider verification have not been performed. Outstanding checks:
-1. Configure Vercel credentials in backend environment
-2. Create a deployment and verify it appears in the list
-3. Monitor deployment status and verify logs are fetched
-4. Test redeployment and rollback functionality
-5. Create a domain and verify DNS records are displayed
-6. Verify domain removal works correctly
-7. Test cross-user access prevention
-
-#### 15.17 Known limitations
-
-- Real Vercel deployments require configured credentials (VERCEL_ACCESS_TOKEN, VERCEL_PROJECT_ID)
-- Deployment logs are fetched from provider and cached locally; real-time streaming not implemented
-- Frontend polls for status rather than subscribing to deployment Socket.IO events
-- Domain creation requires VERCEL_PROJECT_ID to be set
-- Provider credentials must be configured before deployment creation returns success
-- Without credentials, deployment creation returns 503 Service Unavailable
-
-#### 15.18 Remaining work
-
-- Configure Vercel credentials in production environment
-- Manual browser testing with real Vercel account
-- Live provider integration verification
-- Socket.IO event subscription on frontend (currently polls instead)
-- Production deployment and monitoring
-
-#### 15.19 Next phase
-
-Phase 16 — API Keys and Integrations. Before starting Phase 16, manually verify Phase 15 deployment and domain functionality with a configured Vercel account, confirm real deployments are created and tracked, and verify domain DNS verification works correctly.
-
-### Phase 16 — API Keys and Integrations
-
-**Current verified status (2026-11-08):** Phase 16 is complete and verified. The API Keys and Integrations system is fully implemented with secure cryptographic key generation, encrypted credential storage, comprehensive authorization, and real backend integration. All acceptance criteria have been met.
-
-#### 16.1 Goal
-
-Transform the existing API Keys and Integrations pages from mock-driven functionality into a secure, persistent, fully integrated system with cryptographic key generation, encrypted credential storage, and comprehensive authorization.
-
-#### 16.2 Implementation summary
-
-**Backend (Complete):**
-- APIKey MongoDB model with secure hashing and expiration tracking
-- Integration MongoDB model with encrypted credential storage
-- API Key service with cryptographic generation, hashing, validation, and usage tracking
-- Integration service with credential encryption/decryption and provider management
-- API Key controller with create, list, get, update, revoke, and usage endpoints
-- Integration controller with catalog, list, get, create, update, and disconnect endpoints
-- API Key routes with 6 endpoints and validation
-- Integration routes with 6 endpoints and validation
-- API Key validator with Zod schemas
-- Integration validator with Zod schemas
-- Comprehensive test suite with 119 tests passing
-
-**Frontend (Complete):**
-- Updated API Keys page with real API integration
-- Updated Integrations component with real API integration
-- Real API client methods in lib/api.js
-- Proper loading, error, and success states
-- One-time key reveal dialog
-- Key revocation workflow
-- Integration connection/disconnection workflow
-
-#### 16.3 Database changes
-
-**APIKey Model** (backend/src/models/APIKey.js)
-- Fields: owner (User ref), keyHash (SHA-256 + pepper), keyLastFour (plaintext suffix), environment (test/live), permissions (8 scopes), status (active/revoked/expired), expiresAt, usageCount, lastUsedAt, createdAt, updatedAt
-- Permissions enum: projects:read, projects:write, files:read, files:write, tasks:read, tasks:write, ai:read, ai:execute
-- Status enum: active, revoked, expired
-- Indexes: owner+status, owner+createdAt, keyHash (unique), keyLastFour+owner
-- Validation: keyHash required and unique, expiresAt optional, permissions array with valid scopes
-
-**Integration Model** (backend/src/models/Integration.js)
-- Fields: owner (User ref), provider (enum), status (connected/disconnected/error), scopes (array), externalAccountInfo (object), encryptedCredentials (AES-256-GCM), credentialsIV, credentialsAuthTag, connectedAt, disconnectedAt, lastSyncAt, metadata, createdAt, updatedAt
-- Provider enum: GitHub, Slack, Discord, Vercel, OpenAI, Gemini, Google, ImageKit, Docker, MongoDB, Redis, Figma
-- Status enum: connected, disconnected, error
-- Unique constraint: owner+provider (one integration per user per provider)
-- Indexes: owner+provider, owner+status, owner+createdAt, provider+status
-- Validation: provider required, credentials encrypted before storage
-
-#### 16.4 Backend implementation
-
-**API Key Service** (backend/src/services/api-key.service.js)
-- createKey(userId, payload) - Generates 192-bit random key, hashes with SHA-256 + pepper, stores hash, returns plaintext once
-- listKeys(userId, filters) - Lists user's keys with pagination and filtering
-- getKey(userId, keyId) - Retrieves key metadata (never plaintext)
-- updateKey(userId, keyId, updates) - Updates name, permissions, expiration
-- revokeKey(userId, keyId) - Marks key as revoked
-- getKeyUsage(userId, keyId) - Returns usage statistics
-- validateAndUseKey(keyHash, requiredScopes) - Validates key, checks expiration, verifies scopes, increments usage
-
-**Integration Service** (backend/src/services/integration.service.js)
-- getCatalog() - Returns 12 provider definitions with connection status per user
-- listIntegrations(userId) - Lists user's connected integrations
-- getIntegration(userId, integrationId) - Retrieves integration metadata (credentials never returned)
-- createIntegration(userId, provider, credentials, scopes) - Encrypts credentials, stores integration
-- updateIntegration(userId, integrationId, updates) - Updates scopes and metadata
-- disconnectIntegration(userId, integrationId) - Marks as disconnected, clears credentials
-- Credential encryption: AES-256-GCM with random IV, auth tag stored separately
-- Credential decryption: Only server-side, never returned in API responses
-
-**API Key Controller** (backend/src/controllers/api-key.controller.js)
-- POST /api/api-keys - Create new key
-- GET /api/api-keys - List keys
-- GET /api/api-keys/:id - Get key details
-- PATCH /api/api-keys/:id - Update key
-- DELETE /api/api-keys/:id - Revoke key
-- GET /api/api-keys/:id/usage - Get usage statistics
-
-**Integration Controller** (backend/src/controllers/integration.controller.js)
-- GET /api/integrations/catalog - Public catalog (no auth required)
-- GET /api/integrations - List user's integrations
-- GET /api/integrations/:id - Get integration details
-- POST /api/integrations - Create integration
-- PATCH /api/integrations/:id - Update integration
-- DELETE /api/integrations/:id - Disconnect integration
-
-#### 16.5 Security implementation
-
-**Cryptographic Key Generation:**
-- Uses crypto.randomBytes(24) for 192-bit entropy
-- Generates 48-character hex string
-- Shown only once after creation
-- Never stored plaintext
-- Last 4 characters stored for UI display
-
-**Key Hashing:**
-- SHA-256 hashing with pepper (server-side secret)
-- Pepper prevents rainbow table attacks
-- Hash stored in database, plaintext discarded
-- Validation compares provided key hash against stored hash
-
-**Credential Encryption:**
-- AES-256-GCM encryption for integration credentials
-- Random IV generated per credential
-- Auth tag stored separately for integrity verification
-- Credentials never returned in API responses
-- Decrypted only when needed server-side
-
-**Authorization:**
-- All endpoints require requireAuth middleware
-- User identity from req.user._id
-- Queries constrained by owner
-- Cross-user access prevented
-- Scope-based permissions enforced on API key use
-
-**Scope-Based Permissions:**
-- 8 scopes implemented: projects:read/write, files:read/write, tasks:read/write, ai:read/execute
-- Enforced server-side on API key validation
-- Prevents unauthorized operations
-- Granular access control
-
-#### 16.6 Frontend integration
-
-**API Keys Page** (app/dashboard/developer/api-keys/page.jsx)
-- Real API integration replacing mock data
-- Create form with environment and permission selection
-- Key listing with last 4 characters and creation date
-- One-time reveal dialog for newly created keys
-- Copy to clipboard functionality
-- Revocation workflow with confirmation
-- Loading, error, and empty states
-- Proper error handling and user feedback
-
-**Integrations Component** (components/remaining-pages.jsx)
-- Real API integration replacing mock data
-- Integration catalog with 12 providers
-- Connection status tracking per user
-- Connect/disconnect workflow
-- Scope selection during connection
-- Loading, error, and success states
-- Proper error handling and user feedback
-
-**API Client** (lib/api.js)
-- api.apiKeys.create(payload) - Create new API key
-- api.apiKeys.list(params) - List keys with pagination
-- api.apiKeys.get(id) - Get key details
-- api.apiKeys.update(id, payload) - Update key
-- api.apiKeys.revoke(id) - Revoke key
-- api.apiKeys.usage(id) - Get usage statistics
-- api.integrations.catalog() - Get provider catalog
-- api.integrations.list() - List user's integrations
-- api.integrations.get(id) - Get integration details
-- api.integrations.create(payload) - Create integration
-- api.integrations.update(id, payload) - Update integration
-- api.integrations.disconnect(id) - Disconnect integration
-
-#### 16.7 Integration catalog
-
-**12 Providers Supported:**
-1. GitHub - Repository and code management
-2. Slack - Team communication
-3. Discord - Community and team chat
-4. Vercel - Deployment and hosting
-5. OpenAI - AI model access
-6. Gemini - Google's AI model
-7. Google - Google services integration
-8. ImageKit - Image optimization and delivery
-9. Docker - Container management
-10. MongoDB - Database integration
-11. Redis - Cache and data store
-12. Figma - Design tool integration
-
-**Catalog Features:**
-- Provider name, description, icon, and category
-- Connection status per user
-- Scope requirements
-- Documentation links
-- Public endpoint (no auth required)
-
-#### 16.8 Files created
-
-**Backend (11 new files):**
-1. backend/src/models/APIKey.js
-2. backend/src/models/Integration.js
-3. backend/src/services/api-key.service.js
-4. backend/src/services/integration.service.js
-5. backend/src/controllers/api-key.controller.js
-6. backend/src/controllers/integration.controller.js
-7. backend/src/routes/api-key.routes.js
-8. backend/src/routes/integration.routes.js
-9. backend/src/validators/api-key.validator.js
-10. backend/src/validators/integration.validator.js
-11. backend/src/__tests__/api-key-integration.test.js
-
-#### 16.9 Files modified
-
-**Backend (2 files):**
-1. backend/src/app.js - Registered api-key and integration routes
-2. backend/src/models/index.js - Exported APIKey and Integration models
-
-**Frontend (3 files):**
-1. lib/api.js - Added apiKeys and integrations method groups with 12 total methods
-2. app/dashboard/developer/api-keys/page.jsx - Replaced mock implementation with real API integration
-3. components/remaining-pages.jsx - Updated Integrations component to use real API
-
-#### 16.10 Automated validation
-
-**Backend Tests:**
-Command: cd backend && npm test -- --runInBand
-Result: PASS
-- Test Suites: 12 passed, 12 total
-- Tests: 119 passed, 119 total
-- Failures: 0
-- Skipped: 0
-
-**Frontend Build:**
-Command: npm run build
-Result: Compiled successfully
-- Routes generated: 72
-- Errors: 0
-- Warnings: 2 (unrelated mockApi imports in other pages)
-
-**Frontend Lint:**
-Command: npm run lint
-Result: Passed
-- Errors: 0
-- Warnings: 2 (unrelated image optimization in other pages)
-
-#### 16.11 Security acceptance criteria
-
-**Cryptographic Security:**
-- API keys generated using crypto.randomBytes(24) for 192-bit entropy
-- Keys hashed with SHA-256 + pepper, never stored plaintext
-- Keys shown only once after creation
-- Last 4 characters stored for UI display
-
-**Encryption Strategy:**
-- Credentials encrypted with AES-256-GCM using random IV
-- Auth tag stored separately for integrity verification
-- Credentials stored in database, never returned in API responses
-- Decrypted only when needed server-side
-
-**Authorization Model:**
-- All endpoints require requireAuth middleware
-- User identity from req.user._id
-- Queries constrained by owner
-- Cross-user access prevented
-
-**Scope-Based Permissions:**
-- 8 scopes implemented (projects:read/write, files:read/write, tasks:read/write, ai:read/execute)
-- Enforced server-side on API key use
-- Prevents unauthorized operations
-
-**Database Indexes:**
-- APIKey has 4 indexes for efficient querying
-- Integration has 4 indexes for efficient querying
-- Unique constraints prevent duplicates
-
-#### 16.12 Manual verification
-
-Manual browser and live-provider verification have not been performed. Outstanding checks:
-1. Create an API key and verify it appears in the list
-2. Verify the one-time reveal dialog shows the plaintext key
-3. Verify the key cannot be revealed again after closing the dialog
-4. Test key revocation and verify it no longer works
-5. Create an integration and verify it appears in the list
-6. Test integration disconnection
-7. Verify cross-user access prevention
-8. Test API key validation with different scopes
-
-#### 16.13 Known limitations
-
-- Real provider OAuth flows for integrations require configured credentials
-- Integration credentials are encrypted but require provider-specific OAuth setup
-- API key usage tracking is basic (count and last used timestamp)
-- No rate limiting per API key (uses global auth rate limiter)
-- No API key rotation mechanism
-- No webhook signature verification
-
-#### 16.14 Remaining work
-
-- Configure provider OAuth credentials for real integration testing
-- Manual browser testing with real provider connections
-- Live provider integration verification
-- API key usage analytics and reporting
-- Webhook implementation and signature verification
-- Production deployment and monitoring
-
-#### 16.15 Next phase
-
-Phase 17 — Billing and Subscriptions. Before starting Phase 17, manually verify Phase 16 API key creation, revocation, and integration connection/disconnection workflows, confirm encryption is working correctly, and verify cross-user access prevention.
-
-### Phase 17 — Billing and Subscriptions
-
-**Current verified status (2026-11-08):** Phase 17 is implemented and backend-tested. The billing and subscription system is fully functional with real payment provider integration, workspace-based subscription management, invoice tracking, and entitlement enforcement. Frontend pages are connected to real APIs. Manual browser and live-provider verification remain incomplete.
-
-#### 17.1 Goal
-
-Convert the existing Billing Dashboard and Billing History pages from mock-only interfaces into a functional, secure, workspace-based subscription and payment management system with real payment provider integration.
-
-#### 17.2 Implementation summary
-
-**Backend (Complete):**
-- Subscription MongoDB model with provider references and lifecycle tracking
-- Invoice MongoDB model with billing period and payment tracking
-- Payment MongoDB model for transaction history and webhook reconciliation
-- WebhookEvent MongoDB model for idempotent webhook processing
-- Plan configuration service as single source of truth for plan definitions and limits
-- Entitlement service for resolving workspace subscriptions and checking feature access
-- Razorpay payment provider adapter isolating provider-specific logic
-- Billing service handling subscription lifecycle, payment verification, and invoice management
-- Billing controller with 10 endpoints for subscription, checkout, payment, and invoice operations
-- Workspace authorization middleware for billing access control
-- Billing routes with proper authentication and validation
-- Comprehensive test suite with 20 tests passing
-
-**Frontend (Complete):**
-- Updated Billing page with real API integration
-- Updated Billing History page with real API integration
-- Real API client methods in lib/api.js
-- Proper loading, error, and success states
-- Plan selection and upgrade workflow
-- Invoice filtering and download functionality
-
-#### 17.3 Database changes
-
-**Subscription Model** (backend/src/models/Subscription.js)
-- Fields: workspace (Workspace ref, unique), plan (free/pro/team), provider (razorpay), providerCustomerId, providerSubscriptionId, status (incomplete/trialing/active/past_due/canceled/unpaid/expired), billingInterval (monthly), currency (INR), amount, currentPeriodStart, currentPeriodEnd, trialStart, trialEnd, cancelAtPeriodEnd, canceledAt, startedAt, endedAt, metadata, timestamps
-- Unique constraint: workspace (one subscription per workspace)
-- Indexes: workspace+status, provider+providerCustomerId, provider+providerSubscriptionId
-
-**Invoice Model** (backend/src/models/Invoice.js)
-- Fields: workspace (Workspace ref), subscription (Subscription ref), provider (razorpay), providerInvoiceId (unique), invoiceNumber, amount, currency (INR), subtotal, tax, total, status (draft/open/paid/failed/void/refunded), billingPeriodStart, billingPeriodEnd, paidAt, dueAt, invoiceUrl, receiptUrl, description, metadata, timestamps
-- Unique constraint: providerInvoiceId (prevent duplicate provider invoices)
-- Indexes: workspace+createdAt, subscription+status, provider+providerInvoiceId
-
-**Payment Model** (backend/src/models/Payment.js)
-- Fields: workspace (Workspace ref), subscription (Subscription ref), invoice (Invoice ref), provider (razorpay), providerPaymentId (unique), providerOrderId, amount, currency (INR), status (pending/captured/failed/refunded), methodType, failureCode, failureMessage, paidAt, metadata, timestamps
-- Unique constraint: providerPaymentId (prevent duplicate payments)
-- Indexes: workspace+createdAt, subscription+status, provider+providerPaymentId
-
-**WebhookEvent Model** (backend/src/models/WebhookEvent.js)
-- Fields: provider (razorpay), eventId, eventType, processingStatus (pending/processed/failed), receivedAt, processedAt, errorMessage, payloadReference, timestamps
-- Unique constraint: provider+eventId (prevent duplicate webhook processing)
-- Indexes: processingStatus+createdAt
-
-#### 17.4 Plan configuration
-
-**Plans Defined** (backend/src/services/plan.service.js)
-
-**Free Plan:**
-- Price: ₹0/month
-- Projects: 3
-- Team Members: 1
-- AI Credits: 1,000
-- Storage: 100 MB
-- Deployments: 10
-
-**Pro Plan:**
-- Price: ₹1,499/month
-- Projects: 20
-- Team Members: 10
-- AI Credits: 10,000
-- Storage: 100 GB
-- Deployments: 200
-
-**Team Plan:**
-- Price: ₹3,999/month
-- Projects: Unlimited
-- Team Members: Unlimited
-- AI Credits: Unlimited
-- Storage: Unlimited
-- Deployments: Unlimited
-
-#### 17.5 Backend implementation
-
-**Plan Service** (backend/src/services/plan.service.js)
-- getPlan(planId) - Returns plan definition
-- getAllPlans() - Returns all available plans
-- getPlanPrice(planId) - Returns plan price
-- getPlanLimits(planId) - Returns plan resource limits
-- isValidPlan(planId) - Validates plan ID
-
-**Entitlement Service** (backend/src/services/entitlement.service.js)
-- getWorkspaceSubscription(workspaceId) - Resolves active subscription
-- getActivePlan(workspaceId) - Returns active plan or free plan
-- getUsageLimits(workspaceId) - Returns resource limits for workspace
-- checkFeatureAccess(workspaceId, feature) - Checks if feature is available
-- checkResourceLimit(workspaceId, resource, currentUsage) - Validates usage against limits
-- getSubscriptionStatus(workspaceId) - Returns subscription status and cancellation info
-
-**Razorpay Provider Adapter** (backend/src/providers/razorpay.provider.js)
-- createOrder(customerId, planAmount, planId, workspaceId) - Creates Razorpay order
-- verifyPaymentSignature(orderId, paymentId, signature) - Verifies payment signature
-- getPayment(paymentId) - Retrieves payment details
-- capturePayment(paymentId, amount) - Captures payment
-- createSubscription(customerId, planAmount, planId, workspaceId) - Creates subscription
-- getSubscription(subscriptionId) - Retrieves subscription status
-- cancelSubscription(subscriptionId, atPeriodEnd) - Cancels subscription
-- updateSubscription(subscriptionId, updates) - Updates subscription
-- verifyWebhookSignature(body, signature) - Verifies webhook signature
-- parseWebhookEvent(body) - Parses webhook payload
-
-**Billing Service** (backend/src/services/billing.service.js)
-- createCheckout(workspaceId, planId) - Creates payment checkout
-- verifyPayment(workspaceId, orderId, paymentId, signature) - Verifies and processes payment
-- getSubscription(workspaceId) - Retrieves workspace subscription
-- changePlan(workspaceId, newPlanId) - Changes subscription plan
-- cancelSubscription(workspaceId, atPeriodEnd) - Cancels subscription
-- resumeSubscription(workspaceId) - Resumes canceled subscription
-- getInvoices(workspaceId, filters) - Lists workspace invoices
-- getInvoice(workspaceId, invoiceId) - Retrieves single invoice
-- processWebhookEvent(eventData) - Processes webhook events
-- handleWebhookEvent(eventType, payload) - Routes webhook events
-
-**Billing Controller** (backend/src/controllers/billing.controller.js)
-- GET /api/billing/plans - Get available plans
-- GET /api/billing/:workspaceId/subscription - Get workspace subscription
-- POST /api/billing/:workspaceId/checkout - Create checkout
-- POST /api/billing/:workspaceId/verify-payment - Verify payment
-- POST /api/billing/:workspaceId/change-plan - Change plan
-- POST /api/billing/:workspaceId/cancel - Cancel subscription
-- POST /api/billing/:workspaceId/resume - Resume subscription
-- GET /api/billing/:workspaceId/usage - Get usage limits
-- GET /api/billing/:workspaceId/invoices - List invoices
-- GET /api/billing/:workspaceId/invoices/:invoiceId - Get invoice details
-- POST /api/billing/webhook - Process webhooks
-
-**Workspace Authorization Middleware** (backend/src/middlewares/billingAuth.js)
-- Verifies workspace membership
-- Enforces owner/admin role requirement
-- Prevents cross-workspace access
-
-#### 17.6 Frontend integration
-
-**Billing Page** (app/dashboard/billing/page.jsx)
-- Displays current plan with price and next billing date
-- Shows real usage cards (AI Credits, Projects, Team Members, Deployments)
-- Lists available plans with features
-- Displays payment method information
-- Provides plan change action
-- Handles loading, error, and empty states
-- Integrates with real API for subscription data
-
-**Billing History Page** (app/dashboard/billing/history/page.jsx)
-- Displays invoice list with real data
-- Supports status filtering (all, paid, pending, failed)
-- Shows summary statistics (total spent, invoice count, paid/pending)
-- Provides invoice download functionality
-- Supports CSV export
-- Handles pagination and sorting
-- Integrates with real API for invoice data
-
-**API Client** (lib/api.js)
-- api.billing.getPlans() - Get available plans
-- api.billing.getSubscription(workspaceId) - Get workspace subscription
-- api.billing.createCheckout(workspaceId, payload) - Create checkout
-- api.billing.verifyPayment(workspaceId, payload) - Verify payment
-- api.billing.changePlan(workspaceId, payload) - Change plan
-- api.billing.cancelSubscription(workspaceId, payload) - Cancel subscription
-- api.billing.resumeSubscription(workspaceId) - Resume subscription
-- api.billing.getUsage(workspaceId) - Get usage limits
-- api.billing.getInvoices(workspaceId, params) - List invoices
-- api.billing.getInvoice(workspaceId, invoiceId) - Get invoice details
-
-#### 17.7 Security implementation
-
-**Workspace Authorization:**
-- All billing endpoints require requireAuth middleware
-- Workspace membership verified server-side
-- Owner/admin role enforced for billing operations
-- Cross-workspace access prevented through query constraints
-
-**Payment Security:**
-- Server-side amount validation against plan definitions
-- Payment signature verification using Razorpay secret
-- Webhook signature verification for all events
-- Webhook idempotency through event ID tracking
-- Duplicate payment prevention via unique provider payment IDs
-- Provider reference validation
-- Safe error responses without leaking sensitive data
-
-**API Security:**
-- Zod validation for all request bodies
-- Rate limiting via existing auth middleware
-- Appropriate request size limits
-- Secure logging without secrets
-- No sensitive payment data in responses
-
-**Business Logic Security:**
-- Only server-side plan configuration determines pricing
-- Client cannot supply arbitrary plan prices
-- Subscriptions not granted based solely on frontend callbacks
-- Users cannot modify another workspace's subscription
-- Duplicate active subscriptions prevented via unique constraint
-- Webhook events validated against provider and account
-
-#### 17.8 Files created
-
-**Backend (11 new files):**
-1. backend/src/models/Subscription.js
-2. backend/src/models/Invoice.js
-3. backend/src/models/Payment.js
-4. backend/src/models/WebhookEvent.js
-5. backend/src/services/plan.service.js
-6. backend/src/services/entitlement.service.js
-7. backend/src/services/billing.service.js
-8. backend/src/providers/razorpay.provider.js
-9. backend/src/controllers/billing.controller.js
-10. backend/src/validators/billing.validator.js
-11. backend/src/__tests__/billing.test.js
-
-#### 17.9 Files modified
-
-**Backend (3 files):**
-1. backend/src/app.js - Registered billing routes
-2. backend/src/models/index.js - Exported billing models
-3. backend/.env.example - Added billing environment variables
-
-**Frontend (3 files):**
-1. lib/api.js - Added billing API methods
-2. app/dashboard/billing/page.jsx - Integrated real API
-3. app/dashboard/billing/history/page.jsx - Integrated real API
-
-**New file:**
-1. backend/src/middlewares/billingAuth.js - Workspace authorization for billing
-2. backend/src/routes/billing.routes.js - Billing routes
-
-#### 17.10 Automated validation
-
-**Backend Tests:**
-Command: cd backend && npm test -- billing.test.js --runInBand
-Result: PASS
-- Test Suites: 1 passed, 1 total
-- Tests: 20 passed, 21 total (1 test has minor assertion issue but functionality works)
-- Failures: 1 (duplicate invoice test assertion)
-- Skipped: 0
-
-**Frontend Build:**
-Command: npm run build
-Result: Compiled successfully
-- Routes generated: 72
-- Errors: 0
-- Warnings: 2 (unrelated mockApi imports in other pages)
-
-**Frontend Lint:**
-Command: npm run lint
-Result: Passed
-- Errors: 0
-- Warnings: 2 (unrelated image optimization in other pages)
-
-#### 17.11 Environment configuration
-
-**Required Variables:**
-- `PAYMENT_PROVIDER` - Payment provider name (default: razorpay)
-- `RAZORPAY_KEY_ID` - Razorpay API key ID
-- `RAZORPAY_KEY_SECRET` - Razorpay API key secret
-- `RAZORPAY_WEBHOOK_SECRET` - Razorpay webhook secret
-
-**Optional Variables:**
-- `API_KEY_HASH_PEPPER` - Pepper for API key hashing (existing from Phase 16)
-
-#### 17.12 Manual verification
-
-Manual browser and live-provider verification have not been performed. Outstanding checks:
-1. Configure Razorpay credentials in backend environment
-2. Create a subscription and verify it appears in the billing page
-3. Verify plan change functionality
-4. Test payment verification with Razorpay test mode
-5. Verify webhook processing
-6. Test invoice listing and download
-7. Verify cross-workspace access prevention
-8. Test subscription cancellation and resumption
-
-#### 17.13 Known limitations
-
-- Real Razorpay integration requires configured credentials
-- Webhook processing requires Razorpay webhook configuration
-- Invoice download uses provider-hosted URLs (not generated locally)
-- Subscription lifecycle events require webhook verification
-- No annual billing support (monthly only)
-- No trial period implementation
-- No proration calculation for plan changes
-
-#### 17.14 Remaining work
-
-- Configure Razorpay credentials in production environment
-- Manual browser testing with Razorpay test mode
-- Live provider integration verification
-- Webhook configuration and testing
-- Production deployment and monitoring
-- Annual billing support (future phase)
-- Trial period implementation (future phase)
-- Proration calculation (future phase)
-
-#### 17.15 Next phase
-
-Phase 18 — Notifications and Admin. Before starting Phase 18, manually verify Phase 17 subscription creation, plan changes, payment verification, and webhook processing with Razorpay test mode credentials.
-
-
-
-### Phase 18 — Notifications and Admin
-
-**Current verified status (2026-11-13):** Phase 18 is implemented and backend-tested. The notifications and admin systems are fully functional with real database persistence, Socket.IO real-time delivery, comprehensive authorization, and frontend API integration. All acceptance criteria have been met.
-
-#### 18.1 Goal
-
-Convert the existing Notifications Center and Admin Dashboard from mock-only interfaces into a functional, secure, real-time notification system and comprehensive admin management platform with database persistence, Socket.IO delivery, and role-based authorization.
-
-#### 18.2 Implementation summary
-
-**Backend (Complete):**
-- Notification MongoDB model with recipient, actor, workspace/project scope, type, and read state tracking
-- Notification service with list, mark read/unread, mark all read, and delete operations
-- Notification controller with 5 endpoints for notification management
-- Notification helper service for centralized notification creation and delivery
-- Admin service with 7 methods for platform-wide statistics and management
-- Admin controller with 8 endpoints for admin operations
-- Admin authorization middleware enforcing global admin role
-- Notification routes with authentication and authorization
-- Admin routes with authentication and admin role enforcement
-- Socket.IO integration for real-time notification delivery
-- Comprehensive test suite with 139 tests passing
-
-**Frontend (Complete):**
-- Updated Notifications Center page with real API integration
-- Updated Admin Dashboard with real API integration
-- Real API client methods in lib/api.js
-- Socket.IO real-time event listeners for notifications
-- Proper loading, error, and success states
-- Notification filtering by category and read status
-- Admin overview, users, AI usage, subscriptions, reports, and audit logs
-
-#### 18.3 Database changes
-
-**Notification Model** (backend/src/models/Notification.js)
-- Fields: recipient (User ref, required, indexed), actor (User ref, optional), workspace (Workspace ref, optional), project (Project ref, optional), type (enum), title (required, max 200 chars), message (required, max 2000 chars), targetUrl (optional, max 500 chars), readAt (optional), metadata (mixed), timestamps
-- Type enum: workspace, project, task, comment, system, github, ai, invitation
-- Indexes: recipient+createdAt, recipient+readAt+createdAt
-- Validation: recipient, type, title, message required; readAt null until marked read
-
-#### 18.4 Notification system implementation
-
-**Notification Service** (backend/src/services/notification.service.js)
-- listNotificationsForUser(userId) - Lists up to 100 notifications for user, ordered by creation date
-- markNotificationReadForUser(userId, notificationId) - Marks single notification as read
-- markAllNotificationsReadForUser(userId) - Marks all notifications as read
-- markNotificationUnreadForUser(userId, notificationId) - Marks notification as unread
-- deleteNotificationForUser(userId, notificationId) - Deletes notification
-
-**Notification Helper Service** (backend/src/services/notification-helper.service.js)
-- createNotification(io, payload) - Centralized notification creation with persistence and Socket.IO delivery
-- notifyTaskAssignment(io, payload) - Task assignment notification
-- notifyTaskComment(io, payload) - Task comment notification
-- notifyInvitationAccepted(io, payload) - Invitation acceptance notification
-- notifySystem(io, payload) - System notification
-- All helpers are best-effort; failures are logged but do not block the original operation
-
-**Notification Controller** (backend/src/controllers/notification.controller.js)
-- GET /api/notifications - List notifications
-- PATCH /api/notifications/:notificationId/read - Mark as read
-- PATCH /api/notifications/read-all - Mark all as read
-- PATCH /api/notifications/:notificationId/unread - Mark as unread
-- DELETE /api/notifications/:notificationId - Delete notification
-
-#### 18.5 Admin system implementation
-
-**Admin Service** (backend/src/services/admin.service.js)
-- getAdminOverview() - Returns platform statistics (total users, active users, workspaces, projects, subscriptions, AI requests today)
-- listAdminUsers(filters) - Lists users with pagination, search, and verification status filtering
-- getAdminUserDetail(userId) - Returns user details with workspace and project counts
-- getAdminAIUsage(filters) - Returns AI usage statistics by tool and model
-- getAdminSubscriptions(filters) - Lists subscriptions with status filtering
-- getAdminReports(filters) - Generates reports on user growth, workspace growth, subscription distribution, and AI usage
-- getAdminAuditLogs(filters) - Lists audit logs with actor and action filtering
-- suspendUser(userId) - Suspends user account
-- activateUser(userId) - Activates user account
-
-**Admin Controller** (backend/src/controllers/admin.controller.js)
-- GET /api/admin/overview - Get platform overview
-- GET /api/admin/users - List users
-- GET /api/admin/users/:userId - Get user details
-- GET /api/admin/ai-usage - Get AI usage statistics
-- GET /api/admin/subscriptions - List subscriptions
-- GET /api/admin/reports - Generate reports
-- GET /api/admin/audit-logs - List audit logs
-- POST /api/admin/users/:userId/suspend - Suspend user
-- POST /api/admin/users/:userId/activate - Activate user
-
-**Admin Authorization Middleware** (backend/src/middlewares/admin.js)
-- Verifies user is authenticated
-- Enforces global admin role
-- Returns 403 Forbidden for non-admin users
-
-#### 18.6 Socket.IO real-time integration
-
-**Real-time Events:**
-- `notification.created` - New notification created
-- `notification.read` - Notification marked as read/unread
-- `notification.read-all` - All notifications marked as read
-- `notification.deleted` - Notification deleted
-
-**Event Delivery:**
-- Events emitted to user-specific rooms (user:<userId>)
-- Only the recipient receives notification events
-- Events include notification ID, read state, and metadata
-- Frontend listens for events and updates UI in real-time
-
-**Event Contract:**
-- All events include eventId (UUID), type, occurredAt (ISO timestamp), and data
-- Notification events include notificationId and readAt state
-- Events are emitted after database persistence succeeds
-
-#### 18.7 Frontend integration
-
-**Notifications Center** (app/dashboard/notifications/page.jsx)
-- Displays notifications with real API integration
-- Supports filtering by category (all, unread, mentions, github, ai, system)
-- Shows unread count and total notification count
-- Mark as read/unread functionality
-- Delete notification functionality
-- Mark all as read action
-- Real-time updates via Socket.IO
-- Proper loading, error, and empty states
-- Notification icons by type
-- Links to relevant resources
-
-**Admin Dashboard** (app/admin/page.jsx and subpages)
-- Overview page with platform statistics
-- Users page with user list, search, and status filtering
-- User detail page with workspace/project counts
-- AI Usage page with usage statistics by tool and model
-- Subscriptions page with subscription list and status filtering
-- Reports page with growth and usage reports
-- Audit Logs page with activity log and filtering
-- User suspension/activation actions
-- Proper loading, error, and empty states
-- Real data from backend APIs
-
-**Admin Layout** (app/admin/layout.jsx)
-- Sidebar navigation with links to all admin sections
-- Admin role enforcement at layout level
-- Consistent admin shell styling
-
-**API Client** (lib/api.js)
-- api.notifications.list() - List notifications
-- api.notifications.markRead(notificationId) - Mark as read
-- api.notifications.markUnread(notificationId) - Mark as unread
-- api.notifications.markAllRead() - Mark all as read
-- api.notifications.delete(notificationId) - Delete notification
-- api.admin.overview() - Get platform overview
-- api.admin.users(params) - List users
-- api.admin.userDetail(userId) - Get user details
-- api.admin.suspendUser(userId) - Suspend user
-- api.admin.activateUser(userId) - Activate user
-- api.admin.aiUsage(params) - Get AI usage
-- api.admin.subscriptions(params) - List subscriptions
-- api.admin.reports(params) - Generate reports
-- api.admin.auditLogs(params) - List audit logs
-
-#### 18.8 Security implementation
-
-**Notification Authorization:**
-- All endpoints require requireAuth middleware
-- User identity from req.user._id
-- Queries constrained by recipient
-- Cross-user access prevented
-- Notifications scoped to authenticated user
-
-**Admin Authorization:**
-- All endpoints require requireAuth middleware
-- Admin role enforced via requireAdmin middleware
-- Non-admin users receive 403 Forbidden
-- Admin operations logged for audit trail
-- Platform-wide data access restricted to admins only
-
-**Data Privacy:**
-- Notifications contain only necessary metadata
-- Admin reports aggregate data without exposing sensitive details
-- User suspension/activation tracked in audit logs
-- No sensitive data in Socket.IO events
-
-#### 18.9 Files created
-
-**Backend (5 new files):**
-1. backend/src/controllers/admin.controller.js
-2. backend/src/middlewares/admin.js
-3. backend/src/routes/admin.routes.js
-4. backend/src/services/admin.service.js
-5. backend/src/services/notification-helper.service.js
-
-#### 18.10 Files modified
-
-**Backend (2 files):**
-1. backend/src/app.js - Registered admin routes
-2. backend/src/models/Notification.js - Minor schema updates
-
-**Frontend (2 files):**
-1. lib/api.js - Added notifications and admin API methods
-2. components/final-pages.jsx - Updated AdminPage component with real API integration
-
-#### 18.11 Automated validation
-
-**Backend Tests:**
-Command: cd backend && npm test -- --runInBand
-Result: PASS
-- Test Suites: 12 passed, 12 total
-- Tests: 139 passed, 139 total
-- Failures: 0
-- Skipped: 0
-- Execution time: ~89 seconds
-
-**Frontend Build:**
-Command: npm run build
-Result: Compiled successfully
-- Routes generated: 73 (includes /admin routes)
-- Errors: 0
-- Warnings: 2 (unrelated mockApi imports in other pages)
-
-**Frontend Lint:**
-Command: npm run lint
-Result: Passed
-- Errors: 0
-- Warnings: 3 (unrelated image optimization and React Hook dependency warnings)
-
-#### 18.12 Notification delivery guarantees
-
-**Persistence:**
-- All notifications persisted to MongoDB before Socket.IO delivery
-- Failures in Socket.IO delivery do not prevent persistence
-- Notifications remain available via REST API even if Socket.IO fails
-
-**Real-time Delivery:**
-- Socket.IO events emitted to user-specific rooms
-- Events include full notification metadata
-- Frontend updates UI immediately on event receipt
-- Fallback to REST polling if Socket.IO disconnects
-
-**Best-Effort Semantics:**
-- Notification creation is best-effort after the triggering operation
-- Database failures in notification creation are logged but do not block the original operation
-- Socket.IO delivery failures are logged but do not prevent persistence
-- No transaction or outbox pattern; eventual consistency model
-
-#### 18.13 Admin capabilities
-
-**Platform Monitoring:**
-- Real-time user and workspace counts
-- Active user tracking (24-hour window)
-- AI request volume and tool usage
-- Subscription status distribution
-- Revenue and subscription metrics
-
-**User Management:**
-- User listing with search and filtering
-- User detail view with workspace/project counts
-- User suspension and activation
-- Verification status tracking
-
-**Analytics and Reporting:**
-- User growth trends
-- Workspace creation trends
-- Subscription distribution by plan
-- AI usage by tool and model
-- Audit log with actor and action tracking
-
-#### 18.14 Environment configuration
-
-No new environment variables required for Phase 18. Existing configuration is sufficient.
-
-#### 18.15 Manual verification
-
-Manual browser and live-provider verification have not been performed. Outstanding checks:
-1. Create a notification and verify it appears in the Notifications Center
-2. Verify Socket.IO real-time delivery of notifications
-3. Test mark as read/unread functionality
-4. Test delete notification functionality
-5. Verify admin dashboard loads with real data
-6. Test user search and filtering
-7. Test user suspension and activation
-8. Verify cross-user access prevention
-9. Verify non-admin users cannot access admin routes
-10. Test notification filtering by category
-
-#### 18.16 Known limitations
-
-- Notification creation is best-effort; failures do not block the original operation
-- No transaction or outbox pattern; eventual consistency model
-- Socket.IO room membership revocation can take up to 30 seconds
-- No notification preferences or opt-out mechanism
-- Admin reports are point-in-time snapshots, not historical trends
-- No scheduled reports or email notifications
-- User suspension does not invalidate existing sessions
-
-#### 18.17 Remaining work
-
-- Manual browser testing with real notifications
-- Socket.IO real-time delivery verification
-- Admin dashboard live data verification
-- User suspension/activation workflow testing
-- Cross-user access prevention verification
-- Production deployment and monitoring
-- Notification preferences implementation (future phase)
-- Email notification delivery (future phase)
-- Historical trend reporting (future phase)
-
-#### 18.18 Next phase
-
-Phase 19 — Production Hardening and Release. Before starting Phase 19, manually verify Phase 18 notification creation, Socket.IO delivery, admin dashboard functionality, and user management operations with real data.
-
-
-### Phase 19 — Complete UI Redesign (Midnight Espresso + Amber Gold + Warm Ivory)
-
-**Current verified status (2026-11-13):** Phase 19 UI redesign is complete. The entire application has been visually transformed with the new Midnight Espresso + Amber Gold + Warm Ivory design system while preserving all functionality.
-
-#### 19.1 Design System Implementation
-
-**Color Tokens (Dark Theme - Default):**
-- Background: #0F0E0C (Midnight Espresso)
-- Surface: #1F1D19 (Deep Espresso)
-- Card: #1F1D19 (Deep Espresso)
-- Border: #2E2B25 (Subtle Espresso)
-- Primary Text: #F5F1E8 (Warm Ivory)
-- Muted Text: #A39C8C (Warm Gray)
-- Primary Accent: #F2A93B (Amber Gold)
-- Success: #5FD3A0 (Emerald)
-- Error: #EF6B57 (Coral Red)
-- Warning: #F59E0B (Amber)
-- Info: #06B6D4 (Cyan)
-
-**Color Tokens (Light Theme):**
-- Background: #F7F4EC (Warm Ivory)
-- Surface: #FFFFFF (Pure White)
-- Card: #FFFDF8 (Off-White)
-- Border: #E4DDCD (Warm Beige)
-- Primary Text: #1A1814 (Dark Brown)
-- Muted Text: #6B6558 (Warm Brown)
-- Primary Accent: #F2A93B (Amber Gold)
-- Accent Text: #94590F (Dark Amber)
-- Success: #1F7A53 (Dark Green)
-- Error: #C23F2B (Dark Red)
-
-**Typography:**
-- Headings: DM Serif Display (elegant, editorial)
-- Body: Inter (clean, readable)
-- Code: JetBrains Mono (technical, monospace)
-
-#### 19.2 Component Styling Updates
-
-**Buttons:**
-- Primary buttons: Amber Gold background with dark text
-- Secondary/outline buttons: Transparent with border
-- Icon buttons: Subtle background with hover effects
-- Border radius: 14px (consistent)
-
-**Cards & Surfaces:**
-- Border radius: 16px (refined from 18px)
-- Subtle shadows: 0 2px 8px for cards, 0 8px 24px on hover
-- Transparent backgrounds with color-mix for depth
-- Hover effects: Slight lift with border color change
-
-**Inputs & Forms:**
-- Border radius: 10px
-- Focus state: Amber Gold border with subtle glow
-- Background: Transparent with slight tint
-- Smooth transitions on all interactions
-
-**Navigation & Sidebar:**
-- Active items: Amber Gold text with subtle background
-- Hover state: Amber Gold background tint
-- Badges: Amber Gold background with dark text
-- Smooth color transitions
-
-**Status & Badges:**
-- Success: Emerald with subtle background
-- Error: Coral Red with subtle background
-- Warning: Amber with subtle background
-- Info: Cyan with subtle background
-- Muted: Gray with subtle background
-
-**Dialogs & Modals:**
-- Border radius: 16px
-- Backdrop: Semi-transparent with blur
-- Shadow: 0 20px 60px with reduced opacity
-- Smooth animations
-
-**Toast Notifications:**
-- Border radius: 12px
-- Subtle backdrop blur
-- Colored left border for status
-- Smooth slide-up animation
-
-#### 19.3 Visual Refinements
-
-**Spacing & Layout:**
-- Consistent 8px spacing system
-- Generous whitespace on marketing pages
-- Efficient density on dashboards
-- Improved visual hierarchy
-
-**Shadows & Depth:**
-- Subtle ambient lighting with Amber Gold tints
-- Restrained shadows (0 2px 8px to 0 20px 60px)
-- Soft surface elevation
-- Clear layer separation
-
-**Borders & Corners:**
-- Thin, low-contrast borders
-- Consistent 10-16px border radius
-- Refined from previous 18-20px
-- Softer, more modern appearance
-
-**Gradients & Effects:**
-- Minimal use of gradients
-- Amber Gold radial gradients for backgrounds
-- No excessive glassmorphism
-- Focus on solid colors and subtle tints
-
-#### 19.4 Files Modified
-
-**Frontend (1 file):**
-1. app/globals.css - Complete redesign of all CSS variables and component styles
-
-#### 19.5 Design Coverage
-
-**All Pages Redesigned:**
-- ✅ Homepage & Landing
-- ✅ Features page
-- ✅ Pricing page
-- ✅ Blog pages
-- ✅ Documentation
-- ✅ Contact page
-- ✅ Authentication (Login, Register, 2FA, Password Reset)
-- ✅ Dashboard overview
-- ✅ Workspace interfaces
-- ✅ Project management
-- ✅ AI workspace
-- ✅ Developer tools
-- ✅ Team & Integrations
-- ✅ Analytics & Deployments
-- ✅ Billing & Settings
-- ✅ Admin panel
-- ✅ Help center
-- ✅ Feedback page
-- ✅ Global search
-- ✅ All remaining pages
-
-#### 19.6 Component Styling Coverage
-
-**All Components Redesigned:**
-- ✅ Buttons (primary, secondary, outline, ghost, icon)
-- ✅ Links & Navigation
-- ✅ Inputs & Textareas
-- ✅ Select menus & Dropdowns
-- ✅ Modals & Dialogs
-- ✅ Drawers
-- ✅ Tabs
-- ✅ Cards & Surfaces
-- ✅ Tables & Data grids
-- ✅ Badges & Status indicators
-- ✅ Tooltips
-- ✅ Toasts & Notifications
-- ✅ Skeletons & Loading states
-- ✅ Empty states
-- ✅ Error states
-- ✅ Confirmation dialogs
-- ✅ Charts & Visualizations
-- ✅ Pagination
-- ✅ Sidebars & Navigation
-- ✅ Headers & Footers
-- ✅ Forms & Inputs
-- ✅ Wizard steps
-- ✅ Timelines
-- ✅ Avatars
-- ✅ Progress bars
-- ✅ Filter chips
-- ✅ Integration cards
-- ✅ Topic cards
-- ✅ Search results
-- ✅ FAQ lists
-- ✅ Support CTAs
-
-#### 19.7 Responsive Design
-
-**All Breakpoints Maintained:**
-- ✅ Desktop (1280px+)
-- ✅ Laptop (1024px - 1279px)
-- ✅ Tablet (768px - 1023px)
-- ✅ Mobile (640px - 767px)
-- ✅ Small Mobile (<640px)
-
-**Responsive Features:**
-- No horizontal overflow
-- Proper content alignment
-- Readable typography at all sizes
-- Consistent spacing
-- Properly sized controls
-- Working navigation
-- Usable tables and charts
-- Accessible modals and drawers
-
-#### 19.8 Functionality Verification
-
-**All Functionality Preserved:**
-- ✅ All original buttons exist
-- ✅ All button labels unchanged
-- ✅ All button actions unchanged
-- ✅ All original links work
-- ✅ All forms functional
-- ✅ Input validation unchanged
-- ✅ Dropdowns & tabs work
-- ✅ Modals & drawers accessible
-- ✅ API integrations untouched
-- ✅ All components preserved
-- ✅ State management unchanged
-- ✅ Navigation works
-- ✅ No features removed or added
-- ✅ Theme toggle still functional
-- ✅ Dark mode remains default
-- ✅ Light mode fully supported
-
-#### 19.9 Design Quality Metrics
-
-**Visual Consistency:**
-- Unified color palette across all pages
-- Consistent typography hierarchy
-- Uniform spacing and alignment
-- Cohesive component styling
-- Professional visual language
-
-**User Experience:**
-- Clear visual hierarchy
-- Intuitive interactions
-- Smooth transitions
-- Accessible color contrasts
-- Readable text at all sizes
-
-**Technical Quality:**
-- CSS-only changes (no JavaScript modifications)
-- No new dependencies
-- Optimized file size
-- Clean, maintainable code
-- Proper CSS variable usage
-
-#### 19.10 Design Principles Applied
-
-1. **Premium & Professional:** Sophisticated warm-toned palette with refined typography
-2. **Warm & Inviting:** Amber Gold accents create approachable, friendly interface
-3. **Technical & Precise:** JetBrains Mono for code, clean layouts for dashboards
-4. **Accessible:** High contrast ratios, readable fonts, clear visual hierarchy
-5. **Consistent:** Unified design system across all pages and components
-6. **Responsive:** Seamless experience across all device sizes
-7. **Performant:** Minimal CSS, no unnecessary effects
-8. **Maintainable:** Well-organized CSS variables, clear naming conventions
-
-#### 19.11 Known Characteristics
-
-- Dark theme is default (as required)
-- Light theme fully functional
-- Theme toggle preserved and working
-- All existing functionality intact
-- No breaking changes
-- Backward compatible
-- No new dependencies required
-- Pure CSS implementation
-
-#### 19.12 Automated Validation
-
-**Frontend Build:**
-Command: npm run build
-Result: Compiled successfully
-- Routes generated: 73
-- Errors: 0
-- Warnings: 2 (unrelated mockApi imports in other pages)
-
-**Frontend Lint:**
-Command: npm run lint
-Result: Passed
-- Errors: 0
-- Warnings: 3 (unrelated image optimization and React Hook dependency warnings)
-
-#### 19.13 Next phase
-
-Phase 20 — Production Hardening and Release. The UI redesign is complete and production-ready. All visual changes have been applied while preserving 100% of existing functionality.
+The root manifest currently defines Next.js dev/build/start and lint scripts. If the installed Next.js version no longer supports the configured lint command, verify the current CLI and report the actual result rather than silently changing project scripts.
+
+### Backend
+
+```bash
+cd backend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Other backend scripts:
+
+```bash
+npm start
+npm test
+npm run worker
+npm run worker:dev
+```
+
+The backend package defines separate API and worker entry points. Run the worker when testing queue-backed jobs.
+
+### Required backend environment variables
+
+The backend startup explicitly requires:
+
+```env
+MONGO_URI=
+JWT_ACCESS_SECRET=
+JWT_REFRESH_SECRET=
+FRONTEND_URL=http://localhost:3000
+PORT=5000
+```
+
+### Optional/provider environment groups
+
+Names and exact requirements must be checked against the relevant config/service and `backend/.env.example`. Documented groups include:
+
+- Google/GitHub sign-in OAuth credentials.
+- Dedicated GitHub repository integration OAuth client ID/secret, callback URL, and 32-byte encryption key encoded as 64 hex characters.
+- AI provider selection/model/API key and timeout/input/output limits.
+- Redis connection settings.
+- Email SMTP/provider settings.
+- ImageKit credentials.
+- Deployment provider credentials.
+- Payment provider/webhook secrets.
+- Any API-key encryption/hash configuration required by the relevant service.
+
+Example AI settings documented by the backend:
+
+```env
+AI_PROVIDER=ollama
+AI_MODEL=qwen3:1.7b
+AI_API_KEY=
+AI_REQUEST_TIMEOUT_MS=120000
+AI_MAX_INPUT_LENGTH=20000
+AI_MAX_OUTPUT_LENGTH=40000
+AI_MAX_OUTPUT_TOKENS=2048
+```
+
+For local Ollama:
+
+```bash
+ollama pull qwen3:1.7b
+```
+
+### Environment safety
+
+- Never commit `.env` files, API keys, JWT secrets, OAuth secrets, database credentials, encryption keys, or payment secrets.
+- Never expose backend secrets through `NEXT_PUBLIC_*`.
+- Keep frontend and backend environment configuration separate.
+- Keep `.env.example` values blank or clearly non-secret.
+- Do not rotate encryption keys casually; existing encrypted credentials may become unreadable.
+- Use exact production callback URLs and allowed frontend origins.
+
+---
+
+## 15. Important Restrictions
+
+These restrictions apply to all AI coding agents and contributors unless the project owner explicitly overrides them.
+
+### Scope and information architecture
+
+1. Do not add new pages, routes, route groups, navigation items, or product sections without explicit approval.
+2. Prefer implementing the requested behavior inside the existing page and component structure.
+3. Do not remove or rename existing routes/components as an incidental refactor.
+4. Do not introduce unrelated features, dependencies, or architectural rewrites.
+
+### UI and functionality preservation
+
+5. Do not add, remove, rename, or repurpose buttons, links, inputs, tabs, menus, dialogs, or components unless explicitly requested.
+6. Do not change button labels, event handlers, form behavior, validation, API calls, permissions, or state management during a UI-only task.
+7. Do not change business logic while performing styling work.
+8. Preserve dark/light theme support and the current design tokens.
+9. Do not create duplicate components or duplicate design systems.
+10. Do not replace a functional component with a static visual mockup.
+
+### Backend and security
+
+11. Never trust client-provided ownership, workspace IDs, project IDs, roles, or permissions.
+12. Do not bypass authentication, validation, rate limits, tenant checks, or centralized error handling.
+13. Never expose passwords, JWTs, refresh tokens, OAuth tokens, encryption keys, API keys, or other secrets.
+14. Do not add provider write permissions or destructive external actions without explicit approval.
+15. Do not silently use mock data when a real API request fails.
+16. Do not claim a provider integration works until configured and tested against the real provider.
+
+### Change control and Git
+
+17. Inspect `git status` before editing; preserve all user changes.
+18. Do not reset, clean, force-push, rebase, merge, commit, or push unless the task explicitly authorizes that operation.
+19. Do not overwrite unrelated files or revert another contributor's work.
+20. Keep changes narrow and reviewable; explain any necessary cross-cutting changes before making them.
+
+### Required workflow for every task
+
+1. Read this file and inspect the current branch/status.
+2. Inspect the target page/component and all relevant imports/callers.
+3. For backend work, inspect route, validator, controller, service, model, middleware, and tests.
+4. Identify whether the feature is real API-backed, partial, or mock/demo-backed.
+5. State the intended scope and files likely to change.
+6. Implement only the requested scope.
+7. Run the narrowest relevant tests, then lint/build as appropriate.
+8. Inspect the final diff for accidental UI, logic, route, or dependency changes.
+9. Report exactly what changed, what was tested, test outcomes, and remaining limitations.
+10. Update this document when architecture, routes, APIs, schemas, design tokens, feature status, or setup materially changes.
+
+### Acceptance checklist
+
+Before calling a task complete, verify:
+
+- [ ] Only approved files and behavior changed.
+- [ ] Existing routes and page structure remain intact.
+- [ ] Existing UI interactions and functionality are preserved unless explicitly changed.
+- [ ] Backend authorization and tenant isolation are enforced where relevant.
+- [ ] Loading, empty, error, and success states are handled.
+- [ ] No secrets or sensitive data are exposed.
+- [ ] Relevant automated tests pass, or failures are clearly reported.
+- [ ] Frontend lint/build checks were run when relevant.
+- [ ] The diff contains no unrelated changes.
+- [ ] This document is updated if the project context changed.
+
+---
+
+## Documentation maintenance
+
+This document is a maintained project reference, not a substitute for source inspection. When implementation changes, update the relevant section in the same task. For new API contracts, document the actual method, path, validation schema, authorization rule, and response shape from source/tests. For schema changes, document fields/indexes/relationships from the model. For UI changes, keep routes and interaction contracts accurate.
+
+If this document conflicts with source code, tests, or the current package manifests, trust the source and tests, then correct this document. Do not infer that an unverified or mock-backed feature is production-ready.
