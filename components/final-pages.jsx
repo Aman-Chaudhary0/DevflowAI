@@ -13,6 +13,7 @@ import {
   Search,
   Send,
   Webhook,
+  ArrowUp,
 } from "lucide-react";
 import {
   ConfirmDialog,
@@ -80,12 +81,12 @@ export function WorkspacePage({ kind }) {
       </PageHeader>
       {kind === "Webhooks" && (
         <div className="dash-grid-4 mt-6">
-          <StatCard label="Active Webhooks" value="8" />
-          <StatCard label="Deliveries Today" value="2,481" />
-          <StatCard label="Successful" value="2,436" />
+          <StatCard label="Active Webhooks" value={String(8).toLocaleString()} />
+          <StatCard label="Deliveries Today" value={String(2481).toLocaleString()} />
+          <StatCard label="Successful" value={String(2436).toLocaleString()} />
           <StatCard label="Success rate" value="98.1%" />
         </div>
-      )}
+      )}}
       <section className="card p-5 mt-6">
         <label className="dash-search mb-4">
           <Search size={16} />
@@ -95,8 +96,8 @@ export function WorkspacePage({ kind }) {
             onChange={(e) => setQ(e.target.value)}
             placeholder={
               kind === "Search"
-                ? "Search projects, tasks, files, AI sessions…"
-                : `Search ${kind.toLowerCase()}…`
+                ? "Search projects, tasks, files, AI..."
+                : `Search ${kind.toLowerCase()}...`
             }
           />
         </label>
@@ -157,7 +158,7 @@ export function WorkspacePage({ kind }) {
                       }}
                       type="button"
                     >
-                      ▲ {x.votes}
+                      <ArrowUp size={14} /> {x.votes}
                     </button>
                   )}
                   {kind === "Integrations" && (
@@ -228,7 +229,7 @@ function Help() {
       <section className="card p-6 mt-6">
         <label className="dash-search w-full">
           <Search />
-          <input placeholder="How can we help?" />
+          <input placeholder="How can we help" />
         </label>
         <div className="dash-grid-3 mt-5">
           {[
@@ -394,7 +395,7 @@ export function AdminPage({ section = "Overview" }) {
               )}
             </div>
             {rows.length === 0 ? (
-              <EmptyState icon={Search} title="No data found" description="No records available for this section." />
+              <EmptyState icon={Search} title="No data found" description="No records available for this section" />
             ) : (
               <table className="data-table mt-5">
                 <thead>
@@ -462,8 +463,8 @@ export function AdminPage({ section = "Overview" }) {
           </Drawer>
           <ConfirmDialog
             open={confirm}
-            title="Suspend user?"
-            description="This action will suspend the user account."
+            title="Suspend user"
+            description="This action will suspend the user account"
             confirmLabel="Suspend User"
             danger
             onConfirm={() => {

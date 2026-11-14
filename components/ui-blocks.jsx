@@ -69,7 +69,7 @@ export function DashboardPreview() {
   return (
     <div className="dashboard-mock floating">
       <div className="mock-top">
-        <span className="badge">AI Sprint Control</span>
+        <span className="badge">AI sprint control</span>
         <button className="btn btn-primary" type="button"><Play size={16} /> Run</button>
       </div>
       <div className="grid grid-3">
@@ -88,11 +88,11 @@ export function DashboardPreview() {
       </div>
       <div className="grid grid-2">
         <div className="card card-pad floating delay-1">
-          <span className="badge">AI Response</span>
+          <span className="badge">AI response</span>
           <p className="muted">Refactor plan prepared with risk notes and rollback steps.</p>
         </div>
         <div className="card card-pad floating delay-2">
-          <span className="badge">Code Review</span>
+          <span className="badge">Code review</span>
           <p className="muted">No blocking issues. Suggested two accessibility improvements.</p>
         </div>
       </div>
