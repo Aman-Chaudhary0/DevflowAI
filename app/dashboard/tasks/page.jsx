@@ -84,7 +84,7 @@ export default function TasksPage() {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.tasks.list({ page: 1, limit: 100, search, sortBy: "updatedAt", sortOrder: "desc" });
+      const response = await api.tasks.list({ page: 1, limit: 100, sortBy: "updatedAt", sortOrder: "desc" });
       const items = response?.data?.tasks || response?.tasks || [];
       setTasks(items);
     } catch (err) {
@@ -93,7 +93,7 @@ export default function TasksPage() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, []);
 
   useEffect(() => {
     loadProjects().catch(() => undefined);

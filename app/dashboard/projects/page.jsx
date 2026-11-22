@@ -54,7 +54,7 @@ export default function ProjectsPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await api.projects.list({ page: 1, limit: 100, search, sortBy: "updatedAt", sortOrder: "desc" });
+      const res = await api.projects.list({ page: 1, limit: 100, sortBy: "updatedAt", sortOrder: "desc" });
       const items = res?.data?.projects || res?.projects || [];
       setProjects(items);
     } catch (err) {
@@ -63,7 +63,7 @@ export default function ProjectsPage() {
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, []);
 
   useEffect(() => {
     loadProjects();

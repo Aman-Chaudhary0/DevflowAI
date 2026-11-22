@@ -30,6 +30,7 @@ import {
   Sparkles,
   Users,
   Workflow,
+  Menu,
   X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -185,6 +186,15 @@ export default function DashboardLayout({ children }) {
     };
   }, [authStatus]);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileOpen(false);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileOpen]);
+
   if (authStatus !== "authenticated") {
     return (
       <div className="grid place-items-center min-h-screen">
@@ -208,118 +218,126 @@ export default function DashboardLayout({ children }) {
     return pathname.startsWith(href);
   }
 
-  const sidebarContent = (
-    <>
-      <div className="flex items-center justify-between pb-3 border-b border-(--border) mb-2 px-1 pt-1">
-        {!collapsed ? (
-          <Link className="logo text-sm" href="/dashboard">
-            <span className="logo-mark w-7.5 h-7.5"><Rocket size={15} /></span>
-            <span className="font-display">Devflow AI</span>
+  const sidebarContent = (mobile = false) => {
+    const isCollapsed = collapsed && !mobile;
+
+    return (
+      <>
+        <div className={`flex items-center justify-between pb-3 border-b border-(--border) mb-2 px-1 pt-1${mobile ? " sidebar-mobile-brand" : ""}`}>
+          {!isCollapsed ? (
+            <Link className="logo text-sm" href="/dashboard" onClick={mobile ? () => setMobileOpen(false) : undefined}>
+              <span className="logo-mark w-7.5 h-7.5"><Rocket size={15} /></span>
+              <span className="font-display">Devflow AI</span>
+            </Link>
+          ) : (
+            <Link href="/dashboard" className="grid place-items-center rounded-[10px] w-7.5 h-7.5 bg-linear-to-br from-(--primary) to-(--info) text-white mx-auto">
+              <Rocket size={15} />
+            </Link>
+          )}
+          {mobile ? (
+            <button className="icon-btn w-7 h-7 border-0 bg-transparent shrink-0" onClick={() => setMobileOpen(false)} type="button" aria-label="Close menu">
+              <X size={18} />
+            </button>
+          ) : (
+            <button className="icon-btn sidebar-collapse-button w-7 h-7 border-0 bg-transparent shrink-0" onClick={() => setCollapsed((c) => !c)} type="button" aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}>
+              {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            </button>
+          )}
+        </div>
+
+        {!isCollapsed ? <span className="sidebar-section">Main</span> : null}
+
+        {globalNav.map(({ href, label, icon: Icon, badge }) => (
+          <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+            <Icon size={18} className="shrink-0" />
+            {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
+            {!isCollapsed && badge ? <span className="sidebar-badge">{badge}</span> : null}
           </Link>
-        ) : (
-          <Link href="/dashboard" className="grid place-items-center rounded-[10px] w-7.5 h-7.5 bg-linear-to-br from-(--primary) to-(--info) text-white mx-auto">
-            <Rocket size={15} />
-          </Link>
-        )}
-        <button className="icon-btn w-7 h-7 border-0 bg-transparent shrink-0" onClick={() => setCollapsed((c) => !c)} type="button">
-          {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
-        </button>
-      </div>
+        ))}
 
-      {!collapsed ? <span className="sidebar-section">Main</span> : null}
+        {projectId ? (
+          <>
+            <div className="sidebar-divider" />
+            {!isCollapsed ? <span className="sidebar-section">Project</span> : null}
+            {projectNav.map(({ label, icon: Icon, segment }) => {
+              const href = `/dashboard/projects/${projectId}${segment ? `/${segment}` : ""}`;
+              return (
+                <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={label} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+                  <Icon size={18} className="shrink-0" />
+                  {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
+                </Link>
+              );
+            })}
+          </>
+        ) : null}
 
-      {globalNav.map(({ href, label, icon: Icon, badge }) => (
-        <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-          <Icon size={18} className="shrink-0" />
-          {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-          {!collapsed && badge ? <span className="sidebar-badge">{badge}</span> : null}
-        </Link>
-      ))}
-
-      {projectId ? (
-        <>
-          <div className="sidebar-divider" />
-          {!collapsed ? <span className="sidebar-section">Project</span> : null}
-          {projectNav.map(({ label, icon: Icon, segment }) => {
-            const href = `/dashboard/projects/${projectId}${segment ? `/${segment}` : ""}`;
-            return (
-              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={label} title={collapsed ? label : undefined}>
+        {showAiNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!isCollapsed ? <span className="sidebar-section">AI</span> : null}
+            {aiNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
                 <Icon size={18} className="shrink-0" />
-                {!collapsed ? <span className="sidebar-label">{label}</span> : null}
+                {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
               </Link>
-            );
-          })}
-        </>
-      ) : null}
+            ))}
+          </>
+        ) : null}
 
-      {showAiNav ? (
-        <>
-          <div className="sidebar-divider" />
-          {!collapsed ? <span className="sidebar-section">AI</span> : null}
-          {aiNav.map(({ label, href, icon: Icon }) => (
-            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-              <Icon size={18} className="shrink-0" />
-              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-            </Link>
-          ))}
-        </>
-      ) : null}
+        {showGithubNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!isCollapsed ? <span className="sidebar-section">GitHub</span> : null}
+            {githubNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+                <Icon size={18} className="shrink-0" />
+                {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
+              </Link>
+            ))}
+          </>
+        ) : null}
 
-      {showGithubNav ? (
-        <>
-          <div className="sidebar-divider" />
-          {!collapsed ? <span className="sidebar-section">GitHub</span> : null}
-          {githubNav.map(({ label, href, icon: Icon }) => (
-            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-              <Icon size={18} className="shrink-0" />
-              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-            </Link>
-          ))}
-        </>
-      ) : null}
+        {showDeploymentNav ? (
+          <>
+            <div className="sidebar-divider" />
+            {!isCollapsed ? <span className="sidebar-section">Developer</span> : null}
+            {deploymentNav.map(({ label, href, icon: Icon }) => (
+              <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+                <Icon size={18} className="shrink-0" />
+                {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
+              </Link>
+            ))}
+          </>
+        ) : null}
 
-      {showDeploymentNav ? (
-        <>
-          <div className="sidebar-divider" />
-          {!collapsed ? <span className="sidebar-section">Developer</span> : null}
-          {deploymentNav.map(({ label, href, icon: Icon }) => (
-            <Link className={`sidebar-item ${pathname === href ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-              <Icon size={18} className="shrink-0" />
-              {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-            </Link>
-          ))}
-        </>
-      ) : null}
+        <div className="flex-1" />
+        <div className="sidebar-divider" />
 
-      <div className="flex-1" />
-      <div className="sidebar-divider" />
-
-      {bottomNav.map(({ href, label, icon: Icon }) => (
-        <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={collapsed ? label : undefined}>
-          <Icon size={18} className="shrink-0" />
-          {!collapsed ? <span className="sidebar-label">{label}</span> : null}
-        </Link>
-      ))}
-    </>
-  );
+        {bottomNav.map(({ href, label, icon: Icon }) => (
+          <Link className={`sidebar-item ${isActive(href) ? "active" : ""}`} href={href} key={href} title={isCollapsed ? label : undefined} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+            <Icon size={18} className="shrink-0" />
+            {!isCollapsed ? <span className="sidebar-label">{label}</span> : null}
+          </Link>
+        ))}
+      </>
+    );
+  };
 
   return (
     <div className={`dash-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
       {/* Navbar */}
       <header className="dash-navbar">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 dash-navbar-left">
           {/* Mobile hamburger */}
           <button
-            className="icon-btn border-0 bg-transparent lg:hidden"
+            className="icon-btn dash-mobile-menu border-0 bg-transparent"
             onClick={() => setMobileOpen(true)}
             type="button"
             aria-label="Open menu"
+            aria-expanded={mobileOpen}
+            aria-controls="dashboard-mobile-sidebar"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <rect y="2" width="18" height="2" rx="1" fill="currentColor"/>
-              <rect y="8" width="18" height="2" rx="1" fill="currentColor"/>
-              <rect y="14" width="18" height="2" rx="1" fill="currentColor"/>
-            </svg>
+            <Menu size={20} />
           </button>
           <div className="dash-search">
             <Search size={16} color="var(--muted)" />
@@ -328,7 +346,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 dash-navbar-actions">
           <Link className="btn btn-primary min-h-9 px-3.5 text-xs gap-1.5" href="/dashboard/projects/create">
             <Plus size={16} /> New
           </Link>
@@ -338,28 +356,35 @@ export default function DashboardLayout({ children }) {
           <ThemeToggle />
 
           {/* Notifications */}
-          <div className="relative">
-            <button className="icon-btn relative" onClick={() => { setNotifOpen((o) => !o); setUserMenuOpen(false); }} type="button">
+          <div className="relative notification-menu">
+            <button className="icon-btn relative" onClick={() => { setNotifOpen((o) => !o); setUserMenuOpen(false); }} type="button" aria-label="Notifications" aria-expanded={notifOpen}>
               <Bell size={18} />
               {unread > 0 ? <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-(--danger) border-2 border-(--bg)" /> : null}
             </button>
             {notifOpen ? (
-              <div className="absolute right-0 top-13 w-85 bg-(--card) border border-(--border) rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
-                <div className="flex justify-between items-center px-5 py-4 border-b border-(--border)">
-                  <strong className="text-[15px]">Notifications</strong>
-                  <button onClick={() => setNotifOpen(false)} className="bg-transparent border-0 cursor-pointer text-(--muted)" type="button"><X size={16} /></button>
+              <div
+                role="dialog"
+                aria-label="Notifications"
+                className="absolute right-0 z-[80] box-border flex flex-col overflow-hidden rounded-2xl border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
+                style={{ top: 54, width: "min(360px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 76px)" }}
+              >
+                <div className="flex h-[49px] shrink-0 items-center justify-between border-b border-(--border) px-4">
+                  <strong className="text-[15px] leading-5">Notifications</strong>
+                  <button onClick={() => setNotifOpen(false)} className="grid h-8 w-8 shrink-0 place-items-center cursor-pointer border-0 bg-transparent text-(--muted)" type="button" aria-label="Close notifications"><X size={16} /></button>
                 </div>
-                {notifications.slice(0, 5).map((n) => (
-                  <div key={n._id} className="flex gap-2.5 items-start px-5 py-3 border-b border-(--border)/50" style={{ background: n.readAt ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                    {!n.readAt ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="m-0 mb-0.5 text-[13px] font-semibold">{n.title}</p>
-                      <p className="muted m-0 mb-0.5 text-xs">{n.message}</p>
-                      <span className="text-[11px] text-(--soft)">{new Date(n.createdAt).toLocaleString()}</span>
+                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                  {notifications.slice(0, 5).map((n) => (
+                    <div key={n._id} className="box-border flex min-h-[76px] items-start gap-3 border-b border-(--border)/50 px-4 py-3" style={{ background: n.readAt ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
+                      {!n.readAt ? <div className="mt-1.25 h-2 w-2 shrink-0 rounded-full bg-(--primary)" /> : <div className="w-2 shrink-0" />}
+                      <div className="min-w-0 flex-1">
+                        <p className="mb-1 min-w-0 break-words text-[13px] font-semibold leading-[18px]">{n.title}</p>
+                        <p className="muted mb-1 min-w-0 break-words text-xs leading-[17px]">{n.message}</p>
+                        <span className="block text-[11px] leading-[16px] text-(--soft)">{new Date(n.createdAt).toLocaleString()}</span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div className="px-5 py-3">
+                  ))}
+                </div>
+                <div className="shrink-0 border-t border-(--border) px-4 py-3">
                   <Link href="/dashboard/notifications" className="muted text-[13px] font-semibold" onClick={() => setNotifOpen(false)}>View all notifications</Link>
                 </div>
               </div>
@@ -369,18 +394,23 @@ export default function DashboardLayout({ children }) {
           {/* User Menu */}
           <div className="relative">
             <button onClick={() => { setUserMenuOpen((o) => !o); setNotifOpen(false); }} className="bg-transparent border-0 cursor-pointer p-0" type="button">
-              <Avatar name={user?.name || "U"} size={36} color="#3b82f6" />
+              <Avatar name={user?.name || "U"} size={36} color="var(--primary)" />
             </button>
             {userMenuOpen ? (
-              <div className="absolute right-0 top-12 w-55 bg-(--card) border border-(--border) rounded-[14px] shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
-                <div className="px-4 py-3.5 border-b border-(--border)">
-                  <p className="m-0 mb-0.5 font-bold text-sm">{user?.name}</p>
-                  <p className="muted m-0 text-xs">{user?.email}</p>
+              <div
+                role="menu"
+                aria-label="Profile menu"
+                className="absolute right-0 z-[80] box-border overflow-hidden rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
+                style={{ top: 54, width: "min(220px, calc(100vw - 24px))" }}
+              >
+                <div className="border-b border-(--border) px-4 py-3.5">
+                  <p className="m-0 mb-0.5 truncate font-bold text-sm">{user?.name}</p>
+                  <p className="muted m-0 truncate text-xs">{user?.email}</p>
                 </div>
                 <Link href="/dashboard/profile" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Users size={16} /><span>Profile</span></Link>
                 <Link href="/dashboard/settings" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Settings size={16} /><span>Settings</span></Link>
                 <div className="border-t border-(--border)">
-                  <button className="sidebar-item rounded-none text-(--danger) w-full" onClick={handleLogout} type="button">
+                  <button className="sidebar-item w-full rounded-none text-(--danger)" onClick={handleLogout} type="button">
                     <LogOut size={16} /><span>Logout</span>
                   </button>
                 </div>
@@ -391,15 +421,14 @@ export default function DashboardLayout({ children }) {
       </header>
 
       {/* Sidebar */}
-      <aside className="dash-sidebar">{sidebarContent}</aside>
+      <aside className="dash-sidebar">{sidebarContent()}</aside>
 
       {/* Mobile Overlay */}
       {mobileOpen ? (
-        <div className="fixed inset-0 z-60 flex">
+        <div className="fixed inset-0 z-60 flex" role="dialog" aria-modal="true" aria-label="Dashboard navigation">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="relative w-65 bg-(--surface) border-r border-(--border) flex flex-col p-4 gap-1 overflow-y-auto z-1">
-            <button onClick={() => setMobileOpen(false)} className="self-end bg-transparent border-0 cursor-pointer text-(--muted) mb-2" type="button"><X size={20} /></button>
-            {sidebarContent}
+          <aside id="dashboard-mobile-sidebar" className="relative w-65 max-w-[85vw] bg-(--surface) border-r border-(--border) flex flex-col p-4 gap-1 overflow-y-auto z-1">
+            {sidebarContent(true)}
           </aside>
         </div>
       ) : null}

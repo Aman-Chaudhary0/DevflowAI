@@ -134,20 +134,21 @@ export default function GithubPage() {
             <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Recent Activity</p>
             <Activity size={16} color="var(--muted)" />
           </div>
-          <div className="timeline">
+          <div style={{ display: "flex", flexDirection: "column", position: "relative", gap: 4 }}>
+            {recentActivity.length > 1 && <div aria-hidden="true" style={{ position: "absolute", left: 20, top: 28, bottom: 28, width: 1, background: "var(--border)" }} />}
             {!loading && !error && recentActivity.length === 0 ? <p className="muted">No recent activity available.</p> : recentActivity.map((a, i) => {
               const Icon = activityIcon[a.type] || GitCommit;
               const color = activityColor[a.type] || "var(--primary)";
               return (
-                <div className="timeline-item" key={i}>
-                  <div className="timeline-dot" style={{ background: `color-mix(in srgb, ${color} 12%, transparent)` }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 16, minHeight: 56, padding: "8px 0", position: "relative" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: `color-mix(in srgb, ${color} 12%, transparent)`, display: "grid", placeItems: "center", flexShrink: 0 }}>
                     <Icon size={16} color={color} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600 }}>{a.message}</p>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <span className="muted" style={{ fontSize: 11 }}>{a.repo}</span>
-                      <span style={{ fontSize: 11, color: "var(--soft)" }}>by {a.author} · {a.time ? new Date(a.time).toLocaleString() : ""}</span>
+                    <p style={{ margin: "0 0 2px", fontSize: 13, fontWeight: 600, lineHeight: "18px" }}>{a.message}</p>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                      <span className="muted" style={{ fontSize: 11, lineHeight: "16px" }}>{a.repo}</span>
+                      <span style={{ fontSize: 11, lineHeight: "16px", color: "var(--soft)" }}>by {a.author} · {a.time ? new Date(a.time).toLocaleString() : ""}</span>
                     </div>
                   </div>
                 </div>

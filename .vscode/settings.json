@@ -1,3 +1,28 @@
+
+
 {
-    "CodeGPT.apiKey": "OpenAI"
+  "CodeGPT.apiKey": "OpenAI",
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/.next/**": true,
+    "**/dist/**": true,
+    "**/build/**": true,
+    "**/coverage/**": true,
+    "**/.git/objects/**": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/.next": true,
+    "**/dist": true,
+    "**/build": true,
+    "**/coverage": true
+  },
+  "files.exclude": {
+    "**/.next": true,
+    "**/coverage": true
+  },
+  "js/ts.tsserver.automaticTypeAcquisition.enabled": false,
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": false,
+  "workbench.reduceMotion": "on"
 }
