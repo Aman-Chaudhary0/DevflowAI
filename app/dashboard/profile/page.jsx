@@ -59,7 +59,7 @@ export default function ProfilePage() {
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", marginTop: -50, marginBottom: 20 }}>
           <div style={{ display: "flex", alignItems: "flex-end", gap: 20 }}>
             <div style={{ border: "4px solid var(--card)", borderRadius: "50%", background: "var(--card)", boxShadow: "0 10px 25px rgba(0,0,0,0.3)", position: "relative" }}>
-              <Avatar name={profile.name} size={96} color="#3b82f6" />
+              <Avatar name={profile.name} size={96} color="var(--primary)" />
               <span style={{ position: "absolute", bottom: 6, right: 6, width: 18, height: 18, borderRadius: "50%", background: "#10b981", border: "3px solid var(--card)" }} title="Online" />
             </div>
 

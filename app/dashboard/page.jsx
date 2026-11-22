@@ -166,8 +166,8 @@ export default function DashboardPage() {
       {/* Charts Row */}
       <div className="dash-grid-2">
         {/* Productivity Chart */}
-        <div className="stat-card gap-4">
-          <div className="flex items-center justify-between">
+        <div className="stat-card gap-4 productivity-card" style={{ gap: 12 }}>
+          <div className="flex items-center justify-between productivity-card-header">
             <div>
               <p className="m-0 font-bold text-[15px]">Productivity</p>
               <p className="muted mt-0.5 mb-0 text-xs">Tasks completed over time</p>
@@ -180,19 +180,19 @@ export default function DashboardPage() {
               ))}
             </div>
           </div>
-          <div className="flex items-end gap-1.5 h-30">
+          <div className="h-30 productivity-chart" style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", columnGap: 12, height: 120, paddingTop: 4 }}>
             {mockAnalytics.weeklyTasks.map((v, i) => {
               const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
               const max = Math.max(...mockAnalytics.weeklyTasks);
               return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="w-full rounded-sm" style={{ height: `${(v / max) * 90}px`, background: i === 6 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)", minHeight: 4, transition: "height 400ms ease" }} />
-                  <span className="text-[10px] text-(--soft)">{days[i]}</span>
+                <div key={i} className="productivity-chart-column" style={{ minWidth: 0, height: "100%", display: "grid", gridTemplateRows: "1fr 16px", rowGap: 6 }}>
+                  <div className="w-full rounded-sm productivity-bar" style={{ width: "100%", height: `${(v / max) * 90}px`, alignSelf: "end", background: i === 6 ? "var(--primary)" : "color-mix(in srgb, var(--primary) 35%, transparent)", minHeight: 4, transition: "height 400ms ease" }} />
+                  <span className="text-[10px] text-(--soft) productivity-day" style={{ textAlign: "center", lineHeight: "16px" }}>{days[i]}</span>
                 </div>
               );
             })}
           </div>
-          <div className="flex gap-5">
+          <div className="flex gap-5 productivity-legend" style={{ marginTop: 2 }}>
             {[ ["Tasks", "var(--primary)"], ["AI Usage", "var(--purple)"], ["Deploys", "var(--success)"] ].map(([label, color]) => (
               <span key={label} className="flex items-center gap-1.5 text-xs text-(--muted)">
                 <span className="w-2 h-2 rounded-sm inline-block" style={{ background: color }} />{label}
@@ -282,20 +282,20 @@ export default function DashboardPage() {
       {/* Activity + Notifications Row */}
       <div className="dash-grid-2">
         {/* Activity Timeline */}
-        <div className="stat-card gap-4">
-          <div className="flex items-center justify-between">
+        <div className="stat-card gap-4 recent-activity-card" style={{ gap: 8 }}>
+          <div className="flex items-center justify-between recent-activity-header" style={{ minHeight: 24 }}>
             <p className="m-0 font-bold text-[15px]">Recent Activity</p>
             <Clock size={16} color="var(--muted)" />
           </div>
-          <div className="timeline">
+          <div className="recent-activity-list" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {mockActivity.slice(0, 5).map((a) => {
               const Icon = activityIcons[a.icon] || Activity;
               return (
-                <div className="timeline-item" key={a._id}>
-                  <div className="timeline-dot"><Icon size={16} color="var(--primary)" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="m-0 mb-0.5 text-[13px] font-semibold">{a.title}</p>
-                    <span className="text-[11px] text-(--soft)">{a.user} · {a.time}</span>
+                <div className="recent-activity-item" key={a._id} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 56, padding: "8px 0" }}>
+                  <div className="timeline-dot" style={{ width: 40, height: 40, borderRadius: 12 }}><Icon size={16} color="var(--primary)" /></div>
+                  <div className="flex-1 min-w-0 recent-activity-copy" style={{ alignSelf: "center" }}>
+                    <p className="m-0 mb-0.5 text-[13px] font-semibold" style={{ lineHeight: "18px" }}>{a.title}</p>
+                    <span className="text-[11px] text-(--soft)" style={{ lineHeight: "16px" }}>{a.user} · {a.time}</span>
                   </div>
                 </div>
               );

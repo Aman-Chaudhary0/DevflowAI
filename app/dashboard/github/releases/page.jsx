@@ -21,7 +21,7 @@ export default function ReleasesPage() {
         <StatCard label="Published" value={releases?.filter((r) => r.status === 'Published').length ?? '—'} delta="stable releases" trend="up" />
         <StatCard label="Latest" value={releases?.[0]?.version ?? '—'} delta={repository || "current tag"} trend="neutral" />
         <StatCard label="Release notes" value={releases ? releases.reduce((acc, r) => acc + (r.notes ? 1 : 0), 0) : '—'} delta="with notes" trend="up" />
-        <StatCard label="Repository" value={repository.split("/").pop() || "—"} delta="selected" trend="neutral" />
+        <StatCard label="Repository" value={(repository || "").split("/").pop() || "—"} delta="selected" trend="neutral" />
       </div>
 
       <div className="card p-4 mt-6 border border-(--border)" style={{ background: "linear-gradient(180deg, rgba(59,130,246,0.06), transparent 24%), var(--card)" }}>

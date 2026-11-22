@@ -35,19 +35,13 @@
   /* Single Accent Color */
   --accent: #F2A93B;
   --accent-hover: #E89A2A;
-  /* Semantic Colors */
-  --bg: #F7F4EC;
-  --bg-soft: #FFFDF8;
-  --surface: #FFFFFF;
-  --card: #FFFDF8;
-  --border: var(--neutral-200);
-  --text: var(--neutral-950);
-  --muted: var(--neutral-700);
-  --soft: var(--neutral-600);
-  --success: #1F7A53;
-  --warning: #D97706;
-  --danger: #C23F2B;
-  --info: #0891B2;
+  --primary: #F2A93B;
+  --primary-hover: #E89A2A;
+  --primary-button-text: #1A1814;
+  --avatar-bg: #F2A93B;
+  --avatar-fg: #1A1814;
+  --purple: #A78BFA;
+  --pink: #F472B6;
 }
 
 [data-theme="dark"] {
@@ -57,6 +51,7 @@
   --card: #1F1D19;
   --border: var(--neutral-800);
   --text: var(--neutral-50);
+  --fg: var(--neutral-50);
   --muted: var(--neutral-400);
   --soft: var(--neutral-500);
   --accent: #F2A93B;
@@ -935,6 +930,65 @@ select {
   z-index: 40;
 }
 
+/* Fixed dashboard navbar action bar */
+.dash-navbar-left {
+  min-width: 0;
+}
+
+.dash-navbar-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.dash-navbar-actions > .icon-btn,
+.dash-navbar-actions > a.icon-btn,
+.dash-navbar-actions > div > .icon-btn {
+  flex: 0 0 44px;
+}
+
+.dash-navbar-actions > div.relative {
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .dash-navbar {
+    gap: 8px;
+    padding-inline: 12px;
+  }
+
+  .dash-navbar-actions {
+    gap: 6px;
+  }
+
+  .dash-navbar-actions > .btn,
+  .dash-navbar-actions > a[href="/dashboard/projects/create"] {
+    display: none;
+  }
+
+  .dash-navbar-actions > .icon-btn,
+  .dash-navbar-actions > a.icon-btn,
+  .dash-navbar-actions > div > .icon-btn {
+    width: 36px;
+    height: 36px;
+    flex-basis: 36px;
+  }
+
+  .dash-search {
+    min-width: 0;
+    width: min(42vw, 220px);
+  }
+
+  .dash-navbar-actions > div.relative > div.absolute {
+    position: fixed;
+    top: 56px;
+    right: 10px;
+  }
+}
+
 .dash-sidebar {
   position: sticky;
   top: 64px;
@@ -1095,7 +1149,7 @@ select {
 
 .project-card {
   border: 1px solid var(--border);
-  border-radius: var(--spacing-4);
+  border-radius: 16px;
   padding: var(--spacing-5);
   background: color-mix(in srgb, var(--card) 92%, transparent);
   transition:
@@ -1112,22 +1166,50 @@ select {
 
 .welcome-banner {
   border: 1px solid var(--border);
-  border-radius: var(--spacing-4);
-  padding: var(--spacing-7) var(--spacing-8);
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--primary) 12%, transparent),
-    color-mix(in srgb, var(--purple) 8%, transparent)
-  );
+  border-radius: 16px;
+  padding: 28px 32px;
+  background:
+    radial-gradient(
+      circle at 80% 50%,
+      rgba(242, 169, 59, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 20% 80%,
+      rgba(242, 169, 59, 0.04),
+      transparent 50%
+    ),
+    color-mix(in srgb, var(--card) 95%, transparent);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-5);
-  transition: border-color 150ms ease;
+  gap: 24px;
+  overflow: hidden;
+  position: relative;
 }
 
-.welcome-banner:hover {
-  border-color: color-mix(in srgb, var(--primary) 40%, var(--border));
+.welcome-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      rgba(228, 221, 205, 0.15) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(228, 221, 205, 0.15) 1px,
+      transparent 1px
+    );
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 80% 50%, black, transparent 60%);
+  z-index: 0;
+}
+
+.welcome-banner > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ─── Page Header ──────────────────────────────────────────── */
@@ -2713,6 +2795,8 @@ select {
 .result-copy p { margin: 0 0 10px; }
 .result-copy li { margin-bottom: 6px; }
 
+
+
 .sql-code {
   margin: 0;
   font-family: "JetBrains Mono", monospace;
@@ -3313,7 +3397,6 @@ select {
   border-radius: 6px;
   padding: 2px 8px;
   font-family: "JetBrains Mono", monospace;
-  white-space: nowrap;
 }
 
 .search-filter-row {
@@ -3347,6 +3430,7 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 16px;
   padding: 64px 24px;
   text-align: center;
@@ -3502,5 +3586,70 @@ select {
   }
   .rating-buttons {
     flex-wrap: wrap;
+  }
+}
+
+/* ─── Sidebar Brand and Navigation Layout ──────────────────────────────────────────── */
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  padding: 4px 4px 12px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-brand .logo {
+  min-width: 0;
+}
+
+.sidebar-brand.is-collapsed {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-inline: 2px;
+}
+
+.sidebar-brand.is-collapsed .icon-btn {
+  margin: 0 auto;
+}
+
+.dash-shell.sidebar-collapsed .dash-sidebar {
+  align-items: stretch;
+}
+
+.dash-shell.sidebar-collapsed .sidebar-item {
+  justify-content: center;
+  width: 40px;
+  min-height: 40px;
+  margin-inline: auto;
+  padding: 10px;
+}
+
+.dash-shell.sidebar-collapsed .sidebar-divider {
+  width: 40px;
+  margin-inline: auto;
+}
+
+.dash-mobile-menu {
+  display: none;
+}
+
+.sidebar-mobile-brand {
+  min-height: 44px;
+  margin-bottom: 8px;
+}
+
+.sidebar-collapse-button {
+  display: grid;
+  place-items: center;
+}
+
+@media (max-width: 768px) {
+  .dash-mobile-menu {
+    display: grid;
+    place-items: center;
   }
 }
