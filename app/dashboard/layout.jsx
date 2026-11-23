@@ -208,7 +208,7 @@ export default function DashboardLayout({ children }) {
 
   async function handleLogout() {
     disconnectRealtime();
-    try { await api.logout(); } catch {}
+    try { await api.logout(); } catch { }
     setUser(null);
     router.replace("/login");
   }
@@ -400,7 +400,7 @@ export default function DashboardLayout({ children }) {
               <div
                 role="menu"
                 aria-label="Profile menu"
-                className="absolute right-0 z-[80] box-border overflow-hidden rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
+                className="absolute right-0 z-[80] box-border rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
                 style={{ top: 54, width: "min(220px, calc(100vw - 24px))" }}
               >
                 <div className="border-b border-(--border) px-4 py-3.5">
