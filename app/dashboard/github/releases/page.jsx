@@ -37,7 +37,7 @@ export default function ReleasesPage() {
           <SkeletonCard />
         ) : !repository ? (
           <EmptyState title="Connect GitHub" description="Connect your GitHub account to browse releases." action="Connect GitHub" onAction={() => { window.location.href = api.github.connectUrl(); }} />
-        ) : releases.length === 0 ? (
+        ) : !releases || releases.length === 0 ? (
           <EmptyState title="No releases" description="This repository has no GitHub releases on the current page." />
         ) : (
           <div className="grid gap-4">
