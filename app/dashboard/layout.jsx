@@ -341,7 +341,7 @@ export default function DashboardLayout({ children }) {
           </button>
           <div className="dash-search">
             <Search size={16} color="var(--muted)" />
-            <input placeholder="Search anything..." readOnly />
+            <input placeholder="Search anything..." />
             <kbd>⌘K</kbd>
           </div>
         </div>
@@ -356,40 +356,10 @@ export default function DashboardLayout({ children }) {
           <ThemeToggle />
 
           {/* Notifications */}
-          <div className="relative notification-menu">
-            <button className="icon-btn relative" onClick={() => { setNotifOpen((o) => !o); setUserMenuOpen(false); }} type="button" aria-label="Notifications" aria-expanded={notifOpen}>
-              <Bell size={18} />
-              {unread > 0 ? <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-(--danger) border-2 border-(--bg)" /> : null}
-            </button>
-            {notifOpen ? (
-              <div
-                role="dialog"
-                aria-label="Notifications"
-                className="absolute right-0 z-[80] box-border flex flex-col overflow-hidden rounded-2xl border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
-                style={{ top: 54, width: "min(360px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 76px)" }}
-              >
-                <div className="flex h-[49px] shrink-0 items-center justify-between border-b border-(--border) px-4">
-                  <strong className="text-[15px] leading-5">Notifications</strong>
-                  <button onClick={() => setNotifOpen(false)} className="grid h-8 w-8 shrink-0 place-items-center cursor-pointer border-0 bg-transparent text-(--muted)" type="button" aria-label="Close notifications"><X size={16} /></button>
-                </div>
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-                  {notifications.slice(0, 5).map((n) => (
-                    <div key={n._id} className="box-border flex min-h-[76px] items-start gap-3 border-b border-(--border)/50 px-4 py-3" style={{ background: n.readAt ? "transparent" : "color-mix(in srgb, var(--primary) 5%, transparent)" }}>
-                      {!n.readAt ? <div className="mt-1.25 h-2 w-2 shrink-0 rounded-full bg-(--primary)" /> : <div className="w-2 shrink-0" />}
-                      <div className="min-w-0 flex-1">
-                        <p className="mb-1 min-w-0 break-words text-[13px] font-semibold leading-[18px]">{n.title}</p>
-                        <p className="muted mb-1 min-w-0 break-words text-xs leading-[17px]">{n.message}</p>
-                        <span className="block text-[11px] leading-[16px] text-(--soft)">{new Date(n.createdAt).toLocaleString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="shrink-0 border-t border-(--border) px-4 py-3">
-                  <Link href="/dashboard/notifications" className="muted text-[13px] font-semibold" onClick={() => setNotifOpen(false)}>View all notifications</Link>
-                </div>
-              </div>
-            ) : null}
-          </div>
+          <Link href="/dashboard/notifications" className="icon-btn relative" title="Notifications">
+            <Bell size={18} />
+            {unread > 0 ? <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-(--danger) border-2 border-(--bg)" /> : null}
+          </Link>
 
           {/* User Menu */}
           <div className="relative">
@@ -400,12 +370,12 @@ export default function DashboardLayout({ children }) {
               <div
                 role="menu"
                 aria-label="Profile menu"
-                className="absolute right-0 z-[80] box-border rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)]"
-                style={{ top: 54, width: "min(220px, calc(100vw - 24px))" }}
+                className="absolute right-0 z-[80] box-border rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)] backdrop-blur-sm pt-4"
+                style={{ top: 74, width: "min(220px, calc(100vw - 24px))" }}
               >
-                <div className="border-b border-(--border) px-4 py-3.5">
-                  <p className="m-0 mb-0.5 truncate font-bold text-sm">{user?.name}</p>
-                  <p className="muted m-0 truncate text-xs">{user?.email}</p>
+                <div className="flex h-[49px] shrink-0 items-center justify-between border-b border-(--border) px-4">
+                  <div className="flex items-center gap-2"><span className="font-bold text-sm truncate max-w-[150px]">{user?.name}</span><span className="muted text-xs truncate">{user?.email}</span></div>
+                  <button onClick={() => setUserMenuOpen(false)} className="grid h-10 w-10 shrink-0 place-items-center cursor-pointer border-0 bg-transparent text-(--muted)" type="button" aria-label="Close profile menu"><X size={20} /></button>
                 </div>
                 <Link href="/dashboard/profile" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Users size={16} /><span>Profile</span></Link>
                 <Link href="/dashboard/settings" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Settings size={16} /><span>Settings</span></Link>
