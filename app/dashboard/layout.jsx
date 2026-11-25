@@ -223,7 +223,7 @@ export default function DashboardLayout({ children }) {
 
     return (
       <>
-        <div className={`flex items-center justify-between pb-3 border-b border-(--border) mb-2 px-1 pt-1${mobile ? " sidebar-mobile-brand" : ""}`}>
+        <div className={`sidebar-brand flex items-center justify-between pb-3 border-b border-(--border) mb-2 px-1 pt-1${isCollapsed ? " is-collapsed" : ""}${mobile ? " sidebar-mobile-brand" : ""}`}>
           {!isCollapsed ? (
             <Link className="logo text-sm" href="/dashboard" onClick={mobile ? () => setMobileOpen(false) : undefined}>
               <span className="logo-mark w-7.5 h-7.5"><Rocket size={15} /></span>
@@ -356,9 +356,14 @@ export default function DashboardLayout({ children }) {
           <ThemeToggle />
 
           {/* Notifications */}
-          <Link href="/dashboard/notifications" className="icon-btn relative" title="Notifications">
-            <Bell size={18} />
-            {unread > 0 ? <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-(--danger) border-2 border-(--bg)" /> : null}
+          <Link
+            href="/dashboard/notifications"
+            className={`icon-btn notification-bell${unread > 0 ? " has-unread" : ""}`}
+            title={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
+            aria-label={unread > 0 ? `Notifications, ${unread} unread` : "Notifications"}
+          >
+            <Bell size={19} strokeWidth={1.9} aria-hidden="true" />
+            {unread > 0 ? <span className="notification-bell-dot" aria-hidden="true" /> : null}
           </Link>
 
           {/* User Menu */}
@@ -370,17 +375,24 @@ export default function DashboardLayout({ children }) {
               <div
                 role="menu"
                 aria-label="Profile menu"
-                className="absolute right-0 z-[80] box-border rounded-[14px] border border-(--border) bg-(--card) shadow-[0_16px_48px_rgba(0,0,0,0.3)] backdrop-blur-sm pt-4"
-                style={{ top: 74, width: "min(220px, calc(100vw - 24px))" }}
+                className="profile-menu absolute right-0 z-[80]"
               >
-                <div className="flex h-[49px] shrink-0 items-center justify-between border-b border-(--border) px-4">
-                  <div className="flex items-center gap-2"><span className="font-bold text-sm truncate max-w-[150px]">{user?.name}</span><span className="muted text-xs truncate">{user?.email}</span></div>
-                  <button onClick={() => setUserMenuOpen(false)} className="grid h-10 w-10 shrink-0 place-items-center cursor-pointer border-0 bg-transparent text-(--muted)" type="button" aria-label="Close profile menu"><X size={20} /></button>
+                <div className="profile-menu-header">
+                  <div className="profile-menu-user">
+                    <Avatar name={user?.name || "U"} size={38} color="var(--primary)" />
+                    <div className="profile-menu-identity">
+                      <span className="profile-menu-name">{user?.name || "User"}</span>
+                      <span className="profile-menu-email">{user?.email}</span>
+                    </div>
+                  </div>
+                  <button onClick={() => setUserMenuOpen(false)} className="profile-menu-close" type="button" aria-label="Close profile menu"><span aria-hidden="true">×</span></button>
                 </div>
-                <Link href="/dashboard/profile" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Users size={16} /><span>Profile</span></Link>
-                <Link href="/dashboard/settings" className="sidebar-item rounded-none" onClick={() => setUserMenuOpen(false)}><Settings size={16} /><span>Settings</span></Link>
-                <div className="border-t border-(--border)">
-                  <button className="sidebar-item w-full rounded-none text-(--danger)" onClick={handleLogout} type="button">
+                <div className="profile-menu-links">
+                  <Link href="/dashboard/profile" className="profile-menu-item" onClick={() => setUserMenuOpen(false)}><Users size={17} /><span>Profile</span></Link>
+                  <Link href="/dashboard/settings" className="profile-menu-item" onClick={() => setUserMenuOpen(false)}><Settings size={17} /><span>Settings</span></Link>
+                </div>
+                <div className="profile-menu-footer">
+                  <button className="profile-menu-item profile-menu-logout" onClick={handleLogout} type="button">
                     <LogOut size={16} /><span>Logout</span>
                   </button>
                 </div>

@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
+import Activity from "../models/Activity.js";
+import Deployment from "../models/Deployment.js";
+import ProjectFile from "../models/ProjectFile.js";
 import Project from "../models/Project.js";
 import ProjectMember from "../models/ProjectMember.js";
+import Task from "../models/Task.js";
+import User from "../models/User.js";
 import Workspace from "../models/Workspace.js";
 import WorkspaceMember from "../models/WorkspaceMember.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -325,27 +330,76 @@ export async function deleteProjectForUser(user, projectId) {
 }
 
 export async function getDashboardSummaryForUser(userId) {
-  const projectIds = await getAuthorizedProjectIdsForUser(userId);
+  const [projectIds, ownedWorkspaces, workspaceMemberships] = await Promise.all([
+    getAuthorizedProjectIdsForUser(userId),
+    Workspace.find({ owner: userId }, { _id: 1, owner: 1 }).lean(),
+    WorkspaceMember.find({ user: userId, status: "active" }, { workspace: 1 }).lean()
+  ]);
+  const workspaceIds = [...new Set([
+    ...ownedWorkspaces.map((workspace) => String(workspace._id)),
+    ...workspaceMemberships.map((membership) => String(membership.workspace))
+  ])].map((id) => new mongoose.Types.ObjectId(id));
   const query = {
     _id: { $in: projectIds.length ? projectIds : [new mongoose.Types.ObjectId("000000000000000000000000")] }
   };
+  const activityScopes = [];
+  if (projectIds.length) activityScopes.push({ project: { $in: projectIds } });
+  if (workspaceIds.length) activityScopes.push({ workspace: { $in: workspaceIds } });
+  const activityQuery = activityScopes.length ? { $or: activityScopes } : { _id: { $exists: false } };
 
-  const [totalProjects, activeProjects, archivedProjects, recentProjects] = await Promise.all([
+  const [totalProjects, activeProjects, archivedProjects, taskCount, openTaskCount, deploymentCount, latestDeployment, storageAgg, recentProjects, recentActivity, workspaceMemberIds] = await Promise.all([
     Project.countDocuments(query),
     Project.countDocuments({ ...query, status: "active" }),
     Project.countDocuments({ ...query, status: "archived" }),
+    Task.countDocuments({ project: { $in: projectIds } }),
+    Task.countDocuments({ project: { $in: projectIds }, status: { $ne: "done" } }),
+    Deployment.countDocuments({ project: { $in: projectIds } }),
+    Deployment.findOne({ project: { $in: projectIds } }).sort({ createdAt: -1 }).select("createdAt").lean(),
+    ProjectFile.aggregate([
+      { $match: { project: { $in: projectIds } } },
+      { $group: { _id: null, totalBytes: { $sum: "$size" } } }
+    ]),
     Project.find(query)
       .sort({ updatedAt: -1 })
       .limit(5)
       .select("name status visibility updatedAt createdAt settings owner slug")
       .populate("owner", "name avatar")
-      .lean()
+      .lean(),
+    Activity.find(activityQuery)
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("actor project entityType entityId action metadata createdAt")
+      .populate("actor", "_id name avatar")
+      .populate("project", "_id name")
+      .lean(),
+    workspaceIds.length
+      ? WorkspaceMember.distinct("user", { workspace: { $in: workspaceIds }, status: "active" })
+      : Promise.resolve([])
   ]);
+
+  const teamMemberIds = [...new Set([
+    String(userId),
+    ...ownedWorkspaces.map((workspace) => workspace.owner ? String(workspace.owner) : null),
+    ...workspaceMemberIds.map(String)
+  ].filter(Boolean))];
+  const teamMembers = await User.find({ _id: { $in: teamMemberIds } })
+    .select("_id name avatar")
+    .sort({ name: 1 })
+    .limit(10)
+    .lean();
 
   return {
     totalProjects,
     activeProjects,
     archivedProjects,
-    recentProjects: recentProjects.map((project) => safeProjectObject(project))
+    taskCount,
+    openTaskCount,
+    deploymentCount,
+    latestDeploymentAt: latestDeployment?.createdAt || null,
+    storageBytes: storageAgg[0]?.totalBytes || 0,
+    teamMemberCount: teamMemberIds.length,
+    teamMembers,
+    recentProjects: recentProjects.map((project) => safeProjectObject(project)),
+    recentActivity
   };
 }

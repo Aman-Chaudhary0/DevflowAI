@@ -3,26 +3,26 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
-  Activity,
   BarChart3,
   Bot,
   CheckCircle2,
-  Clock,
+  ChevronRight,
+  GitCommit,
+  GitMerge,
+  GitPullRequest,
   FolderOpen,
+  Github,
   Plus,
   Rocket,
   Server,
   Sparkles,
   Upload,
   UserPlus,
-  Users,
-  Zap
+  Users
 } from "lucide-react";
 import {
   AvatarGroup,
-  MiniBarChart,
   PageHeader,
-  ProgressBar,
   ProgressRing,
   SkeletonCard,
   StatCard,
@@ -31,10 +31,7 @@ import {
 } from "@/components/dashboard-ui";
 import {
   getGreeting,
-  mockActivity,
   mockAnalytics,
-  mockNotifications,
-  mockTasks,
   mockUser
 } from "@/lib/dashboard-data";
 import { api } from "@/lib/api";
@@ -47,15 +44,63 @@ const quickActions = [
   { label: "Create Task", icon: Plus, href: "/dashboard/tasks", color: "var(--warning)" }
 ];
 
-const activityIcons = {
-  bot: Bot, "git-merge": Activity, rocket: Rocket, "check-circle": CheckCircle2,
-  upload: Upload, "user-plus": UserPlus, "git-commit": Activity
-};
+function formatActivityAge(value) {
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return "Recently";
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+function formatStorageSize(bytes = 0) {
+  const size = Math.max(0, Number(bytes) || 0);
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  if (size === 0) return { value: "0", unit: "B" };
+  const unitIndex = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
+  const value = size / (1024 ** unitIndex);
+  return { value: value >= 10 || unitIndex === 0 ? value.toFixed(0) : value.toFixed(1), unit: units[unitIndex] };
+}
+
+function formatTaskDueDate(value) {
+  if (!value) return "No due date";
+  const dueDate = new Date(value);
+  if (Number.isNaN(dueDate.getTime())) return "No due date";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const dueDay = new Date(dueDate);
+  dueDay.setHours(0, 0, 0, 0);
+
+  if (dueDay.getTime() === today.getTime()) return "Today";
+  if (dueDay.getTime() === tomorrow.getTime()) return "Tomorrow";
+  return dueDate.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [chartPeriod, setChartPeriod] = useState("week");
   const [summary, setSummary] = useState(null);
+  const [aiUsage, setAiUsage] = useState(null);
+  const [aiUsageLoading, setAiUsageLoading] = useState(true);
+  const [aiUsageError, setAiUsageError] = useState(false);
+  const [dashboardTasks, setDashboardTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(true);
+  const [tasksError, setTasksError] = useState(false);
+  const [githubStatus, setGithubStatus] = useState(null);
+  const [githubStatusLoaded, setGithubStatusLoaded] = useState(false);
+  const [githubActivity, setGithubActivity] = useState([]);
+  const [githubActivityLoading, setGithubActivityLoading] = useState(true);
+  const [githubActivityError, setGithubActivityError] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
+  const [notificationsError, setNotificationsError] = useState(false);
   const [user, setUser] = useState(null);
   const [error, setError] = useState(false);
 
@@ -89,11 +134,168 @@ export default function DashboardPage() {
     return () => { ignore = true; };
   }, []);
 
-  const unread = mockNotifications.filter((n) => !n.read).length;
-  const todayTasks = mockTasks.filter((t) => t.dueDate === "Today").length;
+  useEffect(() => {
+    let ignore = false;
+
+    api.notifications.list()
+      .then((response) => {
+        if (!ignore) setNotifications(response?.data?.notifications || []);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setNotifications([]);
+          setNotificationsError(true);
+        }
+      })
+      .finally(() => {
+        if (!ignore) setNotificationsLoading(false);
+      });
+
+    return () => { ignore = true; };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    async function loadGitHubActivity() {
+      try {
+        const statusResponse = await api.github.status();
+        const status = statusResponse?.data || { connected: false };
+        if (ignore) return;
+        setGithubStatus(status);
+        setGithubStatusLoaded(true);
+
+        if (!status.connected) return;
+
+        const reposResponse = await api.github.repositories({ page: 1, perPage: 6 });
+        const repositories = (reposResponse?.data?.repositories || []).slice(0, 4);
+        const repoActivities = await Promise.all(repositories.map(async (repo) => {
+          const [commitsResult, pullsResult] = await Promise.allSettled([
+            api.github.resource(repo.owner, repo.name, "commits", { page: 1, perPage: 5 }),
+            api.github.resource(repo.owner, repo.name, "pulls", { page: 1, perPage: 5 })
+          ]);
+          const items = [];
+
+          if (commitsResult.status === "fulfilled") {
+            for (const commit of commitsResult.value?.data?.commits || []) {
+              const message = commit.commit?.message?.split("\n")[0] || "Commit pushed";
+              items.push({
+                id: `commit-${commit.sha}`,
+                source: "github",
+                type: "commit",
+                title: message,
+                actor: commit.author?.login || commit.commit?.author?.name || status.account?.login || "GitHub user",
+                repo: repo.fullName || `${repo.owner}/${repo.name}`,
+                createdAt: commit.commit?.author?.date || commit.commit?.committer?.date,
+                url: commit.html_url
+              });
+            }
+          }
+
+          if (pullsResult.status === "fulfilled") {
+            for (const pull of pullsResult.value?.data?.pulls || []) {
+              items.push({
+                id: `pull-${pull.id}`,
+                source: "github",
+                type: pull.merged_at ? "merge" : "pull",
+                title: `${pull.merged_at ? "Merged PR" : "Updated PR"} #${pull.number}: ${pull.title}`,
+                actor: pull.user?.login || status.account?.login || "GitHub user",
+                repo: repo.fullName || `${repo.owner}/${repo.name}`,
+                createdAt: pull.updated_at || pull.created_at,
+                url: pull.html_url
+              });
+            }
+          }
+
+          return items;
+        }));
+
+        if (!ignore) {
+          setGithubActivity(repoActivities.flat().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 8));
+          setGithubActivityError(false);
+        }
+      } catch {
+        if (!ignore) setGithubActivityError(true);
+      } finally {
+        if (!ignore) setGithubActivityLoading(false);
+      }
+    }
+
+    loadGitHubActivity();
+    return () => { ignore = true; };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+
+    api.tasks.list({ limit: 100, sortBy: "dueDate", sortOrder: "asc" })
+      .then((response) => {
+        if (!ignore) setDashboardTasks(response?.data?.tasks || []);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setDashboardTasks([]);
+          setTasksError(true);
+        }
+      })
+      .finally(() => {
+        if (!ignore) setTasksLoading(false);
+      });
+
+    return () => { ignore = true; };
+  }, []);
+
+  useEffect(() => {
+    let ignore = false;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    api.ai.usage.summary({ from: monthStart.toISOString(), to: now.toISOString() })
+      .then((response) => {
+        if (!ignore) setAiUsage(response?.data || null);
+      })
+      .catch(() => {
+        if (!ignore) {
+          setAiUsage(null);
+          setAiUsageError(true);
+        }
+      })
+      .finally(() => {
+        if (!ignore) setAiUsageLoading(false);
+      });
+
+    return () => { ignore = true; };
+  }, []);
+
+  const unread = notifications.filter((notification) => !notification.readAt).length;
+  const openTasks = dashboardTasks
+    .filter((task) => task.status !== "done")
+    .sort((a, b) => {
+      if (!a.dueDate) return b.dueDate ? 1 : 0;
+      if (!b.dueDate) return -1;
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+  const todayTasks = openTasks.filter((task) => formatTaskDueDate(task.dueDate) === "Today").length;
   const activeProjCount = summary?.activeProjects ?? 0;
   const totalProjects = summary?.totalProjects ?? 0;
   const recentProjects = summary?.recentProjects || [];
+  const storageUsage = formatStorageSize(summary?.storageBytes);
+  const teamAvatarColors = ["#3b82f6", "#8b5cf6", "#06b6d4", "#ec4899"];
+  const teamMembers = (summary?.teamMembers || []).map((member, index) => ({
+    ...member,
+    color: teamAvatarColors[index % teamAvatarColors.length]
+  }));
+  const activityFeed = githubStatus?.connected ? githubActivity.slice(0, 5) : [];
+  const aiRequestCount = aiUsage?.total ?? 0;
+  const aiCompletedCount = aiUsage?.completed ?? 0;
+  const aiSuccessRate = aiRequestCount
+    ? `${Math.round((aiCompletedCount / aiRequestCount) * 100)}%`
+    : "—";
+  const aiAverageResponse = aiUsage?.avgRequestDurationMs == null
+    ? "—"
+    : aiUsage.avgRequestDurationMs < 1000
+      ? `${aiUsage.avgRequestDurationMs} ms`
+      : `${(aiUsage.avgRequestDurationMs / 1000).toFixed(1)} s`;
 
   return (
     <>
@@ -135,29 +337,21 @@ export default function DashboardPage() {
         ) : (
           <>
             <Link href="/dashboard/projects" className="no-underline text-inherit">
-              <StatCard label="Projects" value={String(totalProjects).toLocaleString()} delta={summary?.archivedProjects ? `${String(summary.archivedProjects).toLocaleString()} archived` : "No archived projects"} trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)">
-                <MiniBarChart data={recentProjects.length ? recentProjects.slice(0,7).map((_, idx) => (idx % 2 === 0 ? 4 : 6)) : [0,0,0,0,0,0,0]} color="var(--primary)" height={36} />
-              </StatCard>
+              <StatCard label="Projects" value={String(totalProjects).toLocaleString()} delta={summary?.archivedProjects ? `${String(summary.archivedProjects).toLocaleString()} archived` : "No archived projects"} trend="up" icon={FolderOpen} iconBg="color-mix(in srgb, var(--primary) 15%, transparent)" />
             </Link>
             <Link href="/dashboard/tasks" className="no-underline text-inherit">
-              <StatCard label="Tasks" value={42} delta={`${todayTasks} due today`} trend="neutral" icon={CheckCircle2} iconBg="color-mix(in srgb, var(--warning) 15%, transparent)">
-                <ProgressBar value={34} max={42} />
-              </StatCard>
+              <StatCard label="Tasks" value={(summary?.taskCount ?? 0).toLocaleString()} delta={`${(summary?.openTaskCount ?? 0).toLocaleString()} open`} trend="neutral" icon={CheckCircle2} iconBg="color-mix(in srgb, var(--warning) 15%, transparent)" />
             </Link>
-            <StatCard label="AI Requests" value={String(138).toLocaleString()} delta="20 remaining" trend="neutral" icon={Bot} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)">
+            <StatCard label="AI Requests" value={aiUsageLoading ? "…" : aiUsageError ? "—" : aiRequestCount.toLocaleString()} delta={aiUsageLoading ? "Loading usage" : aiUsageError ? "Usage unavailable" : `${aiCompletedCount.toLocaleString()} completed this month`} trend="neutral" icon={Bot} iconBg="color-mix(in srgb, var(--purple) 15%, transparent)">
               <div className="flex items-center gap-2.5">
-                <ProgressRing value={118} max={138} size={40} color="var(--purple)" />
-                <span className="muted text-xs">{String(118).toLocaleString()} / {String(138).toLocaleString()} used</span>
+                <ProgressRing value={aiCompletedCount} max={Math.max(aiRequestCount, 1)} size={40} color="var(--purple)" />
+                <span className="muted text-xs">{aiUsageError ? "Could not load AI usage" : `${aiCompletedCount.toLocaleString()} / ${aiRequestCount.toLocaleString()} completed`}</span>
               </div>
             </StatCard>
-            <StatCard label="Storage" value="4.3" suffix="GB" delta="of 10 GB" trend="neutral" icon={Server} iconBg="color-mix(in srgb, var(--info) 15%, transparent)">
-              <ProgressBar value={4.3} max={10} color="linear-gradient(90deg, var(--info), var(--primary))" />
-            </StatCard>
-            <StatCard label="Deployments" value={String(12).toLocaleString()} delta="Last 2h ago" trend="up" icon={Rocket} iconBg="color-mix(in srgb, var(--success) 15%, transparent)">
-              <MiniBarChart data={[2,4,3,6,4,8,5]} color="var(--success)" height={36} />
-            </StatCard>
-            <StatCard label="Team Online" value={String(18).toLocaleString()} delta="3 active now" trend="up" icon={Users} iconBg="color-mix(in srgb, var(--pink) 15%, transparent)">
-              <AvatarGroup members={recentProjects[0]?.owner ? [{ _id: recentProjects[0].owner?._id || "u1", name: recentProjects[0].owner?.name || user?.name || "You", color: "#3b82f6" }] : [{ _id: "u1", name: user?.name || "You", color: "#3b82f6" }]} max={4} size={28} />
+            <StatCard label="Storage" value={storageUsage.value} suffix={storageUsage.unit} delta="Used by project files" trend="neutral" icon={Server} iconBg="color-mix(in srgb, var(--info) 15%, transparent)" />
+            <StatCard label="Deployments" value={(summary?.deploymentCount ?? 0).toLocaleString()} delta={summary?.latestDeploymentAt ? `Last ${formatActivityAge(summary.latestDeploymentAt)}` : "No deployments yet"} trend="neutral" icon={Rocket} iconBg="color-mix(in srgb, var(--success) 15%, transparent)" />
+            <StatCard label="Team Members" value={(summary?.teamMemberCount ?? 0).toLocaleString()} delta="Across your workspaces" trend="neutral" icon={Users} iconBg="color-mix(in srgb, var(--pink) 15%, transparent)">
+              <AvatarGroup members={teamMembers} max={4} size={28} />
             </StatCard>
           </>
         )}
@@ -206,15 +400,15 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="m-0 font-bold text-[15px]">AI Usage</p>
-              <p className="muted mt-0.5 mb-0 text-xs">Current billing period</p>
+              <p className="muted mt-0.5 mb-0 text-xs">This month</p>
             </div>
             <div className="logo-mark w-9 h-9" style={{ background: "linear-gradient(135deg, var(--purple), var(--primary))" }}><Bot size={18} /></div>
           </div>
           { [
-            { label: "Current Model", value: mockAnalytics.aiStats.model },
-            { label: "Tokens Used", value: mockAnalytics.aiStats.tokensUsed.toLocaleString() },
-            { label: "Avg Response", value: mockAnalytics.aiStats.avgResponse },
-            { label: "Success Rate", value: mockAnalytics.aiStats.successRate }
+            { label: "Most Used Model", value: aiUsageLoading ? "Loading…" : aiUsageError ? "Unavailable" : aiUsage?.mostUsedModel || "No usage yet" },
+            { label: "Tokens Used", value: aiUsageLoading ? "Loading…" : aiUsageError ? "Unavailable" : aiUsage?.tokensAvailable ? aiUsage.totalTokens.toLocaleString() : "Not reported" },
+            { label: "Avg Response", value: aiUsageLoading ? "Loading…" : aiUsageError ? "Unavailable" : aiAverageResponse },
+            { label: "Success Rate", value: aiUsageLoading ? "Loading…" : aiUsageError ? "Unavailable" : aiSuccessRate }
           ].map(({ label, value }) => (
             <div key={label} className="flex justify-between items-center py-2 border-b border-(--border)/50">
               <span className="muted text-[13px]">{label}</span>
@@ -230,76 +424,140 @@ export default function DashboardPage() {
       {/* Projects + Tasks Row */}
       <div className="dash-grid-2">
         {/* Recent Projects */}
-        <div className="stat-card gap-4">
-          <div className="flex items-center justify-between">
-            <p className="m-0 font-bold text-[15px]">Recent Projects</p>
-            <Link href="/dashboard/projects" className="muted text-[13px] font-semibold">View all</Link>
+        <div className="stat-card recent-projects-card">
+          <div className="recent-projects-header">
+            <div>
+              <p className="m-0 font-bold text-[15px]">Recent Projects</p>
+              <p className="muted m-0 mt-1 text-xs">Your latest project updates</p>
+            </div>
+            <Link href="/dashboard/projects" className="recent-projects-view-all">View all<ChevronRight size={15} /></Link>
           </div>
-          {(recentProjects.length ? recentProjects : []).slice(0, 4).map((p) => (
-            <Link href={`/dashboard/projects/${p._id}`} key={p._id} className="flex items-center gap-3 py-2.5 border-b border-(--border)/40 no-underline text-inherit" style={{ borderBottom: "1px solid color-mix(in srgb, var(--border) 40%, transparent)" }}>
-              <div className="w-9 h-9 rounded-[10px] grid place-items-center text-white font-extrabold text-sm shrink-0" style={{ background: p.settings?.color || "#3b82f6" }}>
-                {(p.name || "P").charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="m-0 mb-0.5 font-semibold text-[13px] overflow-hidden text-ellipsis whitespace-nowrap">{p.name}</p>
-                <div className="flex gap-1.5">
-                  {(p.settings?.techStack || []).slice(0,2).map((s) => <span key={s} className="badge px-1.5 py-0.5 text-[11px]">{s}</span>)}
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="m-0 mb-1 text-[13px] font-bold">{p.status === "archived" ? "Archived" : "Live"}</p>
-                <ProgressBar value={p.status === "archived" ? 100 : 64} />
-              </div>
-            </Link>
-          ))}
+          <div className="recent-projects-list">
+            {recentProjects.slice(0, 4).map((p) => {
+              const status = p.status || "active";
+              const technologies = p.settings?.techStack || [];
+              return (
+                <Link href={`/dashboard/projects/${p._id}`} key={p._id} className="recent-project-row">
+                  <div className="recent-project-icon" style={{ "--project-color": p.settings?.color || "var(--primary)" }}>
+                    {(p.name || "P").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="recent-project-info">
+                    <span className="recent-project-name">{p.name || "Untitled project"}</span>
+                    <span className="recent-project-meta">{p.slug || p.visibility || "Project workspace"}</span>
+                    {technologies.length > 0 ? (
+                      <span className="recent-project-tech">{technologies.slice(0, 2).join(" · ")}{technologies.length > 2 ? ` +${technologies.length - 2}` : ""}</span>
+                    ) : null}
+                  </div>
+                  <span className={`recent-project-status status-${status}`}>{status}</span>
+                  <ChevronRight className="recent-project-arrow" size={16} />
+                </Link>
+              );
+            })}
+          </div>
           {!recentProjects.length && !loading && (
-            <p className="muted m-0 text-sm">No projects yet. Create your first project to get started.</p>
+            <div className="recent-projects-empty">
+              <FolderOpen size={20} />
+              <p>No projects yet</p>
+              <span>Create a project to see it here.</span>
+            </div>
           )}
         </div>
 
         {/* Upcoming Tasks */}
-        <div className="stat-card gap-4">
-          <div className="flex items-center justify-between">
-            <p className="m-0 font-bold text-[15px]">Upcoming Tasks</p>
-            <Link href="/dashboard/tasks" className="muted text-[13px] font-semibold">View all</Link>
-          </div>
-          {mockTasks.slice(0, 5).map((t) => (
-            <div key={t._id} className="flex items-center gap-3 py-2 border-b border-(--border)/40">
-              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.priority === "high" ? "var(--danger)" : t.priority === "medium" ? "var(--warning)" : "var(--info)" }} />
-              <div className="flex-1 min-w-0">
-                <p className="m-0 mb-0.5 text-[13px] font-semibold overflow-hidden text-ellipsis whitespace-nowrap">{t.title}</p>
-                <span className="muted text-[11px]">{t.project}</span>
-              </div>
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <span className="text-[11px] font-semibold" style={{ color: t.dueDate === "Today" ? "var(--danger)" : "var(--muted)" }}>{t.dueDate}</span>
-                <StatusBadge status={t.status} />
-              </div>
+        <div className="stat-card upcoming-tasks-card">
+          <div className="upcoming-tasks-header">
+            <div>
+              <p className="m-0 font-bold text-[15px]">Upcoming Tasks</p>
+              <p className="muted m-0 mt-1 text-xs">Open tasks sorted by due date</p>
             </div>
-          ))}
+            <div className="upcoming-tasks-header-actions">
+              {!tasksLoading && !tasksError ? <span className="upcoming-tasks-count">{openTasks.length} open</span> : null}
+              <Link href="/dashboard/tasks" className="recent-activity-view-all">View all<ChevronRight size={14} /></Link>
+            </div>
+          </div>
+          <div className="upcoming-tasks-list">
+            {tasksLoading ? (
+              <p className="upcoming-tasks-message">Loading tasks…</p>
+            ) : tasksError ? (
+              <p className="upcoming-tasks-message">Tasks are unavailable right now.</p>
+            ) : openTasks.length ? openTasks.slice(0, 5).map((task) => {
+              const dueLabel = formatTaskDueDate(task.dueDate);
+              const priority = task.priority || "low";
+              const normalizedStatus = (task.status || "todo").replaceAll("_", "-");
+              return (
+                <div key={task._id} className="upcoming-task-row" style={{ "--task-priority": priority === "urgent" || priority === "high" ? "var(--danger)" : priority === "medium" ? "var(--warning)" : "var(--info)" }}>
+                  <span className="upcoming-task-priority" title={`${priority} priority`} />
+                  <div className="upcoming-task-copy">
+                    <p>{task.title}</p>
+                    <span>{task.project?.name || "Project"}</span>
+                  </div>
+                  <div className="upcoming-task-details">
+                    <span className={`upcoming-task-due${dueLabel === "Today" ? " is-today" : ""}`}>{dueLabel}</span>
+                    <StatusBadge status={normalizedStatus} />
+                  </div>
+                </div>
+              );
+            }) : (
+              <p className="upcoming-tasks-message">No open tasks right now.</p>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Activity + Notifications Row */}
       <div className="dash-grid-2">
         {/* Activity Timeline */}
-        <div className="stat-card gap-4 recent-activity-card" style={{ gap: 8 }}>
-          <div className="flex items-center justify-between recent-activity-header" style={{ minHeight: 24 }}>
-            <p className="m-0 font-bold text-[15px]">Recent Activity</p>
-            <Clock size={16} color="var(--muted)" />
+        <div className="stat-card recent-activity-card">
+          <div className="recent-activity-header">
+            <div>
+              <p className="m-0 font-bold text-[15px]">Recent Activity</p>
+              <p className="muted m-0 mt-1 text-xs">{githubStatus?.connected ? "Latest activity from GitHub" : "Connect GitHub to see repository activity"}</p>
+            </div>
+            <div className="recent-activity-header-actions">
+              {githubStatus?.connected ? (
+                <>
+                  <span className="recent-activity-source"><Github size={13} /> GitHub</span>
+                  <Link href="/dashboard/github" className="recent-activity-view-all">View all<ChevronRight size={14} /></Link>
+                </>
+              ) : <span className="recent-activity-source is-disconnected">Not connected</span>}
+            </div>
           </div>
-          <div className="recent-activity-list" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {mockActivity.slice(0, 5).map((a) => {
-              const Icon = activityIcons[a.icon] || Activity;
+          <div className="recent-activity-list">
+            {(!githubStatusLoaded && !githubActivityError) || (githubStatus?.connected && githubActivityLoading) ? (
+              <p className="muted m-0 text-sm">Loading activity…</p>
+            ) : !githubStatus?.connected ? (
+              <div className="recent-activity-connect">
+                <div className="recent-activity-connect-icon"><Github size={20} /></div>
+                <p>Connect your GitHub account</p>
+                <span>Recent commits and pull requests will appear here.</span>
+                <Link href="/dashboard/github" className="btn btn-primary min-h-9 px-4 text-xs">Connect GitHub</Link>
+              </div>
+            ) : githubStatus?.connected && githubActivityError && !githubActivity.length ? (
+              <p className="muted m-0 text-sm">GitHub activity is unavailable right now.</p>
+            ) : activityFeed.length ? activityFeed.map((activity) => {
+              const Icon = activity.type === "merge" ? GitMerge : activity.type === "pull" ? GitPullRequest : GitCommit;
+              const title = activity.title;
+              const actorName = activity.actor;
+              const subjectName = activity.repo;
+              const timeLabel = formatActivityAge(activity.createdAt);
               return (
-                <div className="recent-activity-item" key={a._id} style={{ display: "flex", alignItems: "center", gap: 12, minHeight: 56, padding: "8px 0" }}>
-                  <div className="timeline-dot" style={{ width: 40, height: 40, borderRadius: 12 }}><Icon size={16} color="var(--primary)" /></div>
-                  <div className="flex-1 min-w-0 recent-activity-copy" style={{ alignSelf: "center" }}>
-                    <p className="m-0 mb-0.5 text-[13px] font-semibold" style={{ lineHeight: "18px" }}>{a.title}</p>
-                    <span className="text-[11px] text-(--soft)" style={{ lineHeight: "16px" }}>{a.user} · {a.time}</span>
+                <div className="recent-activity-item" key={activity._id || activity.id}>
+                  <div className={`recent-activity-icon is-${activity.type}`}><Icon size={16} /></div>
+                  <div className="recent-activity-copy">
+                    <p className="recent-activity-title">
+                      {activity.url ? <a href={activity.url} target="_blank" rel="noreferrer">{title}</a> : title}
+                    </p>
+                    <div className="recent-activity-meta">
+                      <span>{actorName}</span><span className="recent-activity-meta-separator" />
+                      <span className="recent-activity-repo">{subjectName}</span>
+                      <time>{timeLabel}</time>
+                    </div>
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              <p className="muted m-0 text-sm">No recent GitHub activity yet.</p>
+            )}
           </div>
         </div>
 
@@ -307,18 +565,35 @@ export default function DashboardPage() {
         <div className="stat-card gap-4">
           <div className="flex items-center justify-between">
             <p className="m-0 font-bold text-[15px]">Notifications</p>
-            <span className="sidebar-badge">{unread}</span>
-          </div>
-          {mockNotifications.slice(0, 5).map((n) => (
-            <div key={n._id} className="flex gap-2.5 py-2 border-b border-(--border)/40 items-start">
-              {!n.read ? <div className="w-1.75 h-1.75 rounded-full bg-(--primary) mt-1.25 shrink-0" /> : <div className="w-1.75 shrink-0" />}
-              <div className="flex-1 min-w-0">
-                <p className="m-0 mb-0.5 text-[13px] font-semibold">{n.title}</p>
-                <p className="muted m-0 mb-0.5 text-xs overflow-hidden text-ellipsis whitespace-nowrap">{n.desc}</p>
-                <span className="text-[11px] text-(--soft)">{n.time}</span>
-              </div>
+            <div className="flex items-center gap-2.5">
+              <span className="sidebar-badge">{unread}</span>
+              <Link href="/dashboard/notifications" className="recent-activity-view-all">View all<ChevronRight size={14} /></Link>
             </div>
-          ))}
+          </div>
+          {notificationsLoading ? (
+            <p className="muted m-0 text-sm">Loading notifications…</p>
+          ) : notificationsError ? (
+            <p className="muted m-0 text-sm">Notifications are unavailable right now.</p>
+          ) : notifications.length ? notifications.slice(0, 5).map((notification) => {
+            const content = (
+              <>
+                <span className="notification-unread-dot" />
+                <span className="dashboard-notification-copy">
+                  <strong>{notification.title}</strong>
+                  <span className="dashboard-notification-message">{notification.message}</span>
+                  <time>{formatActivityAge(notification.createdAt)}</time>
+                </span>
+              </>
+            );
+            const className = `dashboard-notification${notification.readAt ? " is-read" : " is-unread"}`;
+            return notification.targetUrl?.startsWith("/") ? (
+              <Link key={notification._id} href={notification.targetUrl} className={className}>{content}</Link>
+            ) : (
+              <div key={notification._id} className={className}>{content}</div>
+            );
+          }) : (
+            <p className="muted m-0 text-sm">No notifications yet.</p>
+          )}
         </div>
       </div>
 
