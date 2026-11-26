@@ -77,6 +77,10 @@ export default function ProjectTeamPage() {
 
   useEffect(() => { loadTeam(); }, [loadTeam]);
 
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("invite") === "1") setInviteOpen(true);
+  }, []);
+
   const filtered = useMemo(() => members.filter((member) =>
     (roleFilter === "all" || member.role === roleFilter) &&
     `${member.name} ${member.email}`.toLowerCase().includes(search.toLowerCase())

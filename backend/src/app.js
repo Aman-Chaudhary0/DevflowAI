@@ -29,6 +29,7 @@ import apiKeyRoutes from "./routes/api-key.routes.js";
 import integrationRoutes from "./routes/integration.routes.js";
 import billingRoutes from "./routes/billing.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import analyticsRoutes from "./routes/analytics.routes.js";
 import { ApiResponse } from "./utils/ApiResponse.js";
 
 export const app = express();
@@ -93,6 +94,7 @@ app.use("/api/api-keys", apiKeyRoutes);
 app.use("/api/integrations", integrationRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/analytics", analyticsRoutes);
 app.use("/api/dashboard", dashboardRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);

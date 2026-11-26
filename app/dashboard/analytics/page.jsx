@@ -29,7 +29,7 @@ import {
   StatusBadge,
   toast
 } from "@/components/dashboard-ui";
-import { mockAnalytics, mockProjects, mockTeamMembers } from "@/lib/dashboard-data";
+import { mockAnalytics, mockTeamMembers } from "@/lib/dashboard-data";
 import { api } from "@/lib/api";
 
 const timeFilters = [
@@ -37,11 +37,6 @@ const timeFilters = [
   { label: "This Week", value: "week" },
   { label: "This Month", value: "month" },
   { label: "This Year", value: "year" }
-];
-
-const projectFilter = [
-  { label: "All Projects", value: "all" },
-  ...mockProjects.map((p) => ({ label: p.name, value: p._id }))
 ];
 
 const leaderboardData = mockTeamMembers
@@ -75,27 +70,69 @@ function getDateRange(timeFilter) {
   } else {
     const d = new Date(now); d.setFullYear(d.getFullYear() - 1); from = d.toISOString();
   }
-  return { from, to };
+  const duration = now.getTime() - new Date(from).getTime();
+  const previousTo = new Date(from);
+  const previousFrom = new Date(previousTo.getTime() - duration);
+  return { from, to, previousFrom: previousFrom.toISOString(), previousTo: previousTo.toISOString() };
+}
+
+function getPeriodChange(metric) {
+  if (!metric) return null;
+  const { current, previous } = metric;
+  if (!previous && !current) return { label: "No change", direction: "flat" };
+  if (!previous) return { label: "New", direction: "up" };
+  const change = Math.round(((current - previous) / previous) * 100);
+  return { label: `${change > 0 ? "+" : ""}${change}%`, direction: change > 0 ? "up" : change < 0 ? "down" : "flat" };
 }
 
 // AnalyticsPage is a page component that renders the "Analytics" dashboard of the application. It displays key performance metrics such as tasks completed, total commits, deployments, and AI requests, along with visualizations like area charts, pie charts, and heatmaps. The page also includes filters for time and project selection, as well as a team leaderboard showcasing top performers.
 export default function AnalyticsPage() {
   const [timeFilter, setTimeFilter] = useState("week");
   const [projectFilterVal, setProjectFilterVal] = useState("all");
+  const [projects, setProjects] = useState([]);
+  const [analyticsSummary, setAnalyticsSummary] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsError, setAnalyticsError] = useState(false);
   const [chartView, setChartView] = useState("tasks");
   const [aiSummary, setAiSummary] = useState(null);
   const [aiByTool, setAiByTool] = useState(null);
   const [aiTimeseries, setAiTimeseries] = useState(null);
   const [aiLoading, setAiLoading] = useState(true);
 
-  const loadAIData = useCallback(async (tf) => {
+  const projectOptions = [
+    { label: "All Projects", value: "all" },
+    ...projects.map((project) => ({ label: project.name, value: String(project._id) }))
+  ];
+
+  const loadSummary = useCallback(async (tf, projectId) => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(false);
+    const range = getDateRange(tf);
+    try {
+      const response = await api.analytics.summary({
+        from: range.from,
+        to: range.to,
+        previousFrom: range.previousFrom,
+        previousTo: range.previousTo,
+        ...(projectId && projectId !== "all" ? { projectId } : {})
+      });
+      setAnalyticsSummary(response.data);
+    } catch {
+      setAnalyticsSummary(null);
+      setAnalyticsError(true);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  const loadAIData = useCallback(async (tf, projectId) => {
     setAiLoading(true);
     const { from, to } = getDateRange(tf);
     try {
       const [summaryRes, byToolRes, timeseriesRes] = await Promise.all([
-        api.ai.usage.summary({ from, to }),
-        api.ai.usage.byTool({ from, to }),
-        api.ai.usage.timeseries({ from, to, interval: tf === "today" ? "day" : tf === "week" ? "day" : "day" })
+        api.ai.usage.summary({ from, to, ...(projectId && projectId !== "all" ? { projectId } : {}) }),
+        api.ai.usage.byTool({ from, to, ...(projectId && projectId !== "all" ? { projectId } : {}) }),
+        api.ai.usage.timeseries({ from, to, interval: "day", ...(projectId && projectId !== "all" ? { projectId } : {}) })
       ]);
       setAiSummary(summaryRes.data);
       setAiByTool(byToolRes.data?.byTool || []);
@@ -109,7 +146,22 @@ export default function AnalyticsPage() {
     }
   }, []);
 
-  useEffect(() => { loadAIData(timeFilter); }, [timeFilter, loadAIData]);
+  useEffect(() => {
+    let active = true;
+    api.projects.list({ page: 1, limit: 100, sortBy: "updatedAt", sortOrder: "desc" })
+      .then((response) => { if (active) setProjects(response?.data?.projects || []); })
+      .catch(() => { if (active) setProjects([]); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    loadSummary(timeFilter, projectFilterVal);
+    loadAIData(timeFilter, projectFilterVal);
+  }, [timeFilter, projectFilterVal, loadSummary, loadAIData]);
+
+  const taskChange = getPeriodChange(analyticsSummary?.tasksCompleted);
+  const deploymentChange = getPeriodChange(analyticsSummary?.deployments);
+  const projectFilter = projectOptions;
 
   return (
     <>
@@ -126,7 +178,7 @@ export default function AnalyticsPage() {
             <div>
               <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>Tasks Completed</p>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>
-                {mockAnalytics.tasksCompleted.value}
+                {analyticsLoading ? "…" : analyticsError ? "—" : (analyticsSummary?.tasksCompleted?.current ?? 0).toLocaleString()}
               </p>
             </div>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--primary) 15%, transparent)", display: "grid", placeItems: "center" }}>
@@ -134,19 +186,17 @@ export default function AnalyticsPage() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 2, color: "var(--success)", fontSize: 12, fontWeight: 700 }}>
-              <ArrowUp size={12} /> {mockAnalytics.tasksCompleted.delta}
-            </span>
-            <span className="muted" style={{ fontSize: 11 }}>vs last period</span>
+            {taskChange && !analyticsLoading && !analyticsError ? <span style={{ display: "flex", alignItems: "center", gap: 2, color: taskChange.direction === "down" ? "var(--danger)" : taskChange.direction === "up" ? "var(--success)" : "var(--muted)", fontSize: 12, fontWeight: 700 }}>{taskChange.direction === "down" ? <ArrowDown size={12} /> : taskChange.direction === "up" ? <ArrowUp size={12} /> : null}{taskChange.label}</span> : null}
+            <span className="muted" style={{ fontSize: 11 }}>{analyticsError ? "Analytics unavailable" : "vs previous period"}</span>
           </div>
         </div>
 
         <div className="stat-card" style={{ gap: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
             <div>
-              <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>Total Commits</p>
+              <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>GitHub Commits</p>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>
-                {mockAnalytics.commits.value}
+                {analyticsLoading ? "…" : analyticsError ? "—" : analyticsSummary?.commits?.available ? analyticsSummary.commits.count.toLocaleString() : "—"}
               </p>
             </div>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--info) 15%, transparent)", display: "grid", placeItems: "center" }}>
@@ -154,10 +204,9 @@ export default function AnalyticsPage() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 2, color: "var(--success)", fontSize: 12, fontWeight: 700 }}>
-              <ArrowUp size={12} /> {mockAnalytics.commits.delta}
+            <span className="muted" style={{ fontSize: 11 }}>
+              {analyticsError ? "Analytics unavailable" : analyticsSummary?.commits?.available ? "Connected account · selected period" : analyticsSummary?.commits?.connected ? analyticsSummary.commits.reason === "repository_not_linked" ? "No GitHub repository linked to this project" : "GitHub commit data unavailable" : <a href={api.github.connectUrl()} style={{ color: "var(--primary)" }}>Connect GitHub</a>}
             </span>
-            <span className="muted" style={{ fontSize: 11 }}>vs last period</span>
           </div>
         </div>
 
@@ -166,7 +215,7 @@ export default function AnalyticsPage() {
             <div>
               <p className="muted" style={{ margin: "0 0 4px", fontSize: 12 }}>Deployments</p>
               <p style={{ margin: 0, fontSize: 28, fontWeight: 800, fontFamily: "Space Grotesk, Inter, sans-serif" }}>
-                {mockAnalytics.deployments.value}
+                {analyticsLoading ? "…" : analyticsError ? "—" : (analyticsSummary?.deployments?.current ?? 0).toLocaleString()}
               </p>
             </div>
             <div style={{ width: 36, height: 36, borderRadius: 10, background: "color-mix(in srgb, var(--success) 15%, transparent)", display: "grid", placeItems: "center" }}>
@@ -174,10 +223,8 @@ export default function AnalyticsPage() {
             </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 2, color: "var(--danger)", fontSize: 12, fontWeight: 700 }}>
-              <ArrowDown size={12} /> {mockAnalytics.deployments.delta}
-            </span>
-            <span className="muted" style={{ fontSize: 11 }}>vs last period</span>
+            {deploymentChange && !analyticsLoading && !analyticsError ? <span style={{ display: "flex", alignItems: "center", gap: 2, color: deploymentChange.direction === "down" ? "var(--danger)" : deploymentChange.direction === "up" ? "var(--success)" : "var(--muted)", fontSize: 12, fontWeight: 700 }}>{deploymentChange.direction === "down" ? <ArrowDown size={12} /> : deploymentChange.direction === "up" ? <ArrowUp size={12} /> : null}{deploymentChange.label}</span> : null}
+            <span className="muted" style={{ fontSize: 11 }}>{analyticsError ? "Analytics unavailable" : "vs previous period"}</span>
           </div>
         </div>
 

@@ -118,44 +118,47 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <>
+      <div className="projects-page">
         <PageHeader title="My Projects" subtitle="Loading projects..." />
-        <div className="stat-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="projects-table-card">
           <table className="data-table">
             <thead><tr><th>Name</th><th>Status</th><th>Updated</th></tr></thead>
             <tbody>{[1,2,3].map((i) => <SkeletonRow key={i} />)}</tbody>
           </table>
         </div>
-      </>
+      </div>
     );
   }
 
   return (
-    <>
+    <div className="projects-page">
       <PageHeader title="My Projects" subtitle={`${filtered.length} projects`}>
         <Link className="btn btn-primary min-h-9.5 text-xs" href="/dashboard/projects/create">
           <Plus size={16} /> New Project
         </Link>
       </PageHeader>
 
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="projects-toolbar">
         <div className="dash-search min-w-55 flex-1 max-w-90">
           <Search size={15} color="var(--muted)" />
           <input placeholder="Search projects..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="input w-auto min-w-45 h-10 px-3" value={sort} onChange={(e) => setSort(e.target.value)}>
+        <select className="input projects-sort" value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort projects">
           {sortOptions.map((o) => <option key={o}>{o}</option>)}
         </select>
-        <div className="flex gap-1 border border-(--border) rounded-[10px] p-0.75">
-          <button className={`icon-btn ${view === "grid" ? "active" : ""} w-8 h-8 border-none`} onClick={() => setView("grid")} style={{ background: view === "grid" ? "var(--primary)" : "transparent", color: view === "grid" ? "white" : "var(--muted)" }} type="button"><Grid3X3 size={15} /></button>
-          <button className={`icon-btn ${view === "list" ? "active" : ""} w-8 h-8 border-none`} onClick={() => setView("list")} style={{ background: view === "list" ? "var(--primary)" : "transparent", color: view === "list" ? "white" : "var(--muted)" }} type="button"><List size={15} /></button>
+        <div className="projects-view-toggle" role="group" aria-label="Project view">
+          <button className={`icon-btn ${view === "grid" ? "active" : ""}`} onClick={() => setView("grid")} aria-label="Grid view" aria-pressed={view === "grid"} type="button"><Grid3X3 size={16} /></button>
+          <button className={`icon-btn ${view === "list" ? "active" : ""}`} onClick={() => setView("list")} aria-label="List view" aria-pressed={view === "list"} type="button"><List size={16} /></button>
         </div>
       </div>
 
-      <FilterBar filters={filterOptions.map((f) => ({ ...f, count: f.value === "all" ? projects.length : projects.filter((p) => f.value === "active" ? p.status === "active" : f.value === "archived" ? p.status === "archived" : f.value === "team" ? p.visibility === "internal" || p.visibility === "public" : p.visibility === "private").length }))} active={filter} onChange={setFilter} />
+      <div className="projects-filter-panel">
+        <span className="projects-filter-label">Filter</span>
+        <FilterBar filters={filterOptions.map((f) => ({ ...f, count: f.value === "all" ? projects.length : projects.filter((p) => f.value === "active" ? p.status === "active" : f.value === "archived" ? p.status === "archived" : f.value === "team" ? p.visibility === "internal" || p.visibility === "public" : p.visibility === "private").length }))} active={filter} onChange={setFilter} />
+      </div>
 
       {selected.length > 0 ? (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border" style={{ background: "color-mix(in srgb, var(--primary) 10%, transparent)", borderColor: "color-mix(in srgb, var(--primary) 30%, transparent)" }}>
+        <div className="projects-bulk-toolbar">
           <span className="text-[13px] font-semibold">{selected.length} selected</span>
           <button className="btn btn-outline min-h-8 px-3 text-xs" onClick={() => Promise.all(selected.map((id) => mutateProject(id, "archive", "Projects archived")))}><Archive size={14} /> Archive</button>
           <button className="btn btn-outline min-h-8 px-3 text-xs" style={{ color: "var(--danger)", borderColor: "var(--danger)" }} onClick={() => setDeleteDialog("bulk")}><Trash2 size={14} /> Delete</button>
@@ -168,20 +171,18 @@ export default function ProjectsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState icon={Plus} title="No projects found" description="Create your first project to get started." action="New Project" onAction={() => { window.location.href = "/dashboard/projects/create"; }} />
       ) : view === "grid" ? (
-        <div className="dash-grid-3">
+        <div className="dash-grid-3 project-grid">
           {filtered.map((p) => (
             <div key={p._id} className="project-card relative">
-              <input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} className="absolute top-4 left-4 w-4 h-4 cursor-pointer" />
-              <div className="flex items-start justify-between pl-7">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl grid place-items-center text-white font-extrabold text-base shrink-0" style={{ background: p.settings?.color || "#3b82f6" }}>{(p.name || "P").charAt(0)}</div>
-                  <div>
-                    <p className="m-0 mb-0.5 font-bold text-sm">{p.name}</p>
+              <div className="project-card-header">
+                <input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} className="project-card-select" aria-label={`Select ${p.name || "project"}`} />
+                <div className="project-card-mark" style={{ background: p.settings?.color || "#3b82f6" }}>{(p.name || "P").charAt(0)}</div>
+                <div className="project-card-heading">
+                    <p className="project-card-name">{p.name}</p>
                     <StatusBadge status={p.status} />
-                  </div>
                 </div>
-                <div className="relative">
-                  <button className="icon-btn w-7.5 h-7.5 border-0 bg-transparent" onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p._id ? null : p._id); }} type="button"><MoreHorizontal size={16} /></button>
+                <div className="project-card-menu relative">
+                  <button className="icon-btn" aria-label={`Actions for ${p.name || "project"}`} onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === p._id ? null : p._id); }} type="button"><MoreHorizontal size={16} /></button>
                   {menuOpen === p._id ? (
                     <div className="absolute right-0 top-9 w-40 bg-(--card) border border-(--border) rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.2)] z-10 overflow-hidden">
                       {[ ["Star", Star], ["Share", Share2], ["Settings", Settings], [p.status === "archived" ? "Restore" : "Archive", Archive], ["Delete", Trash2] ].map(([label, Icon]) => (
@@ -193,30 +194,31 @@ export default function ProjectsPage() {
                   ) : null}
                 </div>
               </div>
-              <p className="muted m-0 text-[13px] pl-7 overflow-hidden" style={{ display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>{p.description || "No description provided."}</p>
-              <div className="pl-7">
-                <div className="flex gap-1.5 mb-2.5 flex-wrap">
-                  {(p.settings?.techStack || []).map((s) => <span key={s} className="badge" style={{ padding: "2px 8px", fontSize: 11 }}>{s}</span>)}
+              <p className="project-card-description">{p.description || "No description provided."}</p>
+              <div className="project-card-details">
+                <div className="project-card-tech">
+                  {(p.settings?.techStack || []).slice(0, 3).map((s) => <span key={s} className="badge">{s}</span>)}
+                  {(p.settings?.techStack || []).length > 3 ? <span className="badge project-card-tech-more">+{p.settings.techStack.length - 3}</span> : null}
                 </div>
-                <div className="flex items-center justify-between mb-2">
+                <div className="project-card-progress-label">
                   <span className="muted text-xs">Progress</span>
                   <span className="text-xs font-bold">{p.status === "archived" ? 100 : 72}%</span>
                 </div>
                 <ProgressBar value={p.status === "archived" ? 100 : 72} />
               </div>
-              <div className="flex items-center justify-between pl-7">
+              <div className="project-card-footer">
                 <AvatarGroup members={p.owner ? [{ _id: p.owner._id || p.owner, name: p.owner.name || "Owner", color: "#3b82f6" }] : []} max={3} size={26} />
                 <span className="muted text-[11px]">Updated {new Date(p.updatedAt).toLocaleDateString()}</span>
               </div>
-              <div className="flex gap-2 pl-7">
+              <div className="project-card-actions">
                 <Link className="btn btn-primary" href={`/dashboard/projects/${p._id}`} style={{ flex: 1, minHeight: 34, fontSize: 12 }}>Open</Link>
-                <button className="btn btn-outline" onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/dashboard/projects/${p._id}`)} style={{ minHeight: 34, padding: "0 12px", fontSize: 12 }} type="button"><Share2 size={13} /></button>
+                <button className="btn btn-outline" aria-label={`Copy link to ${p.name || "project"}`} title="Copy project link" onClick={() => navigator.clipboard?.writeText(`${window.location.origin}/dashboard/projects/${p._id}`)} style={{ minHeight: 34, padding: "0 12px", fontSize: 12 }} type="button"><Share2 size={13} /></button>
               </div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="stat-card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="projects-table-card">
           <table className="data-table">
             <thead>
               <tr>
@@ -231,10 +233,10 @@ export default function ProjectsPage() {
             <tbody>
               {filtered.map((p) => (
                 <tr key={p._id}>
-                  <td><input type="checkbox" checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} /></td>
+                  <td><input type="checkbox" aria-label={`Select ${p.name || "project"}`} checked={selected.includes(p._id)} onChange={() => toggleSelect(p._id)} /></td>
                   <td>
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-lg grid place-items-center text-white font-extrabold text-[13px] shrink-0" style={{ background: p.settings?.color || "#3b82f6" }}>{(p.name || "P").charAt(0)}</div>
+                      <div className="project-table-mark" style={{ background: p.settings?.color || "#3b82f6" }}>{(p.name || "P").charAt(0)}</div>
                       <div>
                         <p className="m-0 mb-0.5 font-semibold text-[13px]">{p.name}</p>
                         <p className="muted m-0 text-[11px]">{(p.settings?.techStack || []).slice(0, 2).join(" · ") || "Project"}</p>
@@ -247,7 +249,7 @@ export default function ProjectsPage() {
                   <td>
                     <div className="flex gap-1.5">
                       <Link className="btn btn-outline" href={`/dashboard/projects/${p._id}`} style={{ minHeight: 30, padding: "0 10px", fontSize: 12 }}>Open</Link>
-                      <button className="icon-btn text-(--danger) border-0 bg-transparent w-7.5 h-7.5" onClick={() => setDeleteDialog(p._id)} type="button"><Trash2 size={14} /></button>
+                      <button className="icon-btn projects-delete-button" aria-label={`Delete ${p.name || "project"}`} onClick={() => setDeleteDialog(p._id)} type="button"><Trash2 size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -273,6 +275,6 @@ export default function ProjectsPage() {
         }}
         onCancel={() => setDeleteDialog(null)}
       />
-    </>
+    </div>
   );
 }

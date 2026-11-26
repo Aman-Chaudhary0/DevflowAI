@@ -40,7 +40,7 @@ const quickActions = [
   { label: "New Project", icon: FolderOpen, href: "/dashboard/projects/create", color: "var(--primary)" },
   { label: "Ask AI", icon: Sparkles, href: "/dashboard/ai", color: "var(--purple)" },
   { label: "Upload File", icon: Upload, href: "/dashboard/files", color: "var(--info)" },
-  { label: "Invite Member", icon: UserPlus, href: "/dashboard/settings", color: "var(--success)" },
+  { label: "Invite Member", icon: UserPlus, href: "/dashboard/team/members?invite=1", color: "var(--success)" },
   { label: "Create Task", icon: Plus, href: "/dashboard/tasks", color: "var(--warning)" }
 ];
 
@@ -301,7 +301,7 @@ export default function DashboardPage() {
     <>
       {/* Welcome Banner */}
       <div className="welcome-banner">
-        <div className="flex flex-col gap-2.5">
+        <div className="welcome-copy">
           <div className="flex items-center gap-2.5">
             <div className="logo-mark w-10 h-10"><Sparkles size={18} /></div>
             <span className="eyebrow">Dashboard</span>
@@ -315,7 +315,7 @@ export default function DashboardPage() {
             <strong className="text-(--text)">{unread} unread notifications</strong>.
           </p>
         </div>
-        <div className="flex gap-2.5 flex-wrap">
+        <div className="welcome-actions">
           <Link className="btn btn-primary min-h-9.5 text-xs" href="/dashboard/projects/create">
             <Plus size={16} /> New Project
           </Link>
@@ -598,26 +598,30 @@ export default function DashboardPage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="stat-card gap-4">
-        <p className="m-0 font-bold text-[15px]">Quick Actions</p>
-        <div className="flex gap-3 flex-wrap">
+      <section className="stat-card quick-actions-card">
+        <div className="quick-actions-heading">
+          <div>
+            <p className="m-0 font-bold text-[15px]">Quick Actions</p>
+            <p className="muted m-0 mt-1 text-xs">Jump back into your workflow</p>
+          </div>
+        </div>
+        <div className="quick-actions-grid">
           {quickActions.map(({ label, icon: Icon, href, color }) => (
             <Link
               key={label}
               href={href}
-              className="flex items-center gap-2.5 border border-(--border) rounded-[14px] no-underline text-inherit font-semibold text-sm transition-all duration-150 p-5"
-              style={{ background: "color-mix(in srgb, var(--card) 92%, transparent)" }}
-              onMouseEnter={(e) => { e.currentTarget.style.borderColor = color; e.currentTarget.style.transform = "translateY(-2px)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; e.currentTarget.style.transform = "none"; }}
+              className="quick-action"
+              style={{ "--quick-action-color": color }}
             >
-              <div className="w-8 h-8 rounded-[10px] grid place-items-center" style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}>
+              <span className="quick-action-icon">
                 <Icon size={16} />
-              </div>
-              {label}
+              </span>
+              <span className="quick-action-label">{label}</span>
+              <ChevronRight className="quick-action-arrow" size={16} />
             </Link>
           ))}
         </div>
-      </div>
+      </section>
     </>
   );
 }

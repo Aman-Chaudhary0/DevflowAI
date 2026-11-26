@@ -115,6 +115,28 @@ export async function getGitHubStatus(userId) {
   return record ? { connected: true, account: { id: record.githubUserId, login: record.login, avatarUrl: record.avatarUrl }, connectedAt: record.connectedAt, lastSyncedAt: record.lastSyncedAt } : { connected: false, account: null };
 }
 
+export async function getGitHubCommitCountForUser(userId, { from, to, repository = null, projectFiltered = false } = {}) {
+  const integration = await GitHubIntegration.findOne({ user: userId }).select("login").lean();
+  if (!integration) return { connected: false, available: false, count: null };
+
+  let repositoryQualifier = "";
+  if (projectFiltered) {
+    let parsed;
+    try { parsed = new URL(repository || ""); } catch { return { connected: true, available: false, count: null, reason: "repository_not_linked" }; }
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    if (parsed.hostname.toLowerCase() !== "github.com" || parts.length < 2) {
+      return { connected: true, available: false, count: null, reason: "repository_not_linked" };
+    }
+    repositoryQualifier = ` repo:${parts[0]}/${parts[1].replace(/\.git$/i, "")}`;
+  }
+
+  const fromDate = new Date(from).toISOString().slice(0, 10);
+  const toDate = new Date(to).toISOString().slice(0, 10);
+  const query = `author:${integration.login} committer-date:${fromDate}..${toDate}${repositoryQualifier}`;
+  const result = await githubRequest(userId, `/search/commits?q=${encodeURIComponent(query)}&per_page=1`);
+  return { connected: true, available: true, count: Number(result.total_count) || 0 };
+}
+
 export async function disconnectGitHub(userId) { await Promise.all([GitHubIntegration.deleteOne({ user: userId }), GitHubOAuthState.deleteMany({ user: userId })]); }
 
 export async function listGitHubRepositories(userId, page = 1, perPage = 30) {
