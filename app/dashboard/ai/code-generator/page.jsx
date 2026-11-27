@@ -141,20 +141,20 @@ export default function AICodeGeneratorPage() {
   };
 
   return (
-    <div style={{
+    <div className="ai-code-generator-workspace" style={{
       display: "flex",
       height: "calc(100vh - 64px - 56px)",
       margin: "-28px",
       overflow: "hidden"
     }}>
       {/* Left Panel - Configuration */}
-      <div style={{
+      <div className="ai-code-generator-settings" style={{
         width: 400,
         display: "flex",
         flexDirection: "column",
         borderRight: "1px solid var(--border)",
         background: "var(--surface)",
-        overflowY: "auto"
+        overflow: "hidden"
       }}>
         <div style={{ padding: "20px", borderBottom: "1px solid var(--border)" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, margin: "0 0 4px", fontFamily: "Space Grotesk" }}>
@@ -165,7 +165,7 @@ export default function AICodeGeneratorPage() {
           </p>
         </div>
 
-        <div style={{ flex: 1, padding: 20, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto" }}>
+        <div className="ai-code-generator-settings-scroll" style={{ flex: 1, minHeight: 0, padding: 20, display: "flex", flexDirection: "column", gap: 24, overflowY: "auto" }}>
           {/* Prompt Input */}
           <div>
             <label style={{ display: "block", fontSize: 13, fontWeight: 600, marginBottom: 8, color: "var(--text)" }}>
@@ -576,7 +576,7 @@ export default function AICodeGeneratorPage() {
         </div>
 
         {/* Content */}
-        <div style={{ flex: 1, overflow: "auto", padding: 20 }}>
+        <div className="ai-code-generator-output-scroll" style={{ flex: 1, minHeight: 0, overflow: "auto", padding: 20 }}>
           {!generated && !isGenerating && (
             <div style={{
               display: "grid",

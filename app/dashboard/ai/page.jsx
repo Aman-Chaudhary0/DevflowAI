@@ -1,159 +1,123 @@
-"use client";
-
 import Link from "next/link";
 import {
-  Sparkles, MessageSquare, Code2, ShieldCheck, FileText, Bug, ArrowRight,
-  Zap, Play
+  ArrowRight, Bug, Code2, Database, FileText, MessageSquare, Play,
+  Server, ShieldCheck, Sparkles, WandSparkles, Zap
 } from "lucide-react";
 import { PageHeader } from "@/components/dashboard-ui";
 
 const aiTools = [
   {
-    id: "chat",
-    title: "AI Chat Assistant",
-    description: "Authenticated conversations with persistent history and Markdown responses.",
-    icon: MessageSquare,
-    color: "#3b82f6",
-    link: "/dashboard/ai/chat",
-    tag: "Configured backend model"
+    id: "chat", title: "AI Chat Assistant", description: "Work through ideas, debug issues, and keep the conversation history for later.",
+    icon: MessageSquare, color: "#3b82f6", link: "/dashboard/ai/chat", tag: "Chat & history"
   },
   {
-    id: "generator",
-    title: "AI Code Generator",
-    description: "Multi-language code generator with framework, styling, and TypeScript parameter options.",
-    icon: Code2,
-    color: "#8b5cf6",
-    link: "/dashboard/ai/code-generator",
-    tag: "Multi-Framework"
+    id: "generator", title: "Code Generator", description: "Create application code with language, framework, styling, and TypeScript options.",
+    icon: Code2, color: "#8b5cf6", link: "/dashboard/ai/code-generator", tag: "Multi-framework"
   },
   {
-    id: "review",
-    title: "AI Code Review",
-    description: "Automated PR & code analyzer for security vulnerabilities, performance bottlenecks, and refactoring.",
-    icon: ShieldCheck,
-    color: "#10b981",
-    link: "/dashboard/ai/code-review",
-    tag: "Automated PR"
+    id: "review", title: "Code Review", description: "Review code for security risks, performance issues, and maintainability improvements.",
+    icon: ShieldCheck, color: "#10b981", link: "/dashboard/ai/code-review", tag: "Quality & security"
   },
   {
-    id: "docs",
-    title: "AI Documentation Generator",
-    description: "Generate structured markdown documentation, API specs, and inline JSDoc comments automatically.",
-    icon: FileText,
-    color: "#ec4899",
-    link: "/dashboard/ai/docs-generator",
-    tag: "Markdown & OpenAPI"
+    id: "docs", title: "Documentation Generator", description: "Draft Markdown guides, API specifications, and inline documentation.",
+    icon: FileText, color: "#ec4899", link: "/dashboard/ai/docs-generator", tag: "Markdown & OpenAPI"
   },
   {
-    id: "fixer",
-    title: "AI Bug Fixer",
-    description: "Instant stack trace parser, root cause analyzer, and auto-generated code diff fixer.",
-    icon: Bug,
-    color: "#f59e0b",
-    link: "/dashboard/ai/bug-fixer",
-    tag: "Stack Trace Diff"
+    id: "fixer", title: "Bug Fixer", description: "Explain stack traces, find likely causes, and suggest focused code changes.",
+    icon: Bug, color: "#f59e0b", link: "/dashboard/ai/bug-fixer", tag: "Debugging"
+  },
+  {
+    id: "backend", title: "Backend Generator", description: "Shape backend services, routes, and data models from a project brief.",
+    icon: Server, color: "#06b6d4", link: "/dashboard/ai/backend-generator", tag: "APIs & services"
+  },
+  {
+    id: "sql", title: "SQL Generator", description: "Generate and refine SQL queries, schemas, and database operations.",
+    icon: Database, color: "#f97316", link: "/dashboard/ai/sql-generator", tag: "Database"
   }
 ];
 
 const promptTemplates = [
-  { text: "Create a Next.js 15 Server Action with Zod validation for user login.", tool: "generator" },
-  { text: "Fix hydration mismatch error in React 19 SSR component.", tool: "fixer" },
-  { text: "Audit this PostgreSQL query for N+1 performance bottlenecks.", tool: "review" },
-  { text: "Generate OpenAPI 3.0 specification for authentication REST API.", tool: "docs" }
+  "Create a Next.js server action with Zod validation for user login.",
+  "Explain this React hydration mismatch and suggest a fix.",
+  "Review this SQL query for performance and indexing opportunities.",
+  "Generate an OpenAPI spec for a versioned authentication API."
 ];
 
 export default function AIHubPage() {
   return (
-    <div style={{ padding: "24px", maxWidth: 1300, margin: "0 auto" }}>
-      <PageHeader title="AI Assistant Hub" subtitle="Developer AI tools. Chat availability depends on the server-side provider configuration.">
-        <Link className="btn btn-primary" href="/dashboard/ai/chat" style={{ minHeight: 38, fontSize: 13, gap: 6 }}>
+    <div className="ai-hub">
+      <PageHeader title="AI Assistant Hub" subtitle="A focused set of AI tools for building, reviewing, and documenting software.">
+        <Link className="btn btn-primary ai-hub-primary-action" href="/dashboard/ai/chat">
           <Sparkles size={16} /> Open AI Chat
         </Link>
       </PageHeader>
 
-      <div style={{ background: "linear-gradient(135deg, rgba(26, 34, 53, 0.9) 0%, rgba(15, 23, 42, 0.9) 100%)", border: "1px solid var(--border)", borderRadius: 18, padding: 24, marginBottom: 28 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 6 }}>AI Chat</div>
-        <div style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>The chat page uses the configured server-side AI provider when available. Usage totals and provider health metrics are not available yet.</div>
-      </div>
+      <section className="ai-hub-hero" aria-labelledby="ai-hub-hero-title">
+        <div className="ai-hub-hero-copy">
+          <span className="ai-hub-eyebrow"><WandSparkles size={14} /> YOUR DEVELOPER TOOLKIT</span>
+          <h2 id="ai-hub-hero-title">Move from question to working code.</h2>
+          <p>Start a persistent AI conversation or jump straight into a tool built for a specific development task.</p>
+          <div className="ai-hub-hero-actions">
+            <Link className="btn btn-primary" href="/dashboard/ai/chat"><MessageSquare size={15} /> Start a conversation</Link>
+            <a className="ai-hub-text-link" href="#ai-suite">Explore all tools <ArrowRight size={14} /></a>
+          </div>
+        </div>
+        <div className="ai-hub-hero-aside">
+          <div className="ai-hub-sparkle-orb"><Sparkles size={26} /></div>
+          <div>
+            <strong>One workspace, seven tools</strong>
+            <span>Chat, generate, review, debug, and document.</span>
+          </div>
+          <div className="ai-hub-hero-divider" />
+          <div className="ai-hub-provider-note"><span className="ai-hub-status-dot" /> Chat replies depend on server-side AI provider configuration.</div>
+        </div>
+      </section>
 
-      {/* AI Tool Cards Grid */}
-      <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>AI Suite Tools</h2>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 20, marginBottom: 36 }}>
-        {aiTools.map(tool => {
-          const Icon = tool.icon;
-          return (
-            <div
-              key={tool.id}
-              style={{
-                background: "var(--card)",
-                border: "1px solid var(--border)",
-                borderRadius: 18,
-                padding: 24,
-                display: "flex",
-                flexDirection: "column",
-                justify: "space-between",
-                transition: "transform 0.15s, border-color 0.15s"
-              }}
-            >
-              <div>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 12, background: `color-mix(in srgb, ${tool.color} 15%, transparent)`, display: "grid", placeItems: "center" }}>
-                    <Icon size={22} style={{ color: tool.color }} />
-                  </div>
-                  <span style={{ fontSize: 11, padding: "3px 10px", borderRadius: 20, background: "rgba(255,255,255,0.06)", color: "var(--muted)", fontWeight: 600 }}>
-                    {tool.tag}
-                  </span>
-                </div>
-
-                <h3 style={{ margin: "0 0 8px 0", fontSize: 16, fontWeight: 700, color: "var(--fg)" }}>{tool.title}</h3>
-                <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>
-                  {tool.description}
-                </p>
-              </div>
-
-              <Link
-                href={tool.link}
-                className="btn btn-outline"
-                style={{ width: "100%", justifyContent: "center", minHeight: 38, fontSize: 13, gap: 8, borderColor: `color-mix(in srgb, ${tool.color} 40%, transparent)` }}
-              >
-                Launch Tool <ArrowRight size={15} />
-              </Link>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Quick Prompt Starters */}
-      <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 18, padding: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-          <Zap size={18} style={{ color: "#f59e0b" }} />
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Quick Launch Prompts</h3>
+      <section className="ai-hub-section" id="ai-suite" aria-labelledby="ai-suite-title">
+        <div className="ai-hub-section-heading">
+          <div>
+            <h2 id="ai-suite-title">AI tools</h2>
+            <p>Choose a tool to get started with your next task.</p>
+          </div>
+          <span className="ai-hub-count">{aiTools.length} tools</span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 12 }}>
-          {promptTemplates.map((p, idx) => (
-            <Link
-              key={idx}
-              href={`/dashboard/ai/chat?prompt=${encodeURIComponent(p.text)}`}
-              style={{
-                border: "1px solid var(--border)",
-                borderRadius: 12,
-                padding: 14,
-                background: "rgba(0,0,0,0.2)",
-                cursor: "pointer",
-                transition: "border-color 0.15s",
-                display: "flex",
-                alignItems: "center",
-                justify: "space-between",
-                gap: 12
-              }}
-            >
-              <span style={{ fontSize: 13, color: "var(--fg)", lineHeight: 1.4 }}>{p.text}</span>
-              <Play size={14} style={{ color: "var(--primary)", flexShrink: 0 }} />
+        <div className="ai-hub-tools-grid">
+          {aiTools.map((tool) => {
+            const Icon = tool.icon;
+            return (
+              <article className="ai-hub-tool-card" key={tool.id} style={{ "--tool-accent": tool.color }}>
+                <div className="ai-hub-tool-topline">
+                  <span className="ai-hub-tool-icon"><Icon size={21} /></span>
+                  <span className="ai-hub-tool-tag">{tool.tag}</span>
+                </div>
+                <h3>{tool.title}</h3>
+                <p>{tool.description}</p>
+                <Link className="ai-hub-tool-link" href={tool.link}>Open tool <ArrowRight size={15} /></Link>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="ai-hub-prompts" aria-labelledby="ai-prompts-title">
+        <div className="ai-hub-section-heading">
+          <div className="ai-hub-prompts-title">
+            <span className="ai-hub-prompt-icon"><Zap size={17} /></span>
+            <div>
+              <h2 id="ai-prompts-title">Need a starting point?</h2>
+              <p>Open a chat with a prompt ready to go.</p>
+            </div>
+          </div>
+        </div>
+        <div className="ai-hub-prompt-grid">
+          {promptTemplates.map((prompt) => (
+            <Link className="ai-hub-prompt-card" key={prompt} href={`/dashboard/ai/chat?prompt=${encodeURIComponent(prompt)}`}>
+              <span>{prompt}</span><Play size={14} />
             </Link>
           ))}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

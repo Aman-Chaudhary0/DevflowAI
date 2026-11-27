@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import {
   Avatar,
-  AvatarGroup,
   FilterBar,
   MiniBarChart,
   PageHeader,
@@ -29,7 +28,7 @@ import {
   StatusBadge,
   toast
 } from "@/components/dashboard-ui";
-import { mockAnalytics, mockTeamMembers } from "@/lib/dashboard-data";
+import { mockAnalytics } from "@/lib/dashboard-data";
 import { api } from "@/lib/api";
 
 const timeFilters = [
@@ -38,14 +37,6 @@ const timeFilters = [
   { label: "This Month", value: "month" },
   { label: "This Year", value: "year" }
 ];
-
-const leaderboardData = mockTeamMembers
-  .map((m) => ({
-    ...m,
-    efficiency: Math.floor(Math.random() * 40) + 60,
-    aiUsage: Math.floor(Math.random() * 200) + 50
-  }))
-  .sort((a, b) => b.tasks + b.commits - (a.tasks + a.commits));
 
 const heatmapDays = Array.from({ length: 35 }, (_, i) => {
   const day = new Date();
@@ -98,6 +89,8 @@ export default function AnalyticsPage() {
   const [aiByTool, setAiByTool] = useState(null);
   const [aiTimeseries, setAiTimeseries] = useState(null);
   const [aiLoading, setAiLoading] = useState(true);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
 
   const projectOptions = [
     { label: "All Projects", value: "all" },
@@ -146,6 +139,19 @@ export default function AnalyticsPage() {
     }
   }, []);
 
+  const loadLeaderboard = useCallback(async (tf, projectId) => {
+    setLeaderboardLoading(true);
+    const { from, to } = getDateRange(tf);
+    try {
+      const response = await api.analytics.leaderboard({ from, to, ...(projectId && projectId !== "all" ? { projectId } : {}) });
+      setLeaderboard(response.data?.members || []);
+    } catch {
+      setLeaderboard([]);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     let active = true;
     api.projects.list({ page: 1, limit: 100, sortBy: "updatedAt", sortOrder: "desc" })
@@ -157,7 +163,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     loadSummary(timeFilter, projectFilterVal);
     loadAIData(timeFilter, projectFilterVal);
-  }, [timeFilter, projectFilterVal, loadSummary, loadAIData]);
+    loadLeaderboard(timeFilter, projectFilterVal);
+  }, [timeFilter, projectFilterVal, loadSummary, loadAIData, loadLeaderboard]);
 
   const taskChange = getPeriodChange(analyticsSummary?.tasksCompleted);
   const deploymentChange = getPeriodChange(analyticsSummary?.deployments);
@@ -450,21 +457,21 @@ export default function AnalyticsPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
               <p style={{ margin: 0, fontWeight: 700, fontSize: 15 }}>Team Leaderboard</p>
-              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Top performers this week</p>
+              <p className="muted" style={{ margin: "2px 0 0", fontSize: 12 }}>Top performers for selected period</p>
             </div>
           </div>
           <div style={{ display: "grid", gap: 12 }}>
-            {leaderboardData.slice(0, 5).map((member, i) => (
+            {leaderboardLoading ? <p className="muted" style={{ fontSize: 13 }}>Loading team activity…</p> : leaderboard.length === 0 ? <p className="muted" style={{ fontSize: 13 }}>No team task activity for this period.</p> : leaderboard.map((member, i) => (
               <div key={member._id} style={{ display: "flex", alignItems: "center", gap: 14 }}>
                 <span style={{ fontSize: 16, fontWeight: 800, color: i === 0 ? "var(--warning)" : i === 1 ? "var(--muted)" : i === 2 ? "#cd7f32" : "var(--soft)", width: 24, textAlign: "center" }}>
                   {i + 1}
                 </span>
-                <Avatar name={member.name} size={36} color={member.color} />
+                <Avatar name={member.name} size={36} />
                 <div style={{ flex: 1 }}>
                   <p style={{ margin: "0 0 2px", fontWeight: 600, fontSize: 14 }}>{member.name}</p>
                   <div style={{ display: "flex", gap: 12 }}>
                     <span className="muted" style={{ fontSize: 11 }}>{member.tasks} tasks</span>
-                    <span className="muted" style={{ fontSize: 11 }}>{member.commits} commits</span>
+                    <span className="muted" style={{ fontSize: 11 }}>{member.aiRequests} AI requests</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>

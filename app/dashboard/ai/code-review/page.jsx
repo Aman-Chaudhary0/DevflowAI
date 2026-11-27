@@ -155,11 +155,16 @@ export default function AICodeReviewPage() {
   const filteredIssues = severityFilter === "all"
     ? reviewData?.issues || []
     : reviewData?.issues.filter(i => i.severity === severityFilter) || [];
+  const severityCounts = Object.fromEntries(["critical", "high", "medium", "low"].map((severity) => [
+    severity,
+    reviewData?.issues?.filter((issue) => issue.severity === severity).length || 0
+  ]));
+  const totalFindings = reviewData?.issues?.length || 0;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div className="ai-review-page" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Page Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div className="ai-review-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 700, margin: "0 0 4px", fontFamily: "Space Grotesk" }}>
             AI Code Review
@@ -480,16 +485,16 @@ export default function AICodeReviewPage() {
       ) : (
         <>
           {/* Review Dashboard */}
-          <div style={{ display: "flex", gap: 24 }}>
+          <div className="ai-review-results" style={{ display: "flex", gap: 24 }}>
             {/* Left - Score Cards */}
-            <div style={{ width: 300, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="ai-review-summary-column" style={{ width: 300, display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Overall Score */}
-              <div style={{
+              <div className="ai-review-overview-card" style={{
                 padding: 24,
                 border: "1px solid var(--border)",
                 borderRadius: 16,
                 background: "var(--card)",
-                textAlign: "center"
+                textAlign: "left"
               }}>
                 <div style={{ position: "relative", display: "inline-flex", marginBottom: 12 }}>
                   <svg width={120} height={120} style={{ transform: "rotate(-90deg)" }}>
@@ -520,10 +525,29 @@ export default function AICodeReviewPage() {
                     </span>
                   </div>
                 </div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Review summary</h3>
+                <div className="ai-review-findings-total"><strong>{totalFindings}</strong><span>{totalFindings === 1 ? "finding" : "findings"}</span></div>
+                <h3 style={{ margin: "12px 0 0", fontSize: 16, fontWeight: 700 }}>Review summary</h3>
                 <p style={{ fontSize: 12, color: "var(--muted)", margin: "4px 0 0" }}>
                   {reviewData.summary}
                 </p>
+                <div className="ai-review-severity-chips">
+                  {["critical", "high", "medium", "low"].filter((severity) => severityCounts[severity] > 0).map((severity) => (
+                    <span className={`ai-review-severity-chip severity-${severity}`} key={severity}>{severityCounts[severity]} {severity}</span>
+                  ))}
+                  {totalFindings === 0 && <span className="ai-review-no-findings"><CheckCircle2 size={14} /> No findings</span>}
+                </div>
+              </div>
+
+              <div className="ai-review-breakdown-card">
+                <div className="ai-review-breakdown-heading"><h3>Severity breakdown</h3><span>{totalFindings} total</span></div>
+                {["critical", "high", "medium", "low"].map((severity) => (
+                  <div className="ai-review-breakdown-row" key={severity}>
+                    <span className={`ai-review-severity-dot severity-${severity}`} />
+                    <span className="ai-review-breakdown-label">{severity}</span>
+                    <div className="ai-review-breakdown-track"><span className={`ai-review-breakdown-fill severity-${severity}`} style={{ width: `${totalFindings ? (severityCounts[severity] / totalFindings) * 100 : 0}%` }} /></div>
+                    <strong>{severityCounts[severity]}</strong>
+                  </div>
+                ))}
               </div>
 
               {/* Category Scores */}
@@ -560,9 +584,9 @@ export default function AICodeReviewPage() {
             </div>
 
             {/* Right - Issues & Sections */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
+            <div className="ai-review-findings-column" style={{ flex: 1, display: "flex", flexDirection: "column", gap: 16 }}>
               {/* Section Tabs */}
-              <div style={{
+              <div className="ai-review-tabs" style={{
                 display: "flex",
                 gap: 4,
                 padding: "6px",
@@ -615,7 +639,7 @@ export default function AICodeReviewPage() {
 
               {/* Filter Bar */}
               {activeSection === "overview" && (
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="ai-review-filter-row" style={{ display: "flex", gap: 8, alignItems: "center" }}>
                   <Filter size={14} color="var(--muted)" />
                   <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>Filter:</span>
                   <div style={{ display: "flex", gap: 4 }}>
@@ -644,7 +668,7 @@ export default function AICodeReviewPage() {
               )}
 
               {/* Content Area */}
-              <div style={{ flex: 1 }}>
+              <div className="ai-review-findings-list" style={{ flex: 1 }}>
                 {activeSection === "overview" && (
                   <div>
                     {filteredIssues.length === 0 ? (

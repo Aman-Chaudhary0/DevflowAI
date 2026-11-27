@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, FileText, MessageSquare, MoreVertical, RefreshCw, Share2, Sparkles, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileText, MessageSquare, Sparkles, X } from "lucide-react";
 import { AIMessage, UserMessage, TypingIndicator, ChatInput, ChatHistory, ContextPanel, ModelSelector, ExportMenu } from "@/components/ai-ui";
 import { api } from "@/lib/api";
 import { toast } from "@/components/dashboard-ui";
@@ -94,6 +94,11 @@ export default function AIChatPage() {
     } finally { if (activeRef.current === id) setLoadingMessages(false); }
   }, [conversations]);
 
+  const handleSelectConversation = (id) => {
+    selectConversation(id);
+    if (window.matchMedia("(max-width: 760px)").matches) setSidebarCollapsed(true);
+  };
+
   // Refresh history after searches without substituting fixture data on failure.
   useEffect(() => {
     if (!activeRef.current && !loadingHistory) return;
@@ -122,6 +127,7 @@ export default function AIChatPage() {
       setMessages([]);
       setInputValue("");
       setLoadingHistory(false);
+      if (window.matchMedia("(max-width: 760px)").matches) setSidebarCollapsed(true);
       window.history.replaceState(null, "", `/dashboard/ai/chat?conversation=${encodeURIComponent(conversation._id)}`);
     } catch (createError) { setError(createError.message); }
     finally { pendingNewRef.current = false; }
@@ -219,37 +225,34 @@ export default function AIChatPage() {
   const active = conversations.find((item) => item._id === activeConversation);
   const suggestions = ["Explain this code", "Help me debug an issue", "Suggest an implementation"];
 
-  return <div style={{ display: "flex", height: "calc(100vh - 64px - 56px)", margin: "-28px", overflow: "hidden", position: "relative", isolation: "isolate" }}>
-    {!sidebarCollapsed && <div style={{ flex: "0 0 260px", width: 260, minWidth: 260, height: "100%", position: "relative", zIndex: 2, overflow: "hidden", pointerEvents: "auto" }}><ChatHistory conversations={conversations.map((item) => ({ ...item, id: item._id, updatedAt: item.updatedAt }))} folders={folders} activeId={activeConversation} onSelect={selectConversation} onNew={handleNewChat} search={searchQuery} onSearch={setSearchQuery} collapsed={sidebarCollapsed} /></div>}
-    <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", zIndex: 0, borderLeft: sidebarCollapsed ? "none" : "1px solid var(--border)", borderRight: contextCollapsed ? "none" : "1px solid var(--border)" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid var(--border)", background: "var(--card)" }}>
+  return <div className="ai-chat-workspace" style={{ display: "flex", height: "calc(100vh - 64px - 56px)", margin: "-28px", overflow: "hidden", position: "relative", isolation: "isolate" }}>
+    {!sidebarCollapsed && <div className="ai-chat-history-column" style={{ flex: "0 0 260px", width: 260, minWidth: 260, height: "100%", position: "relative", zIndex: 2, overflow: "hidden", pointerEvents: "auto" }}><ChatHistory conversations={conversations.map((item) => ({ ...item, id: item._id, updatedAt: item.updatedAt }))} folders={folders} activeId={activeConversation} onSelect={handleSelectConversation} onNew={handleNewChat} search={searchQuery} onSearch={setSearchQuery} collapsed={sidebarCollapsed} /></div>}
+    <div className="ai-chat-main-column" style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0, position: "relative", zIndex: 0, borderLeft: sidebarCollapsed ? "none" : "1px solid var(--border)", borderRight: contextCollapsed ? "none" : "1px solid var(--border)" }}>
+      <div className="ai-chat-topbar" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 20px", borderBottom: "1px solid var(--border)", background: "var(--card)" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} type="button" aria-label="Toggle chat history" style={{ width: 32, height: 32, borderRadius: 8, background: "var(--surface)", border: "none", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--muted)" }}>{sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button>
+          <button className="ai-chat-icon-button" onClick={() => setSidebarCollapsed(!sidebarCollapsed)} type="button" aria-label="Toggle chat history" style={{ width: 32, height: 32, borderRadius: 8, background: "var(--surface)", border: "none", cursor: "pointer", display: "grid", placeItems: "center", color: "var(--muted)" }}>{sidebarCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}</button>
           <ModelSelector value={selectedModel} onChange={setSelectedModel} options={modelOptions} />
-          <span style={{ color: "var(--soft)", fontSize: 13 }}>|</span>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "var(--surface)", borderRadius: 8 }}><MessageSquare size={14} color="var(--muted)" /><span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 600 }}>{active?.title || "New Chat"}</span></div>
+          <div className="ai-chat-title-chip"><MessageSquare size={14} color="var(--muted)" /><span>{active?.title || "New Chat"}</span></div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="ai-chat-toolbar-actions" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ExportMenu onExport={handleExport} />
-          <button type="button" disabled title="Conversation sharing is unavailable" style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--muted)", opacity: 0.6 }}><Share2 size={14} /> Share</button>
-          <button type="button" disabled title="More conversation actions are unavailable" aria-label="More conversation actions" style={{ width: 32, height: 32, borderRadius: 8, background: "var(--surface)", border: "none", display: "grid", placeItems: "center", color: "var(--muted)", opacity: 0.6 }}><MoreVertical size={16} /></button>
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column" }}>
+      <div className="ai-chat-message-scroll" style={{ flex: 1, overflowY: "auto", padding: 20, display: "flex", flexDirection: "column" }}>
         {(loadingHistory || loadingMessages) && <div role="status" style={{ color: "var(--muted)", padding: 16 }}>Loading conversations…</div>}
         {!loadingHistory && !modelOptions.length && <div role="alert" style={{ margin: "8px 0", padding: 12, borderRadius: 10, background: "color-mix(in srgb, var(--warning) 12%, transparent)", color: "var(--warning)" }}>{modelAvailabilityMessage || "No AI model is configured. Set up the backend AI provider to enable chat."}</div>}
-        {!loadingHistory && !loadingMessages && !error && !messages.length && <div style={{ margin: "auto", textAlign: "center", color: "var(--muted)" }}><Sparkles size={24} /><p>{activeConversation ? "Send a message to begin this conversation." : "Create a chat to start a conversation."}</p></div>}
+        {!loadingHistory && !loadingMessages && !error && !messages.length && <div className="ai-chat-empty-state"><div className="ai-chat-empty-icon"><Sparkles size={22} /></div><h2>{activeConversation ? "What are you working on?" : "Start a conversation"}</h2><p>{activeConversation ? "Ask a question, share code, or describe the problem you want to solve." : "Create a chat and work through your next development task."}</p><div className="ai-chat-empty-prompts">{suggestions.map((suggestion) => <button key={suggestion} onClick={() => setInputValue(suggestion)} type="button">{suggestion}<ChevronRight size={14} /></button>)}</div></div>}
         {error && <div role="alert" style={{ margin: "8px 0", padding: 12, borderRadius: 10, background: "color-mix(in srgb, var(--danger) 12%, transparent)", color: "var(--danger)" }}>{error}<button onClick={() => activeConversation ? selectConversation(activeConversation) : loadConversations().then(() => setError(""))} type="button" style={{ marginLeft: 8, textDecoration: "underline", background: "none", border: 0, color: "inherit", cursor: "pointer" }}>Retry</button></div>}
         {messages.map((message) => <div key={message.id}>{message.type === "user" ? <UserMessage message={message} /> : <AIMessage message={message} onCopy={handleCopy} onRegenerate={handleRegenerate} onLike={handleLike} onDislike={handleDislike} />}</div>)}
         {isGenerating && <TypingIndicator />}
         <div ref={messagesEndRef} />
       </div>
-      <div style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", background: "var(--card)" }}>
+      <div className="ai-chat-composer-shell" style={{ padding: "16px 20px", borderTop: "1px solid var(--border)", background: "var(--card)" }}>
         <ChatInput value={inputValue} onChange={setInputValue} onSend={handleSendMessage} onAttach={() => toast("File attachment is not connected", "info")} onVoice={() => toast("Voice input is not connected", "info")} isGenerating={isGenerating} onStop={() => requestRef.current?.abort()} placeholder="Ask AI anything about your code..." suggestions={suggestions} />
         <div style={{ textAlign: "center", marginTop: 8, fontSize: 11, color: "var(--soft)" }}>AI can make mistakes. Review generated code carefully.</div>
       </div>
     </div>
-    {!contextCollapsed ? <div style={{ width: 280, padding: 16, overflowY: "auto", background: "var(--surface)" }}>
+    {!contextCollapsed ? <div className="ai-chat-context-column" style={{ width: 280, padding: 16, overflowY: "auto", background: "var(--surface)" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}><span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Context</span><button onClick={() => setContextCollapsed(true)} type="button" aria-label="Collapse context" style={{ border: 0, background: "transparent", color: "var(--muted)" }}><X size={14} /></button></div>
       <ContextPanel />
       <p style={{ fontSize: 12, color: "var(--muted)", lineHeight: 1.5 }}>Project and repository context are not connected. The assistant only receives messages in this conversation.</p>

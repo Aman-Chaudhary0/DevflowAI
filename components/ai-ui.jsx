@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -13,6 +13,7 @@ import {
   Dislike,
   Download,
   ExternalLink,
+  ArrowUp,
   FileCode,
   FileText,
   FolderOpen,
@@ -332,29 +333,31 @@ export function ChatInput({
   };
 
   return (
-    <div className="border border-(--border) rounded-2xl bg-(--card) p-3 transition-colors duration-200">
+    <div className="ai-chat-input-card border border-(--border) rounded-2xl bg-(--card) p-3 transition-colors duration-200">
       {/* Suggestions */}
       {suggestions.length > 0 && !value && (
-        <div className="flex gap-2 flex-wrap mb-2">
+        <div className="ai-chat-input-suggestions" aria-label="Suggested prompts">
+          <span className="ai-chat-input-suggestions-label">Try</span>
           {suggestions.map((s, i) => (
             <button
               key={i}
               onClick={() => onChange(s)}
-              className="px-3 py-1.5 bg-(--surface) border border-(--border) rounded-full text-xs text-(--muted) cursor-pointer transition-all duration-150 whitespace-nowrap"
+              className="ai-chat-input-suggestion"
               type="button"
             >
-              <Sparkles size={12} className="mr-1" />
+              <Sparkles size={12} aria-hidden="true" />
               {s}
             </button>
           ))}
         </div>
       )}
 
-      <div className="flex gap-2 items-end">
+      <div className="ai-chat-input-row flex gap-2 items-end">
         <button
           onClick={onAttach}
-          className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) shrink-0"
+          className="ai-chat-input-tool-button"
           title="Attach file"
+          aria-label="Attach file"
           type="button"
         >
           <Paperclip size={16} />
@@ -366,14 +369,16 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           rows={rows}
-          className="flex-1 border-none outline-none bg-transparent resize-none text-sm leading-relaxed py-2 min-h-6 max-h-37.5 font-inherit"
+          aria-label="Message"
+          className="ai-chat-message-input"
         />
 
-        <div className="flex gap-1 shrink-0">
+        <div className="ai-chat-input-actions">
           <button
             onClick={onVoice}
-            className="w-9 h-9 rounded-lg bg-(--surface) border-none cursor-pointer grid place-items-center text-(--muted) transition-all duration-150"
+            className="ai-chat-input-tool-button"
             title="Voice input"
+            aria-label="Voice input"
             type="button"
           >
             <Mic size={16} />
@@ -382,8 +387,9 @@ export function ChatInput({
           {isGenerating ? (
             <button
               onClick={onStop}
-              className="w-9 h-9 rounded-lg bg-(--danger) border-none cursor-pointer grid place-items-center text-white"
+              className="ai-chat-send-button is-stop"
               title="Stop generation"
+              aria-label="Stop generation"
               type="button"
             >
               <Square size={16} />
@@ -398,11 +404,12 @@ export function ChatInput({
                 }
               }}
               disabled={!value.trim()}
-              className="w-9 h-9 rounded-lg bg-(--primary) border-none cursor-pointer grid place-items-center text-white transition-all duration-150"
+              className="ai-chat-send-button"
               title="Send message"
+              aria-label="Send message"
               type="button"
             >
-              <Wand2 size={16} />
+              <ArrowUp size={18} />
             </button>
           )}
         </div>
@@ -534,15 +541,17 @@ export function ChatHistory({
       {/* Search */}
       {!collapsed && (
         <div style={{ flex: "0 0 auto", padding: "0 12px 12px", boxSizing: "border-box", width: "100%" }}>
-          <div className="flex items-center gap-2 px-3 py-2 bg-(--card) border border-(--border) rounded-lg" style={{ width: "100%", minWidth: 0, boxSizing: "border-box" }}>
-            <Search size={14} color="var(--muted)" />
+          <div className="ai-chat-searchbox" role="search" aria-label="Search conversation history">
+            <Search className="ai-chat-search-icon" size={15} aria-hidden="true" />
             <input
               value={search}
               onChange={(e) => onSearch(e.target.value)}
               placeholder="Search chats..."
-              className="flex-1 border-none outline-none bg-transparent text-sm text-(--text)"
-              style={{ flex: "1 1 0%", width: "100%", minWidth: 0, boxSizing: "border-box" }}
+              aria-label="Search conversations"
+              autoComplete="off"
+              className="ai-chat-search-input"
             />
+            {search && <button className="ai-chat-search-clear" onClick={() => onSearch("")} type="button" aria-label="Clear search" title="Clear search"><X size={13} /></button>}
           </div>
         </div>
       )}
@@ -670,6 +679,23 @@ export function ChatHistory({
 // ─── Model Selector ────────────────────────────────────────────
 export function ModelSelector({ value, onChange, options = [] }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   const selected = options.find(o => o.id === value) || options[0];
 
@@ -678,33 +704,35 @@ export function ModelSelector({ value, onChange, options = [] }) {
   }
 
   return (
-    <div className="relative">
+    <div className="ai-chat-model-selector" ref={menuRef} style={{ position: "relative" }}>
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
+        onClick={() => setOpen((current) => !current)}
+        className={`ai-chat-model-button flex items-center gap-2 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)${open ? " is-open" : ""}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
         type="button"
       >
-<span aria-label={`${selected.name} icon`} className="flex w-5 h-5 shrink-0 items-center justify-center rounded bg-blue-500 text-[9px] font-bold text-white">
+<span aria-hidden="true" className="ai-chat-model-badge">
   {selected.icon || selected.name.slice(0, 2).toUpperCase()}
-</span>        {selected.name}
+</span><span className="ai-chat-model-name">{selected.name}</span>
         <ChevronDown size={14} color="var(--muted)" />
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-[calc(100%+8px)] left-0 min-w-50 bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+          <div className="ai-chat-model-panel" role="listbox" aria-label="Choose an AI model" style={{ position: "absolute", top: "calc(100% + 8px)", left: 0, zIndex: 1001 }}>
             {options.map(option => (
               <button
                 key={option.id}
                 onClick={() => { onChange(option.id); setOpen(false); }}
-                className="w-full flex items-center gap-2.5 px-3 py-2.5 bg-[color-mix(in_srgb,var(--primary)_10%,transparent)] border-none cursor-pointer text-left"
-                style={{ background: option.id === value ? "color-mix(in srgb, var(--primary) 10%, transparent)" : "transparent" }}
+                className={`ai-chat-model-option${option.id === value ? " is-selected" : ""}`}
+                role="option"
+                aria-selected={option.id === value}
                 type="button"
               >
-<span aria-label={`${option.name} icon`} className="flex w-5 h-5 shrink-0 items-center justify-center rounded bg-blue-500 text-[9px] font-bold text-white">
+<span aria-hidden="true" className="ai-chat-model-badge">
   {option.icon || option.name.slice(0, 2).toUpperCase()}
-</span>                <div>
+                </span>
+                <div className="ai-chat-model-option-copy">
                   <div className="text-sm font-semibold">{option.name}</div>
                   <div className="text-xs text-(--muted)">{option.description}</div>
                 </div>
@@ -712,7 +740,6 @@ export function ModelSelector({ value, onChange, options = [] }) {
               </button>
             ))}
           </div>
-        </>
       )}
     </div>
   );
@@ -721,12 +748,31 @@ export function ModelSelector({ value, onChange, options = [] }) {
 // ─── Export Menu ───────────────────────────────────────────────
 export function ExportMenu({ onExport }) {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event) => {
+      if (!menuRef.current?.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
 
   return (
-    <div className="relative">
+    <div className="ai-export-menu" ref={menuRef} style={{ position: "relative" }}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)"
+        className={`ai-export-trigger flex items-center gap-1.5 px-3 py-2 bg-(--surface) border border-(--border) rounded-lg cursor-pointer text-sm font-semibold text-(--text)${open ? " is-open" : ""}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
         type="button"
       >
         <Download size={14} />
@@ -734,27 +780,28 @@ export function ExportMenu({ onExport }) {
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-[calc(100%+8px)] right-0 min-w-40 bg-(--card) border border-(--border) rounded-xl shadow-[0_16px_48px_rgba(0,0,0,0.3)] z-50 overflow-hidden">
+          <div className="ai-export-panel" role="menu" style={{ position: "absolute", top: "calc(100% + 8px)", right: 0, zIndex: 1001 }}>
             <button
               onClick={() => { onExport("md"); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left text-sm"
+              className="ai-export-item"
+              role="menuitem"
               type="button"
             >
-              <FileText size={14} />
-              Export as Markdown
+              <FileText size={15} />
+              <span>Export as Markdown</span>
+              <span className="ai-export-format">.md</span>
             </button>
             <button
               onClick={() => { onExport("pdf"); setOpen(false); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 bg-transparent border-none cursor-pointer text-left text-sm"
+              className="ai-export-item"
+              role="menuitem"
               type="button"
             >
-              <FileText size={14} />
-              Export as PDF
+              <FileText size={15} />
+              <span>Export as PDF</span>
+              <span className="ai-export-format">.pdf</span>
             </button>
           </div>
-        </>
       )}
     </div>
   );
@@ -870,27 +917,27 @@ export function IssueCard({ severity, title, description, location, fix }) {
   const color = colors[severity] || colors.low;
 
   return (
-    <div className="border border-(--border) rounded-xl p-4 mb-2" style={{ borderColor: color.border, background: color.bg }}>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold uppercase text-white" style={{ background: color.border }}>
+    <article className={`ai-review-issue-card severity-${severity}`} style={{ borderColor: color.border, background: color.bg }}>
+      <div className="ai-review-issue-header">
+        <span className={`ai-review-issue-severity severity-${severity}`} style={{ background: color.border }}>
           {severity}
         </span>
-        <span className="font-semibold text-sm">{title}</span>
+        <h3>{title}</h3>
       </div>
-      <p className="mb-2 text-sm text-(--muted) leading-relaxed">{description}</p>
+      <p className="ai-review-issue-description">{description}</p>
       {location && (
-        <div className="inline-flex items-center gap-2 px-2 py-1 bg-(--surface) rounded-md text-xs font-code text-(--muted)">
+        <div className="ai-review-issue-location">
           <FileCode size={12} />
           {location}
         </div>
       )}
       {fix && (
-        <div className="mt-3 pt-3 border-t border-[color-mix(in_srgb,var(--border)_50%,transparent)]">
-          <span className="text-xs font-semibold text-(--success)">Fix: </span>
-          <span className="text-sm">{fix}</span>
+        <div className="ai-review-issue-fix">
+          <span className="ai-review-issue-fix-label">Suggested fix</span>
+          <p>{fix}</p>
         </div>
       )}
-    </div>
+    </article>
   );
 }
 

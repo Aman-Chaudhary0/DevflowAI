@@ -12,3 +12,11 @@ export const analyticsSummarySchema = z.object({
     projectId: objectId.optional()
   })
 });
+
+export const analyticsLeaderboardSchema = z.object({
+  query: z.object({
+    from: date,
+    to: date,
+    projectId: objectId.optional()
+  })
+});
