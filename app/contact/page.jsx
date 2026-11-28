@@ -1,19 +1,18 @@
-import { Mail, MapPin, Phone, Send } from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
 import { PageHero } from "@/components/ui-blocks";
 import ContactForm from "@/components/contact-form";
-
-const channels = [
-  { label: "Office", value: "San Francisco and remote", Icon: MapPin },
-  { label: "Email", value: "hello@devflow.ai", Icon: Mail },
-  { label: "Phone", value: "+1 415 555 0138", Icon: Phone }
-];
-
-const formFields = ["Name", "Email", "Company", "Subject"];
 
 const supportChannels = ["Sales", "Support", "Security"];
 
 // ContactPage is a page component that renders the "Contact" page of the application, providing information on how to get in touch with the team, including office location, email, phone number, and a contact form for inquiries.
 export default function ContactPage() {
+  const email = process.env.EMAIL || "";
+  const channels = [
+    { label: "Office", value: "San Francisco and remote", Icon: MapPin },
+    ...(email ? [{ label: "Email", value: email, Icon: Mail, href: `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent("Devflow AI inquiry")}` }] : []),
+    { label: "Phone", value: "+1 415 555 0138", Icon: Phone }
+  ];
+
   return (
     <>
       <PageHero
@@ -25,12 +24,12 @@ export default function ContactPage() {
       <section className="section-tight">
         <div className="container grid grid-2">
           <div className="stack-lg">
-            {channels.map(({ label, value, Icon }) => (
+            {channels.map(({ label, value, Icon, href }) => (
               <div className="card card-pad row" key={label} style={{ gap: 14 }}>
                 <span className="logo-mark"><Icon size={19} /></span>
                 <div>
                   <strong>{label}</strong>
-                  <p className="muted">{value}</p>
+                  {href ? <a className="muted" href={href} target="_blank" rel="noopener noreferrer">{value}</a> : <p className="muted">{value}</p>}
                 </div>
               </div>
             ))}

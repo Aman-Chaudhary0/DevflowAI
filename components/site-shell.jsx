@@ -7,7 +7,7 @@ import { Navbar } from "@/components/navbar";
 const authRoutes = ["/login", "/register", "/verify-email", "/forgot-password", "/reset-password", "/2fa"];
 const noShellRoutes = ["/dashboard", "/admin"];
 
-export function SiteShell({ children }) {
+export function SiteShell({ children, email }) {
   const pathname = usePathname();
   const isAuthRoute = authRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
   const isDashboard = noShellRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
@@ -20,7 +20,7 @@ export function SiteShell({ children }) {
     <>
       <Navbar />
       <main>{children}</main>
-      <Footer />
+      <Footer email={email} />
     </>
   );
 }

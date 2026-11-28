@@ -25,6 +25,7 @@ export function SQLGenerator() {
   );
   const [database, setDatabase] = useState("PostgreSQL");
   const [selected, setSelected] = useState(["users", "orders"]);
+  const [expandedTable, setExpandedTable] = useState(null);
   const [tab, setTab] = useState("SQL");
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
@@ -107,52 +108,54 @@ export function SQLGenerator() {
             aria-label="Query request"
           />
 
-          <div className="tool-row">
-            <label>
-              Dialect
-              <select className="compact-select">
-                <option>{database}</option>
-                <option>PostgreSQL</option>
-                <option>MySQL</option>
-              </select>
-            </label>
-              <span className="badge">
+          <div className="tool-row sql-context-row">
+            <span className="sql-dialect-pill"><Database size={14} />{database} dialect</span>
+            <span className="badge">
               <Database size={14} /> Example schema
             </span>
           </div>
 
           <div className="schema-head">
-            <strong>Schema context</strong>
+            <div><strong>Schema context</strong><span className="sql-schema-help">Choose the tables this query can use.</span></div>
             <span className="muted text-xs">{selected.length} selected</span>
           </div>
 
           <div className="schema-list">
             {sqlTables.map(table => (
-              <details key={table.name} open={selected.includes(table.name)}>
-                <summary>
+              <div className={`schema-item ${selected.includes(table.name) ? "is-selected" : ""}`} key={table.name}>
+                <div className="schema-table-row">
                   <button
                     type="button"
-                    onClick={e => {
-                      e.preventDefault();
-                      setSelected(s =>
-                        s.includes(table.name)
-                          ? s.filter(x => x !== table.name)
-                          : [...s, table.name]
-                      );
-                    }}
+                    onClick={() => setSelected(s =>
+                      s.includes(table.name)
+                        ? s.filter(x => x !== table.name)
+                        : [...s, table.name]
+                    )}
                     className={`table-select ${selected.includes(table.name) ? "active" : ""}`}
+                    aria-pressed={selected.includes(table.name)}
                   >
                     {selected.includes(table.name) && <Check size={14} />}
-                    {table.name}
+                    <span>{table.name}</span>
                   </button>
-                  <ChevronDown size={15} />
-                </summary>
-                <ul>
-                  {table.fields.map(field => (
-                    <li key={field}><code>{field}</code></li>
-                  ))}
-                </ul>
-              </details>
+                  <button
+                    type="button"
+                    className="schema-expand"
+                    aria-label={`${expandedTable === table.name ? "Hide" : "Show"} columns for ${table.name}`}
+                    aria-expanded={expandedTable === table.name}
+                    onClick={() => setExpandedTable(current => current === table.name ? null : table.name)}
+                  >
+                    <ChevronDown size={15} />
+                  </button>
+                </div>
+                {expandedTable === table.name && (
+                  <ul>
+                    {table.fields.map(field => {
+                      const [fieldName, ...fieldType] = field.split(" ");
+                      return <li key={field}><span className="schema-field-name">{fieldName}</span><span className="schema-field-type">{fieldType.join(" ")}</span></li>;
+                    })}
+                  </ul>
+                )}
+              </div>
             ))}
           </div>
 
@@ -171,7 +174,7 @@ export function SQLGenerator() {
             ))}
           </div>
 
-          <div className="flex gap-2 mt-5">
+          <div className="sql-input-actions">
             <button
               className="btn btn-primary"
               onClick={generate}
@@ -281,6 +284,7 @@ export function SQLGenerator() {
               </tr>
             </thead>
             <tbody>
+              {history.length === 0 && <tr><td className="sql-history-empty" colSpan={5}>Generated queries from this session will appear here.</td></tr>}
               {history.map((row, i) => (
                 <tr key={`${row[0]}${i}`}>
                   <td>{row[0]}</td>
@@ -792,7 +796,12 @@ export function FeedbackPage() {
   const [type, setType] = useState("Feature Request");
   const [rating, setRating] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const [submissionReference, setSubmissionReference] = useState("");
+  const [emailDelivered, setEmailDelivered] = useState(null);
   const [working, setWorking] = useState(false);
+  const [recentFeedback, setRecentFeedback] = useState([]);
+  const [recentLoading, setRecentLoading] = useState(true);
+  const [recentError, setRecentError] = useState("");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -807,16 +816,50 @@ export function FeedbackPage() {
     ["General Feedback", MessageSquare, "Tell us what is on your mind."],
   ];
 
-  const submit = e => {
+  useEffect(() => {
+    let active = true;
+    api.feedback.mine()
+      .then((response) => {
+        if (active) setRecentFeedback(response?.data?.feedback || []);
+      })
+      .catch((error) => {
+        if (!active) return;
+        if (error.message?.toLowerCase().includes("auth")) setRecentError("Sign in to view feedback submitted from your account.");
+        else {
+          setRecentError(error.message || "Unable to load your feedback history.");
+          toast(error.message || "Unable to load your feedback history.", "error");
+        }
+      })
+      .finally(() => { if (active) setRecentLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  const submit = async e => {
     e.preventDefault();
-    if (!form.title || !form.description)
-      return toast("Add a title and description.", "warning");
+    if (form.title.trim().length < 3 || form.description.trim().length < 10)
+      return toast("Add a title and a description of at least 10 characters.", "warning");
     setWorking(true);
-    setTimeout(() => {
-      setWorking(false);
+    try {
+      const response = await api.feedback.submit({
+        type,
+        title: form.title.trim(),
+        description: form.description.trim(),
+        priority: form.priority.toLowerCase(),
+        feature: form.feature,
+        satisfaction: rating
+      });
+      const feedback = response?.data?.feedback;
+      setSubmissionReference(feedback?.reference || `FDB-${String(feedback?._id || "").slice(-6).toUpperCase()}`);
+      setEmailDelivered(Boolean(response?.data?.emailSent));
+      if (feedback?.createdBy) setRecentFeedback((current) => [feedback, ...current].slice(0, 20));
       setSubmitted(true);
-      toast("Feedback submitted.");
-    }, 1000);
+      if (response?.data?.emailSent) toast("Feedback submitted and emailed successfully", "success");
+      else toast("Feedback was saved, but the email notification could not be delivered. Check backend SMTP settings.", "warning");
+    } catch (error) {
+      toast(error.message || "Unable to submit feedback. Please try again.", "error");
+    } finally {
+      setWorking(false);
+    }
   };
 
   if (submitted) {
@@ -826,13 +869,15 @@ export function FeedbackPage() {
           <CheckCircle2 size={46} />
           <h1 className="h2">Thanks for helping us improve Devflow AI</h1>
           <p>
-            Your feedback has been recorded as <strong>FDB-2048</strong>.
+            Your feedback has been saved{emailDelivered ? " and sent to the project inbox" : ", but the email notification was not delivered"}. Reference: <strong>{submissionReference}</strong>.
           </p>
           <button
             className="btn btn-primary"
             onClick={() => {
               setSubmitted(false);
+              setEmailDelivered(null);
               setForm({ ...form, title: "", description: "" });
+              setRating(null);
             }}
             type="button"
           >
@@ -863,6 +908,7 @@ export function FeedbackPage() {
             {types.map(([name, Icon, desc]) => (
               <button
                 className={type === name ? "active" : ""}
+                aria-pressed={type === name}
                 onClick={() => setType(name)}
                 type="button"
                 key={name}
@@ -877,6 +923,10 @@ export function FeedbackPage() {
           <label htmlFor="feedback-title">Title</label>
           <input
             id="feedback-title"
+            name="title"
+            required
+            minLength={3}
+            maxLength={160}
             value={form.title}
             onChange={e => setForm({ ...form, title: e.target.value })}
             placeholder="What would you like to improve?"
@@ -885,6 +935,10 @@ export function FeedbackPage() {
           <label htmlFor="feedback-description">Description</label>
           <textarea
             id="feedback-description"
+            name="description"
+            required
+            minLength={10}
+            maxLength={5000}
             value={form.description}
             onChange={e => setForm({ ...form, description: e.target.value })}
             placeholder="Include enough detail for context."
@@ -894,17 +948,19 @@ export function FeedbackPage() {
             <label>
               Priority
               <select
+                name="priority"
                 value={form.priority}
                 onChange={e => setForm({ ...form, priority: e.target.value })}
               >
-                <option>Low</option>
-                <option>Medium</option>
-                <option>High</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
               </select>
             </label>
             <label>
               Page / feature
               <select
+                name="feature"
                 value={form.feature}
                 onChange={e => setForm({ ...form, feature: e.target.value })}
               >
@@ -913,12 +969,6 @@ export function FeedbackPage() {
                 )}
               </select>
             </label>
-          </div>
-
-          <div className="upload-ui">
-            <FileText size={20} />
-            <strong>Drag &amp; drop or browse</strong>
-            <span>Screenshot uploads are simulated.</span>
           </div>
 
           <fieldset>
@@ -934,6 +984,7 @@ export function FeedbackPage() {
                 <button
                   aria-label={label}
                   title={label}
+                  aria-pressed={rating === i}
                   className={rating === i ? "active" : ""}
                   onClick={() => setRating(i)}
                   type="button"
@@ -956,17 +1007,13 @@ export function FeedbackPage() {
 
         <aside>
           <h2 className="h3">Your recent feedback</h2>
-          {[
-            ["Feature request", "Submitted 3 days ago", "Under review"],
-            ["Bug report", "Submitted 2 weeks ago", "Resolved"],
-            ["Improvement", "Submitted Aug 2", "Planned"],
-          ].map(x => (
-            <article className="recent-feedback" key={x[0]}>
-              <span className="badge">{x[2]}</span>
-              <strong>{x[0]}</strong>
-              <p>{x[1]}</p>
+          {recentLoading ? <p className="muted">Loading your submissions...</p> : recentError ? <p className="muted">{recentError}</p> : recentFeedback.length ? recentFeedback.map((item) => (
+            <article className="recent-feedback" key={item._id}>
+              <div className="recent-feedback-top"><span className={`feedback-status status-${item.status || "received"}`}>{String(item.status || "received").replaceAll("_", " ")}</span><time>{item.createdAt ? new Date(item.createdAt).toLocaleDateString() : "Just now"}</time></div>
+              <strong>{item.title}</strong>
+              <p>{item.type}<span aria-hidden="true"> · </span>{item.feature}</p>
             </article>
-          ))}
+          )) : <p className="muted">Your submitted feedback will appear here.</p>}
         </aside>
       </div>
 

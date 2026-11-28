@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 // A missing SMTP setup is reported to the caller without breaking existing auth flows.
-export async function sendEmail({ to, subject, html, text }) {
+export async function sendEmail({ to, subject, html, text, replyTo }) {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
 
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
@@ -19,9 +19,10 @@ export async function sendEmail({ to, subject, html, text }) {
   });
 
   await transporter.sendMail({
-    from: SMTP_FROM || "Devflow AI <no-reply@devflow.ai>",
+    from: SMTP_FROM || `Devflow AI <${SMTP_USER}>`,
     to,
     subject,
+    ...(replyTo ? { replyTo } : {}),
     html,
     text
   });

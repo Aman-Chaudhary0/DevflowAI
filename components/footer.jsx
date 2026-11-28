@@ -8,8 +8,7 @@ import { toast } from "@/components/dashboard-ui";
 const socials = [
   { Icon: Github, label: "GitHub", href: "https://github.com/Aman-Chaudhary0" },
   { Icon: Twitter, label: "Twitter", href: "https://x.com/AmanChaudh5987" },
-  { Icon: Linkedin, label: "LinkedIn", href: "https://www.linkedin.com/in/aman-chaudhary-a1ba38386" },
-  { Icon: Mail, label: "Email", href: "mailto:aidevflow1@gmail.com" }
+  { Icon: Linkedin, label: "LinkedIn", href: "https://www.linkedin.com/in/aman-chaudhary-a1ba38386" }
 ];
 
 const footerLinks = {
@@ -28,7 +27,18 @@ const footerLinks = {
 };
 
 // Footer is a component that renders the footer section of the website, including the company logo, description, social media links, footer navigation groups, newsletter subscription form, and copyright information.  
-export function Footer() {
+export function Footer({ email }) {
+  const socialLinks = [
+    ...socials,
+    {
+      Icon: Mail,
+      label: "Email",
+      href: email
+        ? `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(email)}&su=${encodeURIComponent("Devflow AI inquiry")}`
+        : "/contact"
+    }
+  ];
+
   return (
     <footer className="footer">
       <div className="container grid grid-4">
@@ -39,11 +49,14 @@ export function Footer() {
           </Link>
           <p className="muted">A premium, dark-first workspace for developers building with AI.</p>
           <div className="row wrap gap-2.5">
-            {socials.map(({ Icon, label, href }) => (
-              <a aria-label={label} className="icon-btn" href={href} key={label} rel="noopener noreferrer" target="_blank">
+            {socialLinks.map(({ Icon, label, href }) => {
+              const isEmail = label === "Email";
+              return (
+              <a aria-label={label} className="icon-btn" href={href} key={label} rel={isEmail ? undefined : "noopener noreferrer"} target={isEmail ? undefined : "_blank"} title={label}>
                 <Icon size={18} />
               </a>
-            ))}
+              );
+            })}
           </div>
         </div>
 

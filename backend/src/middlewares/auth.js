@@ -29,3 +29,23 @@ export const requireAuth = asyncHandler(async (req, _res, next) => {
     throw new ApiError(401, "Invalid authentication token");
   }
 });
+
+export const optionalAuth = asyncHandler(async (req, _res, next) => {
+  const bearerToken = req.headers.authorization?.startsWith("Bearer ")
+    ? req.headers.authorization.split(" ")[1]
+    : null;
+  const token = req.cookies?.accessToken || bearerToken;
+
+  if (!token) return next();
+
+  try {
+    const decoded = verifyAccessToken(token);
+    const user = await User.findById(decoded.sub);
+    if (!user) throw new ApiError(401, "Invalid authentication token");
+    req.user = user;
+    return next();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(401, "Invalid authentication token");
+  }
+});

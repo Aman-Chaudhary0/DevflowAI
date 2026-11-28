@@ -11,9 +11,12 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `try { var t = localStorage.getItem("devflow-theme"); var a = localStorage.getItem("devflow-accent"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; if (a) { document.documentElement.style.setProperty("--primary", a); document.documentElement.style.setProperty("--accent", a); document.documentElement.style.setProperty("--primary-hover", a); } } catch (_) {}` }} />
+      </head>
       <body>
         <div className="app-shell grid-bg">
-          <SiteShell>{children}</SiteShell>
+          <SiteShell email={process.env.EMAIL || ""}>{children}</SiteShell>
         </div>
       </body>
     </html>

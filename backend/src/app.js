@@ -10,6 +10,8 @@ import { configurePassport } from "./config/passport.js";
 import { getRedisHealth } from "./config/redis.js";
 import { errorHandler, notFoundHandler } from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/auth.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
+import feedbackRoutes from "./routes/feedback.routes.js";
 import projectRoutes, { dashboardRouter } from "./routes/project.routes.js";
 import fileRoutes from "./routes/files.routes.js";
 import taskRoutes from "./routes/task.routes.js";
@@ -65,6 +67,14 @@ const authLimiter = rateLimit({
   legacyHeaders: false
 });
 
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { success: false, message: "Too many contact messages. Please try again later." }
+});
+
 app.get("/health", (_req, res) => {
   const redis = getRedisHealth();
   res.status(200).json(new ApiResponse(200, {
@@ -75,6 +85,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/contact", contactLimiter, contactRoutes);
+app.use("/api/feedback", feedbackRoutes);
 app.use("/api/files", fileRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);

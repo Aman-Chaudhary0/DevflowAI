@@ -11,10 +11,28 @@ export function ThemeToggle() {
   useEffect(() => {
     const savedTheme = window.localStorage.getItem("devflow-theme");
     const nextTheme = savedTheme === "light" ? "light" : "dark";
+    const accentColor = window.localStorage.getItem("devflow-accent");
 
     setTheme(nextTheme);
     document.documentElement.dataset.theme = nextTheme;
+    if (accentColor) {
+      document.documentElement.style.setProperty("--primary", accentColor);
+      document.documentElement.style.setProperty("--accent", accentColor);
+      document.documentElement.style.setProperty("--primary-hover", accentColor);
+    }
     setMounted(true);
+
+    const syncAppearance = (event) => {
+      const { theme: nextMode, accentColor: nextAccent } = event.detail || {};
+      if (nextMode === "light" || nextMode === "dark") setTheme(nextMode);
+      if (nextAccent) {
+        document.documentElement.style.setProperty("--primary", nextAccent);
+        document.documentElement.style.setProperty("--accent", nextAccent);
+        document.documentElement.style.setProperty("--primary-hover", nextAccent);
+      }
+    };
+    window.addEventListener("devflow-appearance-change", syncAppearance);
+    return () => window.removeEventListener("devflow-appearance-change", syncAppearance);
   }, []);
 
   useEffect(() => {

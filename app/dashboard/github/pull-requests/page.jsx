@@ -56,17 +56,19 @@ export default function PullRequestsPage() {
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <PageHeader title="Pull Requests">
+    <div className="github-pull-requests-page" style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <PageHeader title="Pull Requests" subtitle="Review changes and track work across your repositories.">
         <button className="btn btn-primary" disabled title="Pull request creation is not available in this read-only integration" style={{ minHeight: 38, fontSize: 13 }} type="button">
           <GitPullRequest size={15} /> New Pull Request
         </button>
       </PageHeader>
 
       {/* Toolbar */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <GitHubRepositoryPicker repositories={repositories} value={repository} onChange={setRepository} pagination={repositoryPagination} onPrevious={() => setRepositoryPage((page) => Math.max(1, page - 1))} onNext={() => setRepositoryPage((page) => page + 1)} loading={loadingRepositories} />
-        <div style={{ flex: 1, minWidth: 220, display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", background: "var(--bg-soft)", border: "1px solid var(--border)", borderRadius: 10 }}>
+      <div className="github-pr-toolbar">
+        <div className="github-pr-repository-row">
+          <GitHubRepositoryPicker repositories={repositories} value={repository} onChange={setRepository} pagination={repositoryPagination} onPrevious={() => setRepositoryPage((page) => Math.max(1, page - 1))} onNext={() => setRepositoryPage((page) => page + 1)} loading={loadingRepositories} />
+        </div>
+        <div className="github-pr-search">
           <MessageSquare size={16} color="var(--muted)" />
           <input
             value={search}
@@ -75,31 +77,32 @@ export default function PullRequestsPage() {
             style={{ flex: 1, border: "none", outline: "none", background: "transparent", fontSize: 14, color: "var(--text)" }}
           />
         </div>
-        <FilterBar filters={statusFilters} active={statusFilter} onChange={setStatusFilter} />
-        <div style={{ position: "relative" }}>
-          <button className="btn btn-outline" onClick={() => setShowLabelsMenu((m) => !m)} style={{ minHeight: 38, fontSize: 13 }} type="button">
-            <Code2 size={15} /> Labels
-          </button>
-          {showLabelsMenu && (
-            <div style={{ position: "absolute", right: 0, top: 52, width: 200, background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.3)", zIndex: 50, padding: 8 }}>
-              {labelOptions.map((label) => (
-                <button key={label} onClick={() => toggleLabel(label)} style={{ width: "100%", textAlign: "left", padding: "8px 12px", background: "none", border: "none", cursor: "pointer", color: selectedLabels.includes(label) ? "var(--primary)" : "var(--text)", borderRadius: 8, fontSize: 13, fontWeight: 600 }} type="button">
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="github-pr-filters">
+          <FilterBar filters={statusFilters} active={statusFilter} onChange={setStatusFilter} />
+          <div className="github-pr-label-filter">
+            <button className="btn btn-outline" onClick={() => setShowLabelsMenu((m) => !m)} style={{ minHeight: 38, fontSize: 13 }} type="button" aria-expanded={showLabelsMenu}>
+              <Code2 size={15} /> Labels{selectedLabels.length > 0 && ` (${selectedLabels.length})`}</button>
+            {showLabelsMenu && (
+              <div className="github-pr-label-menu">
+                {labelOptions.length ? labelOptions.map((label) => (
+                  <button key={label} onClick={() => toggleLabel(label)} className={selectedLabels.includes(label) ? "is-selected" : ""} type="button" aria-pressed={selectedLabels.includes(label)}>
+                    <span>{label}</span>{selectedLabels.includes(label) && <span className="github-pr-label-check" aria-hidden="true" /> }
+                  </button>
+                )) : <p>No labels in this repository yet.</p>}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div className="github-pr-list" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {error ? <div role="alert" className="card p-4">{error}<button className="btn btn-ghost ml-2" onClick={retry} type="button">Retry</button></div> : loading || loadingRepositories ? <div role="status" className="card p-4">Loading pull requests…</div> : !repository ? <EmptyState title="Connect GitHub" description="Connect GitHub to browse pull requests." action="Connect GitHub" onAction={() => { window.location.href = api.github.connectUrl(); }} /> : filteredPRs.length === 0 ? (
           <EmptyState icon={GitPullRequest} title="No pull requests found" description="Try adjusting your search or filters" />
         ) : (
           filteredPRs.map((pr) => (
             <div
               key={pr.id}
-              className="card card-pad"
+              className="card card-pad github-pr-card"
               style={{ cursor: "pointer" }}
               onClick={() => setSelectedPR(selectedPR?.id === pr.id ? null : pr)}
             >

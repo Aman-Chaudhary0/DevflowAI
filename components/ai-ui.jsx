@@ -812,21 +812,21 @@ export function DiffViewer({ original, fixed, language = "javascript" }) {
   const [view, setView] = useState("split"); // split, unified
 
   return (
-    <div className="border border-(--border) rounded-xl overflow-hidden">
-      <div className="flex justify-between items-center px-3 py-2 bg-(--surface) border-b border-(--border)">
-        <div className="flex gap-2">
+    <div className="ai-diff-viewer">
+      <div className="ai-diff-toolbar">
+        <div className="ai-diff-view-toggle" role="group" aria-label="Diff layout">
           <button
             onClick={() => setView("split")}
-            className="px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer"
-            style={{ background: view === "split" ? "var(--primary)" : "transparent", color: view === "split" ? "white" : "var(--muted)" }}
+            className={`ai-diff-view-button${view === "split" ? " is-active" : ""}`}
+            aria-pressed={view === "split"}
             type="button"
           >
             Split
           </button>
           <button
             onClick={() => setView("unified")}
-            className="px-2.5 py-1 rounded-md text-xs font-semibold cursor-pointer"
-            style={{ background: view === "unified" ? "var(--primary)" : "transparent", color: view === "unified" ? "white" : "var(--muted)" }}
+            className={`ai-diff-view-button${view === "unified" ? " is-active" : ""}`}
+            aria-pressed={view === "unified"}
             type="button"
           >
             Unified

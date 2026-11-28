@@ -222,21 +222,21 @@ export default function TasksPage() {
   }
 
   return (
-    <div style={{ padding: "24px", maxWidth: 1400, margin: "0 auto" }}>
+    <div className="tasks-page" style={{ padding: "24px", maxWidth: 1400, margin: "0 auto" }}>
       <PageHeader title="Tasks & Kanban" subtitle="Organize, track, and prioritize workspace deliverables">
         <button className="btn btn-primary" onClick={() => setShowCreateModal(true)} style={{ minHeight: 38, fontSize: 13, gap: 6 }} type="button" disabled={pendingAction}>
           <Plus size={16} /> New Task
         </button>
       </PageHeader>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
+      <div className="tasks-stats-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16, marginBottom: 24 }}>
         <StatCard label="Total Tasks" value={tasks.length} delta={`${tasks.filter((t) => t.status === "todo").length} open`} trend="neutral" icon={Circle} iconBg="rgba(59, 130, 246, 0.15)" />
         <StatCard label="In Progress" value={tasks.filter((t) => t.status === "in_progress").length} delta="active work" trend="up" icon={Clock} iconBg="rgba(245, 158, 11, 0.15)" />
         <StatCard label="In Review" value={tasks.filter((t) => t.status === "review").length} delta="awaiting feedback" trend="up" icon={AlertCircle} iconBg="rgba(139, 92, 246, 0.15)" />
         <StatCard label="Completed" value={tasks.filter((t) => t.status === "done").length} delta="finished" trend="up" icon={CheckCircle2} iconBg="rgba(16, 185, 129, 0.15)" />
       </div>
 
-      <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: "16px 20px", marginBottom: 24, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+      <div className="tasks-toolbar" style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: "16px 20px", marginBottom: 24, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1, minWidth: 280 }}>
           <div style={{ position: "relative", flex: 1, maxWidth: 360 }}>
             <Search size={16} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
@@ -274,11 +274,11 @@ export default function TasksPage() {
       {error ? (
         <EmptyState icon={Filter} title="Unable to load tasks" description={error} action="Retry" onAction={loadTasks} />
       ) : viewMode === "kanban" ? (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 20, alignItems: "start" }}>
+        <div className="tasks-kanban-board" aria-label="Task board">
           {columns.map((col) => {
             const colTasks = filteredTasks.filter((task) => task.status === col.id);
             return (
-              <div key={col.id} style={{ background: "rgba(26, 34, 53, 0.6)", border: "1px solid var(--border)", borderRadius: 18, padding: 16 }}>
+              <div className="tasks-kanban-column" key={col.id}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid var(--border)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <col.icon size={16} style={{ color: col.color }} />
@@ -297,7 +297,7 @@ export default function TasksPage() {
                     </div>
                   ) : (
                     colTasks.map((task) => (
-                      <div key={task._id} style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 14, padding: 16 }}>
+                      <div className="tasks-kanban-card" key={task._id}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
                           <span style={{ fontSize: 11, fontWeight: 600, color: "var(--primary)" }}>{task.project?.name || "Project"}</span>
                           {getPriorityBadge(task.priority || "medium")}
@@ -324,13 +324,14 @@ export default function TasksPage() {
                           <Avatar name={task.assignee?.name || "Unassigned"} size={24} color={task.assignee?.avatar ? "var(--primary)" : "#3b82f6"} />
                         </div>
 
-                        <div style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 8, borderTop: "1px dashed color-mix(in srgb, var(--border) 40%, transparent)" }}>
-                          {columns.filter((column) => column.id !== task.status).map((column) => (
-                            <button key={column.id} onClick={() => moveTask(task._id, column.id)} style={{ flex: 1, padding: "4px 6px", fontSize: 10, borderRadius: 6, border: "1px solid var(--border)", background: "rgba(0,0,0,0.2)", color: "var(--muted)", cursor: "pointer", textAlign: "center" }} type="button" disabled={pendingAction}>
-                              → {column.title}
-                            </button>
-                          ))}
-                          <button onClick={() => deleteTask(task._id)} style={{ padding: "4px 8px", fontSize: 10, borderRadius: 6, border: "none", background: "rgba(239, 68, 68, 0.15)", color: "#ef4444", cursor: "pointer" }} title="Delete Task" type="button" disabled={pendingAction}>
+                        <div className="tasks-card-actions" style={{ display: "flex", gap: 6, marginTop: 12, paddingTop: 8, borderTop: "1px dashed color-mix(in srgb, var(--border) 40%, transparent)" }}>
+                          <label className="tasks-move-control">
+                            <span>Move to</span>
+                            <select value={task.status} onChange={(e) => moveTask(task._id, e.target.value)} disabled={pendingAction} aria-label={`Move ${task.title} to status`}>
+                              {columns.map((column) => <option value={column.id} key={column.id}>{column.title}</option>)}
+                            </select>
+                          </label>
+                          <button onClick={() => deleteTask(task._id)} className="tasks-delete-button" title="Delete Task" aria-label={`Delete ${task.title}`} type="button" disabled={pendingAction}>
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -401,18 +402,18 @@ export default function TasksPage() {
               </div>
 
               <div style={{ display: "grid", gap: 6 }}>
-                <label style={{ fontSize: 13, fontWeight: 600 }}>Project</label>
-                <select value={newTask.projectId} onChange={(e) => setNewTask((prev) => ({ ...prev, projectId: e.target.value }))} style={{ borderRadius: 10, border: "1px solid var(--border)", background: "rgba(0,0,0,0.2)", color: "var(--fg)", padding: "10px 12px" }}>
+                <label htmlFor="task-project" style={{ fontSize: 13, fontWeight: 600 }}>Project</label>
+                <select id="task-project" className="task-form-select" value={newTask.projectId} onChange={(e) => setNewTask((prev) => ({ ...prev, projectId: e.target.value }))}>
                   {projects.map((project) => (
                     <option key={project._id} value={project._id}>{project.name}</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="task-form-select-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div style={{ display: "grid", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600 }}>Priority</label>
-                  <select value={newTask.priority} onChange={(e) => setNewTask((prev) => ({ ...prev, priority: e.target.value }))} style={{ borderRadius: 10, border: "1px solid var(--border)", background: "rgba(0,0,0,0.2)", color: "var(--fg)", padding: "10px 12px" }}>
+                  <label htmlFor="task-priority" style={{ fontSize: 13, fontWeight: 600 }}>Priority</label>
+                  <select id="task-priority" className="task-form-select" value={newTask.priority} onChange={(e) => setNewTask((prev) => ({ ...prev, priority: e.target.value }))}>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
                     <option value="high">High</option>
@@ -421,8 +422,8 @@ export default function TasksPage() {
                 </div>
 
                 <div style={{ display: "grid", gap: 6 }}>
-                  <label style={{ fontSize: 13, fontWeight: 600 }}>Status</label>
-                  <select value={newTask.status} onChange={(e) => setNewTask((prev) => ({ ...prev, status: e.target.value }))} style={{ borderRadius: 10, border: "1px solid var(--border)", background: "rgba(0,0,0,0.2)", color: "var(--fg)", padding: "10px 12px" }}>
+                  <label htmlFor="task-status" style={{ fontSize: 13, fontWeight: 600 }}>Status</label>
+                  <select id="task-status" className="task-form-select" value={newTask.status} onChange={(e) => setNewTask((prev) => ({ ...prev, status: e.target.value }))}>
                     <option value="todo">To Do</option>
                     <option value="in_progress">In Progress</option>
                     <option value="review">In Review</option>

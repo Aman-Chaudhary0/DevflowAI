@@ -48,7 +48,15 @@ export const uploadProjectFile = asyncHandler(async (req, res) => {
 
 export const downloadProjectFile = asyncHandler(async (req, res) => {
   const result = await getFileDownloadUrlForUser(req.user._id, req.params.projectId, req.params.fileId);
-  res.status(200).json(new ApiResponse(200, result, "File download URL fetched successfully"));
+  if (result.localPath) {
+    const disposition = req.query.disposition === "inline" ? "inline" : "attachment";
+    res.setHeader("Content-Type", result.mimeType || "application/octet-stream");
+    res.setHeader("Content-Disposition", `${disposition}; filename*=UTF-8''${encodeURIComponent(result.name || "download")}`);
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, no-store");
+    return res.sendFile(result.localPath);
+  }
+  return res.redirect(result.url);
 });
 
 export const renameProjectFile = asyncHandler(async (req, res) => {

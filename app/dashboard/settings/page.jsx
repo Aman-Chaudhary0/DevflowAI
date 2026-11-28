@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Settings, Moon, Sun, Shield, Key, Bell, CreditCard, User, Globe,
   Copy, Check, Plus, Trash2, RefreshCw, Smartphone, Laptop, CheckCircle2, AlertCircle
 } from "lucide-react";
 import { PageHeader, toast } from "@/components/dashboard-ui";
+import { api } from "@/lib/api";
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState("general");
@@ -22,23 +23,62 @@ export default function SettingsPage() {
 
   const [appearance, setAppearance] = useState({
     theme: "dark",
-    accentColor: "#3b82f6",
+    accentColor: "#f2a93b",
     fontSize: "14px",
     compactMode: false
   });
 
-  const [notifications, setNotifications] = useState({
-    emailPR: true,
-    emailBuilds: true,
-    emailSecurity: true,
-    slackWebhook: "https://hooks.slack.com/services/T000/B000/XXXX",
-    desktopPush: false
-  });
+  useEffect(() => {
+    const theme = window.localStorage.getItem("devflow-theme") === "light" ? "light" : "dark";
+    const accentColor = window.localStorage.getItem("devflow-accent") || "#f2a93b";
+    setAppearance((current) => ({ ...current, theme, accentColor }));
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.setProperty("--primary", accentColor);
+    document.documentElement.style.setProperty("--accent", accentColor);
+    document.documentElement.style.setProperty("--primary-hover", accentColor);
+    window.dispatchEvent(new CustomEvent("devflow-appearance-change", { detail: { theme, accentColor } }));
+  }, []);
+
+  const updateTheme = (theme) => {
+    setAppearance((current) => ({ ...current, theme }));
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem("devflow-theme", theme);
+    window.dispatchEvent(new CustomEvent("devflow-appearance-change", { detail: { theme } }));
+  };
+
+  const updateAccent = (accentColor) => {
+    setAppearance((current) => ({ ...current, accentColor }));
+    document.documentElement.style.setProperty("--primary", accentColor);
+    document.documentElement.style.setProperty("--accent", accentColor);
+    document.documentElement.style.setProperty("--primary-hover", accentColor);
+    window.localStorage.setItem("devflow-accent", accentColor);
+    window.dispatchEvent(new CustomEvent("devflow-appearance-change", { detail: { accentColor } }));
+  };
+
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
 
   const [apiKeys, setApiKeys] = useState([
     { id: "key-1", name: "Production CLI Key", token: "df_live_9f82a1...4b81", created: "Jan 12, 2025", lastUsed: "10 mins ago" },
     { id: "key-2", name: "GitHub Workflow Pipeline", token: "df_live_3c17e4...8192", created: "Feb 04, 2025", lastUsed: "Yesterday" }
   ]);
+
+  useEffect(() => {
+    if (activeTab !== "notifications") return;
+    let mounted = true;
+    setNotificationsLoading(true);
+    api.notifications.list()
+      .then((response) => {
+        if (mounted) setNotifications(response?.data?.notifications || response?.notifications || []);
+      })
+      .catch((error) => {
+        if (mounted) toast(error.message || "Unable to load notifications", "error");
+      })
+      .finally(() => {
+        if (mounted) setNotificationsLoading(false);
+      });
+    return () => { mounted = false; };
+  }, [activeTab]);
 
   const handleSave = (section) => {
     toast(`${section} preferences saved successfully!`, "success");
@@ -188,39 +228,81 @@ export default function SettingsPage() {
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 10, color: "var(--muted)" }}>Color Mode</label>
               <div style={{ display: "flex", gap: 16 }}>
-                <div
-                  onClick={() => { setAppearance({ ...appearance, theme: "dark" }); toast("Dark theme selected", "info"); }}
-                  style={{ flex: 1, border: "2px solid", borderColor: appearance.theme === "dark" ? "var(--primary)" : "var(--border)", borderRadius: 12, padding: 16, background: "#0b0f19", cursor: "pointer", textAlign: "center" }}
+                <button
+                  type="button"
+                  aria-pressed={appearance.theme === "dark"}
+                  onClick={() => { updateTheme("dark"); toast("Dark theme selected", "info"); }}
+                  style={{ flex: 1, border: "2px solid", borderColor: appearance.theme === "dark" ? "var(--primary)" : "var(--border)", borderRadius: 12, padding: 16, background: "var(--surface)", color: "var(--text)", cursor: "pointer", textAlign: "center", font: "inherit" }}
                 >
-                  <Moon size={24} style={{ color: "#3b82f6", marginBottom: 8 }} />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Dark First (Default)</div>
-                </div>
-                <div
-                  onClick={() => { setAppearance({ ...appearance, theme: "light" }); toast("Light theme selected", "info"); }}
-                  style={{ flex: 1, border: "2px solid", borderColor: appearance.theme === "light" ? "var(--primary)" : "var(--border)", borderRadius: 12, padding: 16, background: "#f8fafc", cursor: "pointer", textAlign: "center" }}
+                  <Moon size={24} style={{ color: "var(--primary)", marginBottom: 8 }} />
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Dark Mode</div>
+                </button>
+                <button
+                  type="button"
+                  aria-pressed={appearance.theme === "light"}
+                  onClick={() => { updateTheme("light"); toast("Light theme selected", "info"); }}
+                  style={{ flex: 1, border: "2px solid", borderColor: appearance.theme === "light" ? "var(--primary)" : "var(--border)", borderRadius: 12, padding: 16, background: "var(--surface)", color: "var(--text)", cursor: "pointer", textAlign: "center", font: "inherit" }}
                 >
-                  <Sun size={24} style={{ color: "#f59e0b", marginBottom: 8 }} />
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0f172a" }}>Light Mode</div>
-                </div>
+                  <Sun size={24} style={{ color: "var(--primary)", marginBottom: 8 }} />
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>Light Mode</div>
+                </button>
               </div>
             </div>
 
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, marginBottom: 10, color: "var(--muted)" }}>Primary Accent Color</label>
               <div style={{ display: "flex", gap: 12 }}>
-                {["#3b82f6", "#8b5cf6", "#ec4899", "#10b981", "#f59e0b"].map(color => (
-                  <div
+                {["#3b82f6", "#8b5cf6", "#ec4899", "#10b981", "#f2a93b"].map(color => (
+                  <button
+                    type="button"
                     key={color}
-                    onClick={() => { setAppearance({ ...appearance, accentColor: color }); toast("Accent color updated", "info"); }}
-                    style={{ width: 36, height: 36, borderRadius: "50%", background: color, cursor: "pointer", border: appearance.accentColor === color ? "3px solid #fff" : "none", display: "grid", placeItems: "center" }}
+                    aria-label={`Use ${color} accent color`}
+                    aria-pressed={appearance.accentColor.toLowerCase() === color.toLowerCase()}
+                    onClick={() => { updateAccent(color); toast("Accent color updated", "info"); }}
+                    style={{ width: 40, height: 40, flex: "0 0 40px", borderRadius: "50%", background: color, cursor: "pointer", border: appearance.accentColor.toLowerCase() === color.toLowerCase() ? "3px solid var(--text)" : "2px solid transparent", display: "grid", placeItems: "center", padding: 0 }}
                   >
-                    {appearance.accentColor === color && <Check size={16} style={{ color: "#fff" }} />}
-                  </div>
+                    {appearance.accentColor.toLowerCase() === color.toLowerCase() && <Check size={16} style={{ color: "#fff" }} />}
+                  </button>
                 ))}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {activeTab === "notifications" && (
+        <section style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 16, padding: 28, maxWidth: 800 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 20 }}>
+            <div>
+              <h3 style={{ margin: "0 0 6px", fontSize: 16, fontWeight: 700 }}>Recent Notifications</h3>
+              <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>Notifications delivered to your account.</p>
+            </div>
+            <Link className="btn btn-outline" href="/dashboard/notifications" style={{ minHeight: 36, fontSize: 12, whiteSpace: "nowrap" }}>Open notification center</Link>
+          </div>
+
+          {notificationsLoading ? (
+            <p style={{ margin: 0, padding: "20px 0", color: "var(--muted)", fontSize: 13 }}>Loading notifications...</p>
+          ) : notifications.length === 0 ? (
+            <div style={{ padding: "26px 16px", textAlign: "center", border: "1px dashed var(--border)", borderRadius: 12, color: "var(--muted)", fontSize: 13 }}>
+              No notifications have been delivered to your account yet.
+            </div>
+          ) : (
+            <div style={{ display: "grid" }}>
+              {notifications.slice(0, 10).map((notification) => (
+                <div key={notification._id} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px 2px", borderBottom: "1px solid color-mix(in srgb, var(--border) 60%, transparent)" }}>
+                  <span style={{ width: 9, height: 9, flex: "0 0 9px", marginTop: 6, borderRadius: "50%", background: notification.readAt ? "var(--border)" : "var(--primary)" }} aria-label={notification.readAt ? "Read" : "Unread"} />
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 10px" }}>
+                      <strong style={{ fontSize: 13, overflowWrap: "anywhere" }}>{notification.title || "Notification"}</strong>
+                      <time style={{ color: "var(--muted)", fontSize: 11 }} dateTime={notification.createdAt}>{notification.createdAt ? new Date(notification.createdAt).toLocaleString() : ""}</time>
+                    </div>
+                    <p style={{ margin: "5px 0 0", color: "var(--muted)", fontSize: 12, lineHeight: 1.5, overflowWrap: "anywhere" }}>{notification.message}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
       )}
 
       {/* API Keys */}

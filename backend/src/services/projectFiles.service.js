@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { access, mkdir, unlink, writeFile } from "node:fs/promises";
+import path from "node:path";
 import ImageKit, { toFile } from "@imagekit/nodejs";
 import Document from "../models/Document.js";
 import Project from "../models/Project.js";
@@ -9,6 +11,7 @@ import WorkspaceMember from "../models/WorkspaceMember.js";
 import { ApiError } from "../utils/ApiError.js";
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+const LOCAL_UPLOAD_ROOT = path.resolve(process.env.FILE_UPLOAD_DIR || path.join(process.cwd(), "uploads", "project-files"));
 const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/jpeg",
@@ -95,18 +98,27 @@ export async function resolveProjectContext(userId, projectId) {
 }
 
 function serializeFileItem(item) {
+  const value = typeof item?.toObject === "function" ? item.toObject() : item;
   return {
-    ...item,
-    _id: item._id?.toString?.() || item._id,
-    project: item.project ? (typeof item.project === "object" ? item.project._id?.toString?.() || item.project.toString() : item.project.toString()) : item.project,
-    workspace: item.workspace ? (typeof item.workspace === "object" ? item.workspace._id?.toString?.() || item.workspace.toString() : item.workspace.toString()) : item.workspace,
-    uploadedBy: item.uploadedBy ? (typeof item.uploadedBy === "object" ? {
-      _id: item.uploadedBy._id?.toString?.() || item.uploadedBy.toString?.() || item.uploadedBy,
-      name: item.uploadedBy.name || "",
-      email: item.uploadedBy.email || "",
-      avatar: item.uploadedBy.avatar || ""
-    } : item.uploadedBy.toString()) : null
+    ...value,
+    _id: value._id?.toString?.() || value._id,
+    project: value.project ? (typeof value.project === "object" ? value.project._id?.toString?.() || value.project.toString() : value.project.toString()) : value.project,
+    workspace: value.workspace ? (typeof value.workspace === "object" ? value.workspace._id?.toString?.() || value.workspace.toString() : value.workspace.toString()) : value.workspace,
+    uploadedBy: value.uploadedBy ? (typeof value.uploadedBy === "object" ? {
+      _id: value.uploadedBy._id?.toString?.() || value.uploadedBy.toString?.() || value.uploadedBy,
+      name: value.uploadedBy.name || "",
+      email: value.uploadedBy.email || "",
+      avatar: value.uploadedBy.avatar || ""
+    } : value.uploadedBy.toString()) : null
   };
+}
+
+function getLocalUploadPath(storageKey) {
+  const targetPath = path.resolve(LOCAL_UPLOAD_ROOT, storageKey);
+  if (!targetPath.startsWith(`${LOCAL_UPLOAD_ROOT}${path.sep}`)) {
+    throw new ApiError(400, "Invalid file storage key");
+  }
+  return targetPath;
 }
 
 export async function listWorkspaceFilesForUser(userId, query = {}) {
@@ -293,21 +305,47 @@ export async function uploadProjectFileForUser(userId, projectId, input) {
     }
   }
 
-  const created = await ProjectFile.create({
-    project: project._id,
-    workspace: workspaceId,
-    uploadedBy: userId,
-    name: originalName,
-    originalName,
-    storageKey,
-    storageProvider,
-    url: uploadedUrl,
-    mimeType,
-    size: Number(file.size || 0),
-    folder
-  });
+  const localPath = storageProvider === "local" ? getLocalUploadPath(storageKey) : null;
+  if (localPath) {
+    if (!file.buffer?.length) throw new ApiError(400, "File content is missing from the upload");
+    await mkdir(path.dirname(localPath), { recursive: true });
+    await writeFile(localPath, file.buffer);
+  }
 
-  return serializeFileItem(created);
+  let created;
+  try {
+    created = await ProjectFile.create({
+      project: project._id,
+      workspace: workspaceId,
+      uploadedBy: userId,
+      name: originalName,
+      originalName,
+      storageKey,
+      storageProvider,
+      url: uploadedUrl,
+      mimeType,
+      size: Number(file.size || file.buffer?.length || 0),
+      folder
+    });
+  } catch (error) {
+    if (localPath) await unlink(localPath).catch(() => {});
+    throw error;
+  }
+
+  const populated = await ProjectFile.findById(created._id)
+    .populate("project", "name slug")
+    .populate("uploadedBy", "name email avatar")
+    .lean();
+  return {
+    ...serializeFileItem(populated),
+    project: populated.project ? { _id: populated.project._id.toString(), name: populated.project.name, slug: populated.project.slug } : null,
+    uploadedBy: populated.uploadedBy ? {
+      _id: populated.uploadedBy._id.toString(),
+      name: populated.uploadedBy.name,
+      email: populated.uploadedBy.email,
+      avatar: populated.uploadedBy.avatar || ""
+    } : null
+  };
 }
 
 export async function renameProjectFileForUser(userId, projectId, fileId, input = {}) {
@@ -356,6 +394,10 @@ export async function deleteProjectFileForUser(userId, projectId, fileId) {
     throw new ApiError(404, "File not found");
   }
 
+  if (deleted.storageProvider === "local" && deleted.storageKey) {
+    await unlink(getLocalUploadPath(deleted.storageKey)).catch(() => {});
+  }
+
   return { deleted: true, fileId: fileId.toString() };
 }
 
@@ -375,10 +417,17 @@ export async function getFileDownloadUrlForUser(userId, projectId, fileId) {
     throw new ApiError(404, "File not found");
   }
 
-  if (!file.url) {
-    throw new ApiError(404, "No file URL is available");
+  if (file.storageProvider === "local") {
+    const localPath = getLocalUploadPath(file.storageKey);
+    try {
+      await access(localPath);
+    } catch {
+      throw new ApiError(404, "Stored file content is missing. Upload this file again.");
+    }
+    return { localPath, name: file.name, mimeType: file.mimeType };
   }
 
+  if (!file.url) throw new ApiError(404, "No file URL is available");
   return { url: file.url, name: file.name };
 }
 

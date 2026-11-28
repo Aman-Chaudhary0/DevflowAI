@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   Upload, Search, Folder, FileText, Image as ImageIcon, Code, Archive,
   Download, Trash2, Eye, HardDrive, Filter, LayoutGrid, List, MoreVertical,
-  Plus, ExternalLink, FileCode, CheckCircle
+  Plus, ExternalLink, FileCode, CheckCircle, X
 } from "lucide-react";
 import { PageHeader, StatCard, ProgressRing, Avatar, toast } from "@/components/dashboard-ui";
 import { api } from "@/lib/api";
@@ -31,6 +31,13 @@ function formatFileSize(bytes = 0) {
   return `${value.toFixed(value >= 10 || unitIndex === 0 ? 0 : 1)} ${caps[unitIndex]}`;
 }
 
+function formatFileDate(file) {
+  const value = file.updatedAt || file.createdAt;
+  if (!value) return "Just now";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Just now" : date.toLocaleDateString();
+}
+
 function getCategoryForMime(mimeType = "") {
   if (!mimeType) return "Docs";
   if (mimeType.startsWith("image/")) return "Assets";
@@ -47,6 +54,10 @@ export default function FilesPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadProjectId, setUploadProjectId] = useState("");
+  const [workspaceProjects, setWorkspaceProjects] = useState([]);
+  const [projectsLoading, setProjectsLoading] = useState(false);
+  const [selectedUploadFile, setSelectedUploadFile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -75,6 +86,28 @@ export default function FilesPage() {
     return () => { ignore = true; };
   }, []);
 
+  useEffect(() => {
+    if (!showUploadModal) return;
+    let ignore = false;
+    async function loadWorkspaceProjects() {
+      try {
+        setProjectsLoading(true);
+        const response = await api.projects.list({ page: 1, limit: 100, sortBy: "updatedAt", sortOrder: "desc" });
+        const items = response?.data?.projects || response?.projects || [];
+        if (!ignore) setWorkspaceProjects(items);
+      } catch (err) {
+        if (!ignore) {
+          setWorkspaceProjects([]);
+          toast(err.message || "Unable to load projects", "error");
+        }
+      } finally {
+        if (!ignore) setProjectsLoading(false);
+      }
+    }
+    loadWorkspaceProjects();
+    return () => { ignore = true; };
+  }, [showUploadModal]);
+
   const filteredFiles = files.filter((f) => {
     const name = (f.name || "").toLowerCase();
     const projectName = (f.project?.name || "").toLowerCase();
@@ -91,6 +124,22 @@ export default function FilesPage() {
     if (mime.includes("pdf") || mime.includes("document") || mime.includes("text/")) return <FileText size={20} style={{ color: "#10b981" }} />;
     if (mime.includes("zip") || mime.includes("archive")) return <Archive size={20} style={{ color: "#f59e0b" }} />;
     return <FileText size={20} style={{ color: "var(--muted)" }} />;
+  };
+
+  const getFileContentUrl = (file, disposition = "attachment") => {
+    if (file.url) return file.url;
+    const projectId = file.project?._id || file.project;
+    const fileId = file._id || file.id;
+    return projectId && fileId ? api.files.contentUrl(projectId, fileId, disposition) : "";
+  };
+
+  const downloadFile = (file) => {
+    const url = getFileContentUrl(file, "attachment");
+    if (!url) {
+      toast("No download URL is available for this file", "error");
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
   };
 
   const deleteFile = async (fileId) => {
@@ -112,28 +161,34 @@ export default function FilesPage() {
 
   const handleUpload = async (event) => {
     event.preventDefault();
-    const selected = event.target?.files?.[0] || event.dataTransfer?.files?.[0];
-    if (!selected) {
+    if (!selectedUploadFile) {
       toast("Choose a file to upload", "error");
       return;
     }
-
-    const projectId = prompt("Enter the project id to attach this upload to:", "");
-    if (!projectId || !projectId.trim()) {
+    if (!uploadProjectId.trim()) {
       toast("A project id is required to upload a file", "error");
       return;
     }
 
     const formData = new FormData();
-    formData.append("file", selected);
+    formData.append("file", selectedUploadFile);
     formData.append("folder", "/workspace");
 
     try {
       setUploading(true);
-      const response = await api.files.uploadProject(projectId.trim(), formData);
+      const response = await api.files.uploadProject(uploadProjectId.trim(), formData);
       const created = response?.data?.file || response?.file || null;
       if (created) setFiles((current) => [created, ...current]);
+      try {
+        const refreshed = await api.files.listWorkspace({ page: 1, limit: 50, search: "" });
+        const items = refreshed?.data?.files || refreshed?.files || [];
+        setFiles(items);
+      } catch {
+        // The populated upload response is already available if refreshing the list fails.
+      }
       setShowUploadModal(false);
+      setUploadProjectId("");
+      setSelectedUploadFile(null);
       toast("File uploaded successfully to project storage", "success");
     } catch (err) {
       toast(err.message || "Upload failed", "error");
@@ -219,10 +274,10 @@ export default function FilesPage() {
                     {getFileIcon(file)}
                   </div>
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button className="icon-btn" onClick={() => { setPreviewFile(file); toast(`Previewing ${file.name}`, "info"); }} title="Preview">
+                    <button className="icon-btn" onClick={() => setPreviewFile({ ...file, previewUrl: getFileContentUrl(file, "inline") })} title="Preview" aria-label={`Preview ${file.name || "file"}`}>
                       <Eye size={15} />
                     </button>
-                    <button className="icon-btn" onClick={() => { const url = file.url || ""; if (url) window.open(url, "_blank", "noopener,noreferrer"); else toast("No download URL available", "error"); }} title="Download">
+                    <button className="icon-btn" onClick={() => downloadFile(file)} title="Download" aria-label={`Download ${file.name || "file"}`}>
                       <Download size={15} />
                     </button>
                     <button className="icon-btn" onClick={() => deleteFile(file._id || file.id)} style={{ color: "var(--danger)" }} title="Delete">
@@ -231,16 +286,16 @@ export default function FilesPage() {
                   </div>
                 </div>
 
-                <h4 style={{ margin: "0 0 6px 0", fontSize: 14, fontWeight: 700, color: "var(--fg)", wordBreak: "break-all" }}>{file.name}</h4>
+                <h4 style={{ margin: "0 0 6px 0", fontSize: 14, fontWeight: 700, color: "var(--fg)", wordBreak: "break-all" }}>{file.name || file.originalName || "Untitled file"}</h4>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontSize: 12, color: "var(--muted)" }}>
                   <span>{formatFileSize(file.size)}</span>
                   <span>•</span>
-                  <span style={{ color: "var(--primary)", fontWeight: 500 }}>{file.project?.name || "Project"}</span>
+                  <span style={{ color: "var(--primary)", fontWeight: 500 }}>{file.project?.name || file.projectName || "Project"}</span>
                 </div>
 
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", paddingTop: 12, borderTop: "1px solid color-mix(in srgb, var(--border) 50%, transparent)", fontSize: 12, color: "var(--muted)" }}>
-                  <span>By {file.uploadedBy?.name || "Unknown"}</span>
-                  <span>{new Date(file.updatedAt || file.createdAt).toLocaleDateString()}</span>
+                  <span>By {file.uploadedBy?.name || "You"}</span>
+                  <span>{formatFileDate(file)}</span>
                 </div>
               </div>
             );
@@ -268,17 +323,17 @@ export default function FilesPage() {
                   <td style={{ padding: "14px 20px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       {getFileIcon(file)}
-                      <span style={{ fontWeight: 600, color: "var(--fg)" }}>{file.name}</span>
+                      <span style={{ fontWeight: 600, color: "var(--fg)" }}>{file.name || file.originalName || "Untitled file"}</span>
                     </div>
                   </td>
                   <td style={{ padding: "14px 20px", color: "var(--muted)" }}>{getCategoryForMime(file.mimeType)}</td>
-                  <td style={{ padding: "14px 20px", color: "var(--primary)", fontWeight: 500 }}>{file.project?.name || "Project"}</td>
+                  <td style={{ padding: "14px 20px", color: "var(--primary)", fontWeight: 500 }}>{file.project?.name || file.projectName || "Project"}</td>
                   <td style={{ padding: "14px 20px", color: "var(--muted)" }}>{formatFileSize(file.size)}</td>
-                  <td style={{ padding: "14px 20px" }}>{file.uploadedBy?.name || "Unknown"}</td>
-                  <td style={{ padding: "14px 20px", color: "var(--muted)" }}>{new Date(file.updatedAt || file.createdAt).toLocaleDateString()}</td>
+                  <td style={{ padding: "14px 20px" }}>{file.uploadedBy?.name || "You"}</td>
+                  <td style={{ padding: "14px 20px", color: "var(--muted)" }}>{formatFileDate(file)}</td>
                   <td style={{ padding: "14px 20px", textAlign: "right" }}>
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
-                      <button className="icon-btn" onClick={() => { const url = file.url || ""; if (url) window.open(url, "_blank", "noopener,noreferrer"); else toast("No download URL available", "error"); }} title="Download"><Download size={14} /></button>
+                      <button className="icon-btn" onClick={() => downloadFile(file)} title="Download" aria-label={`Download ${file.name || "file"}`}><Download size={14} /></button>
                       <button className="icon-btn" onClick={() => deleteFile(file._id || file.id)} style={{ color: "var(--danger)" }} title="Delete"><Trash2 size={14} /></button>
                     </div>
                   </td>
@@ -290,32 +345,42 @@ export default function FilesPage() {
       ) : null}
 
       {showUploadModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999, display: "grid", placeItems: "center", padding: 20 }}>
-          <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 18, width: "100%", maxWidth: 500, padding: 24 }}>
-            <h3 style={{ margin: "0 0 6px 0", fontSize: 18, fontWeight: 700 }}>Upload Workspace File</h3>
-            <p style={{ margin: "0 0 20px 0", fontSize: 13, color: "var(--muted)" }}>Choose a project and add a file from your computer.</p>
+        <div className="workspace-upload-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 999, display: "grid", placeItems: "center", padding: 20 }}>
+          <div className="workspace-upload-dialog">
+            <div className="workspace-upload-heading">
+              <span className="workspace-upload-icon"><Upload size={18} /></span>
+              <div>
+                <h3>Upload workspace file</h3>
+                <p>Choose a project and add a file from your computer.</p>
+              </div>
+            </div>
 
-            <form onSubmit={handleUpload}>
-              <div style={{ display: "grid", gap: 10 }}>
-                <label style={{ display: "grid", gap: 6 }}>
-                  <span style={{ fontSize: 12, color: "var(--muted)" }}>Project ID</span>
-                  <input id="project-upload-id" type="text" placeholder="Project ObjectId" style={{ width: "100%", padding: "8px 12px", borderRadius: 10, border: "1px solid var(--border)", background: "rgba(0,0,0,0.2)", color: "var(--fg)" }} />
+            <form className="workspace-upload-form" onSubmit={handleUpload}>
+              <div className="workspace-upload-fields">
+                <label className="workspace-project-field" htmlFor="project-upload-id">
+                  <span>Project</span>
+                  <select id="project-upload-id" className="workspace-project-select" value={uploadProjectId} onChange={(event) => setUploadProjectId(event.target.value)} disabled={projectsLoading || workspaceProjects.length === 0}>
+                    <option value="">{projectsLoading ? "Loading projects…" : workspaceProjects.length ? "Choose a project" : "No projects available"}</option>
+                    {workspaceProjects.map((project) => <option key={project._id || project.id} value={project._id || project.id}>{project.name || "Untitled project"}</option>)}
+                  </select>
+                  {!projectsLoading && workspaceProjects.length === 0 && <span className="workspace-project-empty">Create a project before uploading a file.</span>}
                 </label>
-                <div
-                  style={{ border: "2px dashed var(--border)", borderRadius: 14, padding: "36px 20px", textAlign: "center", background: dragActive ? "rgba(59, 130, 246, 0.1)" : "rgba(0,0,0,0.2)", borderColor: dragActive ? "var(--primary)" : "var(--border)", marginBottom: 20, cursor: "pointer" }}
+                <label
+                  className={`workspace-upload-dropzone${dragActive ? " is-active" : ""}${selectedUploadFile ? " has-file" : ""}`}
+                  htmlFor="workspace-file-input"
                   onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
                   onDragLeave={() => setDragActive(false)}
-                  onDrop={(e) => { e.preventDefault(); setDragActive(false); const selected = e.dataTransfer.files?.[0]; if (!selected) return; const formData = new FormData(); formData.append("file", selected); formData.append("folder", "/workspace"); const projectId = document.getElementById("project-upload-id")?.value?.trim(); if (!projectId) { toast("A project id is required to upload a file", "error"); return; } setUploading(true); api.files.uploadProject(projectId, formData).then((response) => { const created = response?.data?.file || response?.file || null; if (created) setFiles((current) => [created, ...current]); setShowUploadModal(false); toast("File uploaded successfully to project storage", "success"); }).catch((err) => toast(err.message || "Upload failed", "error")).finally(() => setUploading(false)); }}
+                  onDrop={(e) => { e.preventDefault(); setDragActive(false); const file = e.dataTransfer.files?.[0]; if (file) setSelectedUploadFile(file); }}
                 >
-                  <Upload size={32} color="var(--muted)" style={{ margin: "0 auto 12px" }} />
-                  <p style={{ margin: "0 0 4px", fontWeight: 600 }}>Drag & drop files here</p>
-                  <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--muted)" }}>or click to browse</p>
-                  <input type="file" onChange={handleUpload} style={{ display: "block", width: "100%" }} />
-                </div>
+                  <span className="workspace-drop-icon"><Upload size={20} /></span>
+                  <strong>{selectedUploadFile ? selectedUploadFile.name : "Drag and drop a file here"}</strong>
+                  <span className="workspace-drop-hint">{selectedUploadFile ? `${formatFileSize(selectedUploadFile.size)} · Click to choose another file` : "or browse from your computer"}</span>
+                  <input id="workspace-file-input" className="workspace-file-input" type="file" onChange={(event) => setSelectedUploadFile(event.target.files?.[0] || null)} />
+                </label>
               </div>
-              <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-                <button type="button" className="btn btn-outline" onClick={() => setShowUploadModal(false)} style={{ minHeight: 38 }}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ minHeight: 38 }} disabled={uploading}>{uploading ? "Uploading..." : "Upload"}</button>
+              <div className="workspace-upload-actions">
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowUploadModal(false); setUploadProjectId(""); setSelectedUploadFile(null); }} disabled={uploading}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={uploading || !uploadProjectId.trim() || !selectedUploadFile}>{uploading ? "Uploading..." : "Upload file"}</button>
               </div>
             </form>
           </div>
@@ -327,13 +392,19 @@ export default function FilesPage() {
           <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 18, width: "min(900px, 100%)", maxHeight: "80vh", overflow: "auto", padding: 20 }} onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
               <h3 style={{ margin: 0 }}>{previewFile.name}</h3>
-              <button className="icon-btn" onClick={() => setPreviewFile(null)} type="button"><Trash2 size={15} /></button>
+              <button className="icon-btn" onClick={() => setPreviewFile(null)} type="button" aria-label="Close preview"><X size={15} /></button>
             </div>
             <div style={{ background: "rgba(0,0,0,0.2)", border: "1px solid var(--border)", borderRadius: 12, padding: 16 }}>
               {previewFile.mimeType?.startsWith("image/") ? (
-                <img src={previewFile.url} alt={previewFile.name} style={{ maxWidth: "100%", maxHeight: 420, display: "block", margin: "0 auto", borderRadius: 8 }} />
+                <img src={previewFile.previewUrl || previewFile.url} alt={previewFile.name} style={{ maxWidth: "100%", maxHeight: 560, display: "block", margin: "0 auto", borderRadius: 8 }} />
+              ) : previewFile.mimeType === "application/pdf" || previewFile.mimeType?.startsWith("text/") || previewFile.mimeType === "application/json" ? (
+                <iframe title={`Preview ${previewFile.name}`} src={previewFile.previewUrl || previewFile.url} style={{ width: "100%", height: "65vh", minHeight: 360, display: "block", border: 0, borderRadius: 8, background: "var(--card)" }} />
               ) : (
-                <pre style={{ margin: 0, whiteSpace: "pre-wrap", color: "var(--fg)", fontSize: 13 }}>{previewFile.url ? "Download URL available" : "No preview available for this file type."}</pre>
+                <div style={{ display: "grid", justifyItems: "center", gap: 12, padding: 36, color: "var(--muted)", textAlign: "center" }}>
+                  <FileText size={32} />
+                  <p style={{ margin: 0 }}>Preview is not available for this file type.</p>
+                  <button type="button" className="btn btn-primary" onClick={() => downloadFile(previewFile)}><Download size={15} /> Download file</button>
+                </div>
               )}
             </div>
           </div>

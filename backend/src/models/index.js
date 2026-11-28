@@ -22,3 +22,4 @@ export { default as Subscription } from "./Subscription.js";
 export { default as Invoice } from "./Invoice.js";
 export { default as Payment } from "./Payment.js";
 export { default as WebhookEvent } from "./WebhookEvent.js";
+export { default as Feedback } from "./Feedback.js";
